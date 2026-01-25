@@ -1,0 +1,42 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>E439935D-B2A2-46AE-856D-2AA408428F33</ProjectGuid>
+    <!--18cf30fa-5fec-43fd-a8e1-71484ba9e58f-->
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>
+    </StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>sdgMaw</Name>
+    <RootNamespace>sdgMaw</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Data\" />
+    <Folder Include="Data\Tables\" />
+    <Folder Include="Scripts\" />
+    <Folder Include="Scripts\General\" />
+    <Folder Include="Scripts\Global\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Data\Tables\Class Skillz.txt" />
+    <Compile Include="Scripts\General\sdgMaw_Skills.lua" />
+    <Compile Include="Scripts\General\zzClasses.lua" />
+    <Compile Include="Scripts\General\zzMaw-Monsters.lua" />
+    <Compile Include="Scripts\General\zzMAW-Skills.lua" />
+    <Compile Include="Scripts\General\zzMaw-Stats.lua" />
+    <Compile Include="Scripts\Global\zzMAWStatusMsg.lua" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+</Project>
