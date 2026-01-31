@@ -927,6 +927,7 @@ function events.CalcDamageToPlayer(t)
 	]]
 	roll=math.random()
 	if dodgeChance>=roll then
+	    AddCombatLog(pl.Name .. "  Dodged")
 		t.Result=0
 		-- Use the same player that performed the dodge calculation
 		local index = -1
@@ -1028,7 +1029,13 @@ function events.CalcDamageToPlayer(t)
 			end
 		end
 	end
-	
+	if(t.Result>0) then
+	 local monName="??"
+	 if(data.Monster) then
+	   monName = Game.MonstersTxt[data.Monster.Id].Name
+	 end
+	 AddCombatLog(monName .. " damaged ".. t.Player.Name .." " .. StrColor(255,0,0, shortenNumber(t.Result,4,true)))
+	end
 end
 
 --TOOLTIPS

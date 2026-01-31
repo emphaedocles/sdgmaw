@@ -31,12 +31,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Tables\Class Skillz.txt" />
-    <Compile Include="Scripts\General\sdgMaw_Skills.lua" />
-    <Compile Include="Scripts\General\zzClasses.lua" />
-    <Compile Include="Scripts\General\zzMaw-Monsters.lua" />
-    <Compile Include="Scripts\General\zzMAW-Skills.lua" />
-    <Compile Include="Scripts\General\zzMaw-Stats.lua" />
-    <Compile Include="Scripts\Global\zzMAWStatusMsg.lua" />
+    <Compile Include="Scripts\General\sdgDoomMap.lua">
+      <SubType>Code</SubType>
+    </Compile>
+    <Content Include="Scripts\General\sdgMaw_Skills.lua">
+      <Publish>True</Publish>
+    </Content>
+    <Content Include="Scripts\General\zzClasses.lua">
+      <Publish>True</Publish>
+    </Content>
+    <Content Include="Scripts\General\zzMaw-Monsters.lua">
+      <Publish>True</Publish>
+    </Content>
+    <Content Include="Scripts\General\zzMAW-Skills.lua">
+      <Publish>True</Publish>
+    </Content>
+    <Content Include="Scripts\General\zzMaw-Stats.lua">
+      <Publish>True</Publish>
+    </Content>
+    <Content Include="Scripts\Global\zzMAWStatusMsg.lua">
+      <Publish>True</Publish>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>

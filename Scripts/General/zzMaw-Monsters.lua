@@ -248,7 +248,7 @@ function recalculateMawMonster()
 					else 
 						partyLvl=oldTable.Level*2
 					end
-				elseif vars.Mode==2 then
+				elseif (vars.Mode==2 and vars.UseDoomMapLevels) then
 					if not madnessStartingMaps[name] and doomMapLevels[name] then
 						partyLvl=doomMapLevels[name]+(mapLevels[name].High-mapLevels[name].Mid)*2-oldTable.Level
 					else 
@@ -575,7 +575,7 @@ function recalculateMonsterTable()
 	local name=Game.MapStats[Map.MapStatsIndex].Name
 	if vars.madnessMode and madnessMapLevels[name] then
 		bolsterLevel=madnessMapLevels[name]
-	elseif vars.Mode==2 and madnessMapLevels[name] then
+	elseif (vars.Mode==2 and vars.UseDoomMapLevels) and madnessMapLevels[name] then
 		bolsterLevel=doomMapLevels[name]
 	end	
 	
@@ -700,7 +700,7 @@ function recalculateMonsterTable()
 			
 			totalLevel[i]=math.max(level, 5)
 			mon.Level=math.min(totalLevel[i],255)
-		elseif vars.Mode==2 and not madnessStartingMaps[name] and not mapvars.mapAffixes then
+		elseif (vars.Mode==2 and vars.UseDoomMapLevels) and not madnessStartingMaps[name] and not mapvars.mapAffixes then
 			local baseLevel=doomMapLevels[name] or 0
 			local withinMapDifference=(baseMapLevel-mean)*2
 			local tierModifier=(base.Level-LevelB)*2
@@ -1979,24 +1979,6 @@ madnessMapLevels["Pending"] = 1
 madnessMapLevels["NWC"] = 1
 
 
-doomMapLevels={}
-for key, value in pairs(mm6MapProgression) do
-	doomMapLevels[key]=round(((value/54)*100)^1.5)/2
-end
-
-for key, value in pairs(mm7MapProgression) do
-	doomMapLevels[key]=round(((value/52)*100)^1.5)/2
-end
-
-for key, value in pairs(mm8MapProgression) do
-	doomMapLevels[key]=round(((value/58)*100)^1.5)/2
-end
-
-doomMapLevels["Basement of the Breach"] = 500
-doomMapLevels["The Breach"] = 500
-doomMapLevels["The Arena"] = 1
-doomMapLevels["Pending"] = 1
-doomMapLevels["NWC"] = 1
 
 
 --[[
@@ -2786,7 +2768,7 @@ function checkMapCompletition()
 				end
 				if vars.madnessMode then
 					bolster=madnessMapLevels[name] or 0
-				elseif vars.Mode==2 then
+				elseif (vars.Mode==2 and vars.UseDoomMapLevels) then
 					bolster=doomMapLevels[name] or 0
 				end
 				if mapvars.mapAffixes then

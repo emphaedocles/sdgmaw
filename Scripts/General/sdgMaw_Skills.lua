@@ -1,36 +1,40 @@
 
+local MMPatch_UI = Game.PatchOptions.UILayoutActive()
 
 local function InitSDGSettings()
-   --debug.Message("Init")
+    -- debug.Message("Init")
 
-   SDGMAWSETTINGS=SDGMAWSETTINGS or {}
+    SDGMAWSETTINGS = SDGMAWSETTINGS or { }
 
-    SDGMAWSETTINGS.ftDamageToMonsters=true
-    SDGMAWSETTINGS.ftDamageToPlayers=true
-    SDGMAWSETTINGS.ftMonsterNameMinor=false
-    SDGMAWSETTINGS.ftMonsterNameBoss=true
-    SDGMAWSETTINGS.ftMonstrHealtherMinor=true
-    SDGMAWSETTINGS.ftMonsterHealthBoss=true
-    SDGMAWSETTINGS.ftPlayerHealing=true
-    SDGMAWSETTINGS.ftAbbreviateNames=true
+    SDGMAWSETTINGS.ftDamageToMonsters = true
+    SDGMAWSETTINGS.ftDamageToPlayers = true
+    SDGMAWSETTINGS.ftMonsterNameMinor = false
+    SDGMAWSETTINGS.ftMonsterNameBoss = true
+    SDGMAWSETTINGS.ftMonstrHealtherMinor = true
+    SDGMAWSETTINGS.ftMonsterHealthBoss = true
+    SDGMAWSETTINGS.ftPlayerHealing = true
+    SDGMAWSETTINGS.ftAbbreviateNames = true
 
-    --debug.Message(SDGMAWSETTINGS)
+    -- debug.Message(SDGMAWSETTINGS)
 end
 
 -- new stealth skill
 function events.GameInitialized2()
 
-   -- InitSDGSettings()   
+    -- InitSDGSettings()
 
     local stealthSkill = 54
     Skillz.new_armor(stealthSkill)
     Skillz.setName(stealthSkill, "Stealth")
-    Skillz.setDesc(stealthSkill, 1, "Increase the chance for this character to be successfully Covered.  Has a chance to gain a Backstab stack when succsfully covered.\nBackstab stacks are used to enhance next attack \n Masteries learnt at 8-16-32")
+    Skillz.setDesc(stealthSkill, 1, "Stealth/Finesse. Increase the chance for this character to be successfully Covered.  Has a chance to gain a Backstab stack when succsfully covered.\nBackstab stacks are used to enhance next attack \n Masteries learnt at 8-16-32")
     Skillz.setDesc(stealthSkill, 2, "Normal Cover bonus")
     Skillz.setDesc(stealthSkill, 3, "Double Cover bonus, chance to backstab per skill point. Backstab damage multiplier 1.5x")
     Skillz.setDesc(stealthSkill, 4, "Double Cover bonus, chance to backstab per skill point x2 Backstab damage multiplier 2x")
     Skillz.setDesc(stealthSkill, 5, "Triple Cover bonus, chance to backstab per skill point x3, Backstab damage multiplier 3x")
     Skillz.learn_at(stealthSkill, 30)
+
+   InitCombatLog()
+    
 end
 
 -- Stealth skill, points add
@@ -233,7 +237,7 @@ function events.GameInitialized2()
 end
 
 function SetCharDamText(t)
- --   if (not SDGMAWSETTINGS.ftDamageToPlayers) then return end
+    --   if (not SDGMAWSETTINGS.ftDamageToPlayers) then return end
 
     local pl = t.Player
     local dam = t.Result
@@ -263,13 +267,18 @@ function SetCharDamText(t)
                     txtCharDam[i]["dam"] = dam
                     txtCharDam[i]["txt"].Text = txt
                 end
+
+
             end
+
         end
+
+
     end
 end
 
 function SetHealText(playerNdx, heal)
-    --if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
+    -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
 
     if (heal > 0) then
         txtCharHealed = txtCharHealed or { }
@@ -300,7 +309,7 @@ function SetHealText(playerNdx, heal)
 
 end
 function SetLeechText(playerNdx, heal)
-    --if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
+    -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
     if (heal > 0) then
         txtCharHealed = txtCharHealed or { }
 
@@ -340,83 +349,83 @@ end
 
 
 function events.Tick()
-    --SDGMAWSETTINGS=SDGMAWSETTINGS or {}
+    -- SDGMAWSETTINGS=SDGMAWSETTINGS or {}
 
-    --if (SDGMAWSETTINGS.ftPLayerHealing) then
-        txtCharDam = txtCharDam or { }
-        for i = 0, Party.High do
-            local pl = Party[i]
-            local id = pl:GetIndex()
-            -- char healed text
-            txtCharHealed[i] = txtCharHealed[i] or { }
-            txtCharHealed[i]["tick"] = txtCharHealed[i]["tick"] or 0
-            if (txtCharHealed[i]["tick"] > 0) then
-                txtCharHealed[i]["txt"].Y = bsBaseY -(charHealTickStart - txtCharHealed[i]["tick"]);
-                txtCharHealed[i]["tick"] = txtCharHealed[i]["tick"] -1
+    -- if (SDGMAWSETTINGS.ftPLayerHealing) then
+    txtCharDam = txtCharDam or { }
+    for i = 0, Party.High do
+        local pl = Party[i]
+        local id = pl:GetIndex()
+        -- char healed text
+        txtCharHealed[i] = txtCharHealed[i] or { }
+        txtCharHealed[i]["tick"] = txtCharHealed[i]["tick"] or 0
+        if (txtCharHealed[i]["tick"] > 0) then
+            txtCharHealed[i]["txt"].Y = bsBaseY -(charHealTickStart - txtCharHealed[i]["tick"]);
+            txtCharHealed[i]["tick"] = txtCharHealed[i]["tick"] -1
+            Game.NeedRedraw = true
+            charHealClear[i] = true
+        else
+            if (charHealClear[i]) then
+                txtCharHealed[i]["txt"].Text = ""
+                txtCharHealed[i]["heal"] = 0
+                charHealClear[i] = false
                 Game.NeedRedraw = true
-                charHealClear[i] = true
-            else
-                if (charHealClear[i]) then
-                    txtCharHealed[i]["txt"].Text = ""
-                    txtCharHealed[i]["heal"] = 0
-                    charHealClear[i] = false
-                    Game.NeedRedraw = true
-                end
             end
-        --end
+        end
+        -- end
 
---        if (SDGMAWSETTINGS.ftDamageToPlayers) then
-            -- char damaged text
-            txtCharDam[i] = txtCharDam[i] or { }
-            txtCharDam[i]["tick"] = txtCharDam[i]["tick"] or 0
-            if (txtCharDam[i]["tick"] > 0) then
-                txtCharDam[i]["txt"].Y = bsBaseY -(charDamTickStart - txtCharDam[i]["tick"]);
-                txtCharDam[i]["tick"] = txtCharDam[i]["tick"] -1
+        --        if (SDGMAWSETTINGS.ftDamageToPlayers) then
+        -- char damaged text
+        txtCharDam[i] = txtCharDam[i] or { }
+        txtCharDam[i]["tick"] = txtCharDam[i]["tick"] or 0
+        if (txtCharDam[i]["tick"] > 0) then
+            txtCharDam[i]["txt"].Y = bsBaseY -(charDamTickStart - txtCharDam[i]["tick"]);
+            txtCharDam[i]["tick"] = txtCharDam[i]["tick"] -1
+            Game.NeedRedraw = true
+            charDamClear[i] = true
+        else
+            if (charDamClear[i]) then
+                txtCharDam[i]["txt"].Text = ""
+                txtCharDam[i]["dam"] = 0
+                charDamClear[i] = false
                 Game.NeedRedraw = true
-                charDamClear[i] = true
-            else
-                if (charDamClear[i]) then
-                    txtCharDam[i]["txt"].Text = ""
-                    txtCharDam[i]["dam"] = 0
-                    charDamClear[i] = false
-                    Game.NeedRedraw = true
-                end
             end
-        --end
+        end
+        -- end
 
-        --if (SDGMAWSETTINGS.ftDamageToMonsters) then
-            -- mon damaged text
-            txtMonDam[i] = txtMonDam[i] or { }
-            txtMonDam[i]["tick"] = txtMonDam[i]["tick"] or 0
-            if (txtMonDam[i]["tick"] > 0 and txtMonDam[i]["txt"].Y > 0 and txtMonDam[i]["txt"].X > 0) then
-                txtMonDam[i]["txt"].Y = txtMonDam[i]["txt"].Y - 1
-                txtMonDam[i]["tick"] = txtMonDam[i]["tick"] -1
+        -- if (SDGMAWSETTINGS.ftDamageToMonsters) then
+        -- mon damaged text
+        txtMonDam[i] = txtMonDam[i] or { }
+        txtMonDam[i]["tick"] = txtMonDam[i]["tick"] or 0
+        if (txtMonDam[i]["tick"] > 0 and txtMonDam[i]["txt"].Y > 0 and txtMonDam[i]["txt"].X > 0) then
+            txtMonDam[i]["txt"].Y = txtMonDam[i]["txt"].Y - 1
+            txtMonDam[i]["tick"] = txtMonDam[i]["tick"] -1
+            Game.NeedRedraw = true
+            monDamClear[i] = true
+        else
+            if (monDamClear[i]) then
+                txtMonDam[i]["txt"].Text = ""
+                txtMonDam[i]["dam"] = 0
+                monDamClear[i] = false
                 Game.NeedRedraw = true
-                monDamClear[i] = true
-            else
-                if (monDamClear[i]) then
-                    txtMonDam[i]["txt"].Text = ""
-                    txtMonDam[i]["dam"] = 0
-                    monDamClear[i] = false
-                    Game.NeedRedraw = true
-                end
             end
-            txtMonDamCrit[i] = txtMonDamCrit[i] or { }
-            txtMonDamCrit[i]["tick"] = txtMonDamCrit[i]["tick"] or 0
-            if (txtMonDamCrit[i]["tick"] > 0 and txtMonDamCrit[i]["txt"].Y > 0 and txtMonDamCrit[i]["txt"].X > 0) then
-                txtMonDamCrit[i]["txt"].Y = txtMonDamCrit[i]["txt"].Y - 1
-                txtMonDamCrit[i]["tick"] = txtMonDamCrit[i]["tick"] -1
+        end
+        txtMonDamCrit[i] = txtMonDamCrit[i] or { }
+        txtMonDamCrit[i]["tick"] = txtMonDamCrit[i]["tick"] or 0
+        if (txtMonDamCrit[i]["tick"] > 0 and txtMonDamCrit[i]["txt"].Y > 0 and txtMonDamCrit[i]["txt"].X > 0) then
+            txtMonDamCrit[i]["txt"].Y = txtMonDamCrit[i]["txt"].Y - 1
+            txtMonDamCrit[i]["tick"] = txtMonDamCrit[i]["tick"] -1
+            Game.NeedRedraw = true
+            monDamCritClear[i] = true
+        else
+            if (monDamCritClear[i]) then
+                txtMonDamCrit[i]["txt"].Text = ""
+                txtMonDamCrit[i]["dam"] = 0
+                monDamCritClear[i] = false
                 Game.NeedRedraw = true
-                monDamCritClear[i] = true
-            else
-                if (monDamCritClear[i]) then
-                    txtMonDamCrit[i]["txt"].Text = ""
-                    txtMonDamCrit[i]["dam"] = 0
-                    monDamCritClear[i] = false
-                    Game.NeedRedraw = true
-                end
             end
-        --end
+        end
+        -- end
 
         -- char backstab stacks
         local s, m = SplitSkill(Skillz.get(pl, 54))
@@ -477,6 +486,10 @@ function events.Tick()
     end
 
 end
+
+
+
+
 -- Distance utility
 local function getDistance(p, m)
     return math.sqrt((p.X - m.X) ^ 2 +(p.Y - m.Y) ^ 2 +(p.Z - m.Z) ^ 2)
@@ -510,12 +523,14 @@ local function ProjectToScreen(x, y, z, height)
     local scale_y = screenCenterY / depth
     local screenX = screenCenterX - math.max(math.min(horizontal_offset * 1.25 * scale_x, screenCenterX / 1.1), - screenCenterX / 1.1)
     local screenY = screenCenterY - math.max(math.min(vertical_offset * 2 * scale_y + height *(screenHeight / distance) ^ 0.5, screenCenterY / 1.1), - screenCenterY / 1.8)
+    --local screenX = screenCenterX - math.max(math.min(horizontal_offset * scale_x, screenCenterX ), - screenCenterX )
+    --local screenY = screenCenterY - math.max(math.min(vertical_offset * 2 * scale_y + height *(screenHeight / distance) ^ 0.5, screenCenterY ), - screenCenterY )
 
     return screenX, screenY
 end
 
 function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
-  --  if (not SDGMAWSETTINGS.ftDamageToMonsters) then return end
+    --  if (not SDGMAWSETTINGS.ftDamageToMonsters) then return end
 
     local height = Game.MonListBin[mon.Id].Height / 2
     local screenX, screenY = ProjectToScreen(mon.X, mon.Y, mon.Z, height)
@@ -543,7 +558,7 @@ function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
         txtMonDam = txtMonDam or { }
 
         local idx = pl:GetIndex()
-        for i = 0, 4 do
+        for i = 0, Party.High do
             local pidx = Party[i]:GetIndex()
             if (pidx == idx) then
 
@@ -574,28 +589,31 @@ function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
 end
 
 
--- monster health display
+
+-- monster health/name display
+-- ************************************************************
+
 function events.LoadMap()
-    mapvars.damaged_monsters = mapvars.damaged_monsters or { }
+    -- mapvars.damaged_monsters = mapvars.damaged_monsters or { }
 
     -- monster health display
     txtMonHP = txtMonHP or { }
 
 end
 function events.AfterLoadMap()
-   -- SDGMAWSETTINGS= SDGMAWSETTINGS or {}
+    -- SDGMAWSETTINGS= SDGMAWSETTINGS or {}
 
     if not Map or not Map.Monsters or type(Map.Monsters.High) ~= "number" then return end
-   -- if (not SDGMAWSETTINGS.ftMonsterNameBoss) then return end
 
     -- create boss monster Tags right away
     for i = 0, Map.Monsters.High do
         mon = Map.Monsters[i]
-        if mon and mon.NameId >= 220 and mon.NameId < 300 then
-            if (mon.HP > 0 and(mon.AIState ~= 5 and mon.AIState ~= 11)) then
-                mapvars.damaged_monsters[i] = mapvars.damaged_monsters[i] or { }
-                mapvars.damaged_monsters[i].timestamp = os.clock()
-                mapvars.damaged_monsters[i].hp_before_hit = mon.HP
+        if mon then
+            -- and mon.NameId >= 220 and mon.NameId < 300 then
+            --if (mon.HP > 0 and(mon.AIState ~= 5 and mon.AIState ~= 11)) then
+                --                mapvars.damaged_monsters[i] = mapvars.damaged_monsters[i] or { }
+                --                mapvars.damaged_monsters[i].timestamp = os.clock()
+                --                mapvars.damaged_monsters[i].hp_before_hit = mon.HP
 
                 local name = Game.MonstersTxt[mon.Id].Name
                 if mon.NameId > 0 then
@@ -615,287 +633,348 @@ function events.AfterLoadMap()
                         Width = 250,
                         Height = 20,
                         AlignLeft = true,
-                        Font = Game.Smallnum_fnt
+                        Font = Game.Smallnum_fnt,
+                        Active = false-- deactive until in range etc...
                     }
-
+                    
                 end
-            end
+          --  end
         end
     end
-end
-function events.LeaveMap()
-    -- clear text stuff
-    if (txtMonHP) then
-        for key, value_table in pairs(mapvars.damaged_monsters) do
-            local mon = Map.Monsters[key]
-            if (txtMonHP[mon.key]) then
-                CustomUI.RemoveElement(txtMonHP[mon.key])
-                txtMonHP[mon.key] = nil
-            end
-        end
-        txtMonHP = nil
-    end
+       -- AddCombatLog("Monsters on map " .. Map.Monsters.High)
+    
+
+--    if(not txtMonOnMap) then
+--      txtMonOnMap=CustomUI.CreateText {
+--                        Text = name,
+--                        Layer = 2,
+--                        Screen = 0,
+--                        X = 540,
+--                        -- 5+i*96, Y = 410
+--                        Y = 0,
+--                        ColorStd = RGB(64,192,192),
+--                        Width = 100,
+--                        Height = 100,
+--                        AlignLeft = true,
+--                        Font = Game.Smallnum_fnt,
+--                        Active = true
+--                    }
+--    end
+--    txtMonOnMap.Text="Mobs " .. Map.Monsters.High
+    
+
 end
 
--- Hook that triggers when damage is calculated (including environmental, other monster, etc.)
-function events.CalcDamageToMonster(t)
-   -- if (SDGMAWSETTINGS.ftMonsterNameMinor or SDGMAWSETTINGS.ftMonsterNameBoss) then
-        local mon = Map.Monsters[t.MonsterIndex]
-        if mon then
-            -- We store timestamp and HP here, but 'is_crit' will be more accurately set by ShowDamage
-            -- This ensures 'hp_before_hit' is always from the most recent damage calculation
-            mapvars.damaged_monsters[t.MonsterIndex] = mapvars.damaged_monsters[t.MonsterIndex] or { }
-            mapvars.damaged_monsters[t.MonsterIndex].timestamp = os.clock()
-            mapvars.damaged_monsters[t.MonsterIndex].hp_before_hit = mon.HP
-            -- Store HP *before* the damage is applied
-            -- IMPORTANT: Do NOT reset is_crit here. Let ShowDamage set it if it's a crit.
-            -- If CalcDamageToMonster is triggered by a non-crit after a crit, we want the crit indicator to persist briefly.
 
-            txtMonHP[t.MonsterIndex] = txtMonHP[t.MonsterIndex]
-            if (not txtMonHP[t.MonsterIndex]) then
-                txtMonHP[t.MonsterIndex] = CustomUI.CreateText {
-                    Text = "",
-                    Layer = 2,
-                    Screen = 0,
-                    X = 640 / 2,
-                    -- 5+i*96, Y = 410
-                    Y = 480 / 2,
-                    ColorStd = RGB(64,192,64),
-                    Width = 250,
-                    Height = 20,
-                    AlignLeft = true,
-                    Font = Game.Smallnum_fnt
-                }
-
-            end
-        end
-  --  end
-end
 
 -- On every tick, decide which monsters to show and write to JSON
 function events.Tick()
---SDGMAWSETTINGS=SDGMAWSETTINGS or {}
+    -- SDGMAWSETTINGS=SDGMAWSETTINGS or {}
 
+    if Game.CurrentScreen ~= 0 then return end
+    -- Only process in game screen
+    local bRedraw = false
 
-    local now = os.clock()
-    local output = {}
-    
-    if Game.CurrentScreen ~= 0 then return end -- Only process in game screen
-    
-    local monsters_to_remove = {}
-    local targeted_monster_index = nil
+    -- get maxID Monster
+    local maxS = 0
+    local maxM = 0
 
-    local tar = Mouse:GetTarget()
-    if tar and tar.Kind == 3 then
-        targeted_monster_index = tar.Index
+    for i = 0, Party.High do
+        local s, m = SplitSkill(Party[i]:GetSkill(const.Skills.IdentifyMonster))
+        local s1 = SplitSkill(Party[i].Skills[const.Skills.IdentifyMonster])
+        if s1 > 0 then
+            if s * m > maxS then
+                maxS = s * m
+            end
+            if m > maxM then
+                maxM = m
+            end
+        end
     end
-    local outcount=0
-        local bRedraw=false
+    local distAdj=1+ maxM/4
 
-    for key, value_table in pairs(mapvars.damaged_monsters) do
-        local mon = Map.Monsters[key]
-        
-		local exponent=math.floor(mon.Resistances[0]/1000)
-		local hp=mon.HP*2^exponent
-		local fullHP=mon.FullHP*2^exponent
-		
-        if  not mon.ShowOnMap or not mon.ShowAsHostile or hp<=0 or mon.AIState==5 or mon.AIState==11 then
-            table.insert(monsters_to_remove, key)
-            --mapvars.damaged_monsters[key] = nil
---            if(mapvars.txtMonHP[key]) then
---               txtMonHP[key].Text=""
---                bRedraw=true
---            end          
-            goto continue_loop
+    local alive=0
+    local total=Map.Monsters.High+1
+    local inRange=0
+    local onMap=0
+    local screenSpace=0
+    local activeC=0
+    
+
+
+    for i = 0, Map.Monsters.High do
+        local mon = Map.Monsters[i]
+
+        local exponent = math.floor(mon.Resistances[0] / 1000)
+        local hp = mon.HP * 2 ^ exponent
+        local basehp=mon.HP
+        local fullHP = mon.FullHP * 2 ^ exponent
+        local bLifeDetect =maxS>4 or Party.SpellBuffs[const.PartyBuff.DetectLife].ExpireTime > Game.Time or hp < fullHP
+
+        if(baseHP>0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19)) then
+         alive=alive +1
         end
 
-        local last_hit_timestamp = value_table.timestamp
-        local hp_before_hit = value_table.hp_before_hit or fullHP -- Fallback for safety
-        local is_crit = value_table.is_crit or false -- Retrieve crit status
+        if bLifeDetect and mon.ShowOnMap and mon.ShowAsHostile and baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19) then
+           onMap=onMap+1
 
-        local effective_display_time = 30000.0
-        if hp == 0 then
-            effective_display_time = 30.5
-        end
-
-        if (now - last_hit_timestamp <= effective_display_time) then
             local dist = getDistance(Party, mon)
+
             local barSize = CheckBarSize(mon)
-            local bTier=true
---            if(not SDGMAWSETTINGS.ftMonsterNameMinor) then
---                bTier= barSize>=250--include only bosses
---            else
---                bTier=barSize<250--include only minors (but why??)
---            end
-            if dist <= 5120 and bTier then
+            local bTier = barSize>=250 or hp<fullHP
+
+
+            if dist <= (2000*distAdj) and bTier then
+                inRange=inRange+1
+
                 local name = Game.MonstersTxt[mon.Id].Name
                 if mon.NameId > 0 then
                     name = Game.PlaceMonTxt[mon.NameId]
                 end
-                --name= name .. " " .. mon.AIState
---                if(SDGMAWSETTINGS.ftAbbreviateNames) then
---                    name=first_chars_of_words(name)
---                end
+                -- name= name .. " " .. mon.AIState
+                --                if(SDGMAWSETTINGS.ftAbbreviateNames) then
+                --                    name=first_chars_of_words(name)
+                --                end
 
                 local height = Game.MonListBin[mon.Id].Height
-                local hAdj=1
-                
-                if(barSize>=250) then hAdj=1.5  end
-                if(dist<1000) then
-                    hAdj=0.75
+                local hAdj = 1
+
+                if (barSize >= 250) then hAdj = 1.5 end
+                if (dist < 1000) then
+                    hAdj = 0.75
                 end
 
                 local screenX, screenY = ProjectToScreen(mon.X, mon.Y, mon.Z, height * hAdj)
-                
-				if screenX and screenY  then 
---                    local actual_damage = math.max(0, math.min(hp_before_hit, hp_before_hit - hp))
---                    outcount=outcount+1
---                    table.insert(output, {
---                        Index = key,
---                        Name = name,
---                        HP = hp,
---                        FullHP = fullHP,
---                        Distance = dist,
---                        ScreenX = screenX,
---                        ScreenY = screenY,
---                        BarSize = barSize,
---                        LastHitDamage = actual_damage,
---                        IsCrit = is_crit -- Include IsCrit in the output JSON
---                    })
-                      if(screenY<50) then screenY=50 end
 
-                       txtMonHP[key]=txtMonHP[key] or {}
-                        local cr,cg,cb
-                        cr=0
-                        cg=148
-                        cb=0
-                         if(barSize>=250) then--is boss
-                           txtMonHP[key].Font=Game.Lucida_fnt
-                            if(barSize>=400)then--omni
-                               --txtMonHP[key].ColorStd = RGB(192,255,0)
-                               cr=255
-                               cg=192
-                               cb=64
-                            elseif(barSize>=300)then--brood
-                                --txtMonHP[key].ColorStd = RGB(128,255,0)
-                                cr=255
-                                cg=128
-                                cb=32
-                            else
-                                --txtMonHP[key].ColorStd = RGB(64,255,64)
-                                cr=255
-                                cg=64
-                                cb=16
-                            end
+                if screenX and screenY then
+                    screenSpace=screenSpace+1
+                    if (screenY < 50) then screenY = 50 end
+                    if(not txtMonHP[i]) then
+                        txtMonHP[i] = CustomUI.CreateText {
+                        Text = name,
+                        Layer = 2,
+                        Screen = 0,
+                        X = 640 / 2,
+                        -- 5+i*96, Y = 410
+                        Y = 480 / 2,
+                        ColorStd = RGB(64,192,64),
+                        Width = 250,
+                        Height = 20,
+                        AlignLeft = true,
+                        Font = Game.Smallnum_fnt,
+                        Active = true-- deactive until in range etc...
+                    }
+                    
+                    end
+                    txtMonHP[i] = txtMonHP[i] or { }
+
+                    local cr, cg, cb
+                    cr = 0
+                    cg = 148
+                    cb = 0
+                    if (barSize >= 250) then
+                        -- is boss
+                        txtMonHP[i].Font = Game.Lucida_fnt
+                        if (barSize >= 400) then
+                            -- omni
+                            cr = 255
+                            cg = 192
+                            cb = 64
+                        elseif (barSize >= 300) then
+                            -- brood
+                            cr = 255
+                            cg = 128
+                            cb = 32
                         else
-                           txtMonHP[key].Font=Game.Smallnum_fnt
-                            --txtMonHP[key].ColorStd = RGB(64,192,64)
-                            cr=0
-                            cg=192
-                            cb=0
+                            cr = 255
+                            cg = 64
+                            cb = 16
                         end
-                       local txt=string.format("%s  %s/%s",name,hp,fullHP)
+                    else
+                        txtMonHP[i].Font = Game.Smallnum_fnt
+                        cr = 0
+                        cg = 192
+                        cb = 0
+                        name = ""
+                        -- show health only on minions
+                    end
+                    local status=""
+                    if(mon.AIState==8) then
+                    --stunned
+                     status="<Stunned>"
+                    end
+                    if(mon.AIState==15) then
+                    --paralyzed
+                    status="<Paralyzed>"
+                    end
+                    local txt = string.format("%s  %s/%s ", name, hp, fullHP, status)
 
-                       txtMonHP[key].Text=StrColor(cr,cg,cb, txt)
-                       txtMonHP[key].X=screenX
-                       txtMonHP[key].Y=screenY
-                       txtMonHP[key].Active=true
-                        bRedraw=true
-                else--offscreen
-                    txtMonHP[key]=txtMonHP[key] or {}
-                    txtMonHP[key].Active=false--off screen
+                    txtMonHP[i].Text = StrColor(cr, cg, cb, txt)
+                    txtMonHP[i].X = screenX
+                    txtMonHP[i].Y = screenY
+                    txtMonHP[i].Active = true
+                    activeC=activeC+1
+
+                    bRedraw = true
+                else
+                    -- offscreen
+                    txtMonHP[i] = txtMonHP[i] or { }
+                    if (txtMonHP[i].Active) then bRedraw = true end
+                  txtMonHP[i].Active = false
                 end
-            else--too far away
-                   txtMonHP[key]=txtMonHP[key] or {}
-                   txtMonHP[key].Active=false--off screen
+            else
+                -- too far away or filtered by tier
+                txtMonHP[i] = txtMonHP[i] or { }
+                if (txtMonHP[i].Active) then bRedraw = true end
+                txtMonHP[i].Active = false
             end
-        else--timed out
-            table.insert(monsters_to_remove, key)
---            mapvars.damaged_monsters[key] = nil
---            if(mapvars.txtMonHP[key]) then
---               txtMonHP[key].Text=""
---                bRedraw=true
---            end
+        else
+            -- not acvie, not hostile etc
+            txtMonHP[i] = txtMonHP[i] or { }
+            if (txtMonHP[i].Active) then bRedraw = true end
+            txtMonHP[i].Active = false
         end
-        ::continue_loop::
 
     end
+    
+   
 
-    for _, key in ipairs(monsters_to_remove) do
-        mapvars.damaged_monsters[key] = nil
-       txtMonHP[key]=txtMonHP[key] or {}
-
-        --if(mapvars.txtMonHP[key]) then
-           txtMonHP[key].Text=""
-            bRedraw=true
-      --  end
-    end
-
---    for i=0,outcount-1 do
---        local r=output[i] or {}
---        if(r)then
---            local key=r.Index
---           txtMonHP[key]=mapvars.txtMonHP[key] or {}
-
---           txtMonHP[key].Text=string.format("%s/%s",r.HP,r.FullHP)
---           txtMonHP[key].X=r.ScreenX
---           txtMonHP[key].Y=r.ScreenY
---            bRedraw=true
---        end
---    end
-
-    if(bRedraw) then Game.NeedRedraw=true end
+    if (bRedraw) then Game.NeedRedraw = true end
 
 end
 
 -- Function to get the first character of each word in a string
 function first_chars_of_words(input)
-   local out=""
+    local out = ""
     -- Validate input type
     if type(input) ~= "string" then
-       -- error("Input must be a string")
-       return out
+        -- error("Input must be a string")
+        return out
     end
 
     -- %S+ matches sequences of non-space characters (words)
     for word in input:gmatch("%S+") do
         -- Get the first UTF-8 character (works for ASCII too)
         local first_char = word:sub(1, 1)
-        --table.insert(result, first_char)
-        out=out .. " " .. first_char
+        -- table.insert(result, first_char)
+        out = out .. " " .. first_char
     end
 
     return out
 end
 
 
-local barSize={100,150,200,250,300,400}
+local barSize = { 100, 150, 200, 250, 300, 400 }
 function CheckBarSize(mon)
-    local monType=(mon.Id-1)%3+1
-    if mon.NameId>=220 and mon.NameId<300 then
+    local monType =(mon.Id - 1) % 3 + 1
+    if mon.NameId >= 220 and mon.NameId < 300 then
         local monsterSkill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
-        if monsterSkill=="Omnipotent" then
-            monType=6
-        elseif monsterSkill=="Broodling" then
-            monType=5
+        if monsterSkill == "Omnipotent" then
+            monType = 6
+        elseif monsterSkill == "Broodling" then
+            monType = 5
         else
-            monType=4
+            monType = 4
         end
     end
     return barSize[monType]
 end
 
--- MODIFIED: Update this function to explicitly set 'is_crit'
-function ShowDamage(pl, damage, crit, obj, mon)
-    -- This hook is called by the game when damage is displayed to the player.
-    -- If 'obj' is a monster and 'crit' is true, update its crit status.
-    if obj and obj.Kind == 3 and mon and mapvars.damaged_monsters[obj.Index] then
-        -- Ensure mapvars.damaged_monsters[obj.Index] table exists
-        mapvars.damaged_monsters[obj.Index] = mapvars.damaged_monsters[obj.Index] or {}
-        -- Set is_crit based on the 'crit' parameter from ShowDamage
-        mapvars.damaged_monsters[obj.Index].is_crit = crit or false
-        -- Also ensure the timestamp is updated so the bar is shown.
-        mapvars.damaged_monsters[obj.Index].timestamp = os.clock()
-        -- Note: hp_before_hit is set by CalcDamageToMonster for accuracy on damage number
+function InitCombatLog()
+    
+    iCombatLogRows=8
+    iLastCombatLog=0--will clear on new map
+    iCombatLogBaseY=75
+    txtCombatLog={}
+    ShowCombatLog=true
+
+--    local TogglePreview = CustomUI.CreateButton{
+--	IconUp = "tab6a",
+--	IconDown = "tab6b",
+--	Masked = true,
+--	Screen = {0, const.Screens.SelectTarget},
+--	Layer = 0,
+--	X = MMPatch_UI and 477 or -1,
+--	Y = MMPatch_UI and 30 or 100,
+--	Condition = InGame,
+--	MouseOverAction = function()
+--		Game.ShowStatusText(ShowCombatLog and "Hide CLog" or "Show CLog")
+--	end,
+--	Action = function(t)
+--		ShowCombatLog = not ShowCombatLog
+--		t.IUpSrc, t.IDwSrc = t.IDwSrc, t.IUpSrc
+--		t.IUpPtr, t.IDwPtr = t.IDwPtr, t.IUpPtr
+--		Game.NeedRedraw = true
+--	end,
+--	Key = "ShowCombatLog"
+--}
+
+     for i=0,iCombatLogRows-1 do     
+        txtCombatLog[i]=CustomUI.CreateText {
+                        Text ="",
+                        Layer = 3,
+                        Screen = {0,20},
+                        X = 640-300,
+                        -- 5+i*96, Y = 410
+                        Y = iCombatLogBaseY+ (i*28),
+                        ColorStd = RGB(128,192,192),
+                        Width = 300,
+                        Height = 28,
+                        AlignLeft = true,
+                        Font = Game.Smallnum_fnt,
+                        Active = false
+                    }
+        
     end
+end
+function events.KeyUp(t)
+    if(Game.CurrentScreen ~=0) then return end
+
+    if(t.Key==88)then
+    --L key
+     if(ShowCombatLog) then
+       ShowCombatLog=false
+     else
+        ShowCombatLog=true
+     end
+      for i=0,iLastCombatLog-1 do  
+        txtCombatLog[i].Active=ShowCombatLog
+      end
+      Game.Redraw=true
+    end
+    if(t.Key==86) then
+        ClearCombatLog()
+    end
+end
+function events.LeaveMap()
+ --ClearCombatLog()
+  
+end
+function events.ExitMapAction(t)
+--like exit game, death exit etc
+ --ClearCombatLog()-- don't clear on death
+ 
+end
+function AddCombatLog(msg)
+  local iRow=iLastCombatLog
+  if(iRow >= iCombatLogRows) then
+    iRow=iCombatLogRows-1
+    --move all items up one level
+    for i=0,iCombatLogRows-2 do
+        txtCombatLog[i].Text=txtCombatLog[i+1].Text
+    end
+  end
+    txtCombatLog[iRow].Text=msg
+    txtCombatLog[iRow].Active=ShowCombatLog
+    Game.Redraw=true
+
+  iLastCombatLog=iRow+1
+end
+function ClearCombatLog()
+  iLastCombatLog=0
+  for i=0,iCombatLogRows-1 do
+    txtCombatLog[i].Text=""
+    txtCombatLog[i].Active=false
+  end
+  Game.Redraw=true
 end
