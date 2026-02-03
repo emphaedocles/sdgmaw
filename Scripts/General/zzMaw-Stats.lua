@@ -3,873 +3,888 @@ map_data_reset_confirmation = map_data_reset_confirmation or 0
 
 -- --- SAFETY SHIM: ne change pas l'équilibrage
 if not rawget(_G, "safeGetMonsterLevel") then
-  function safeGetMonsterLevel(mon)
-    if type(getMonsterLevel) == "function" then
-      return getMonsterLevel(mon)  -- logique d'origine
+    function safeGetMonsterLevel(mon)
+        if type(getMonsterLevel) == "function" then
+            return getMonsterLevel(mon)
+            -- logique d'origine
+        end
+        return(mon and mon.Level) or 0
+        -- fallback neutre
     end
-    return (mon and mon.Level) or 0  -- fallback neutre
-  end
 end
 
 local function ensureDamageTrackIfMapvars()
-  if not mapvars then return false end
-  mapvars.damageTrack       = mapvars.damageTrack       or {}
-  mapvars.damageTrackRanged = mapvars.damageTrackRanged or {}
-  mapvars.backstabTrack=mapvars.backstabTrack or {}
-  mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
-	mapvars.coveredTargetTrack = mapvars.coveredTrack or { }
-mapvars.coveredTrack = mapvars.coveredTrack or { }
-mapvars.retaliationTrack = mapvars.retaliationTrack or { }
-mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
-  return true
+    if not mapvars then return false end
+    mapvars.damageTrack = mapvars.damageTrack or { }
+    mapvars.damageTrackRanged = mapvars.damageTrackRanged or { }
+    mapvars.backstabTrack = mapvars.backstabTrack or { }
+    mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
+    mapvars.coveredTargetTrack = mapvars.coveredTrack or { }
+    mapvars.coveredTrack = mapvars.coveredTrack or { }
+    mapvars.retaliationTrack = mapvars.retaliationTrack or { }
+    mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
+    return true
 end
 
 function events.KeyDown(t)
- 
-  if Game.CurrentScreen == 7 and Game.CurrentCharScreen == 100 then
-    if t.Key == 82 then -- "R"
-      Game.ShowStatusText("Map data reset, press Y to continue...")
-      map_data_reset_confirmation = 1
-    end
 
-    if (t.Key ~= 89) and (t.Key ~= 82) and (map_data_reset_confirmation == 1) then
-      map_data_reset_confirmation = 0
-    end
-
-    if t.Key == 89 and (map_data_reset_confirmation == 1) then -- "Y"
-      map_data_reset_confirmation = 0
-      pcall(function()
-        if ensureDamageTrackIfMapvars() and Party and Party.High then
-          for i = 0, Party.High do
-            local p = Party[i]
-            if p and p.GetIndex then
-              local idx = p:GetIndex()
-              mapvars.damageTrack[idx] = 0
-              mapvars.damageTrackRanged[idx] = 0
-			  mapvars.backstabTrack[idx]=0
-			  mapvars.backstabTrackCount[idx] = 0
-			  mapvars.coveredTargetTrack[idx] = 0
-			  mapvars.coveredTrack[idx] = 0
-			  mapvars.retaliationTrack[idx] = 0
-			  mapvars.retaliationTrackCount[idx] = 0
-
-            end
-          end
+    if Game.CurrentScreen == 7 and Game.CurrentCharScreen == 100 then
+        if t.Key == 82 then
+            -- "R"
+            Game.ShowStatusText("Map data reset, press Y to continue...")
+            map_data_reset_confirmation = 1
         end
-      end)
-      Game.ShowStatusText("Current map data reset.")
+
+        if (t.Key ~= 89) and(t.Key ~= 82) and(map_data_reset_confirmation == 1) then
+            map_data_reset_confirmation = 0
+        end
+
+        if t.Key == 89 and(map_data_reset_confirmation == 1) then
+            -- "Y"
+            map_data_reset_confirmation = 0
+            pcall( function()
+                if ensureDamageTrackIfMapvars() and Party and Party.High then
+                    for i = 0, Party.High do
+                        local p = Party[i]
+                        if p and p.GetIndex then
+                            local idx = p:GetIndex()
+                            mapvars.damageTrack[idx] = 0
+                            mapvars.damageTrackRanged[idx] = 0
+                            mapvars.backstabTrack[idx] = 0
+                            mapvars.backstabTrackCount[idx] = 0
+                            mapvars.coveredTargetTrack[idx] = 0
+                            mapvars.coveredTrack[idx] = 0
+                            mapvars.retaliationTrack[idx] = 0
+                            mapvars.retaliationTrackCount[idx] = 0
+
+                        end
+                    end
+                end
+            end )
+            Game.ShowStatusText("Current map data reset.")
+        end
     end
-  end
 end
 
 
 
 function getCritInfo(pl, dmgType, monLvl)
-	if not pl then return 0, 1, false end
-	monLvl = monLvl or pl.LevelBase or 0
+    if not pl then return 0, 1, false end
+    monLvl = monLvl or pl.LevelBase or 0
 
-	local luck = pl.GetLuck and pl:GetLuck() or 0
-	local totalCrit = luck / math.min((500 + monLvl*7.5), 5000) + 0.05
-	local critDamageMultiplier = 1
-	
-	local cap=1000
-	if vars.madnessMode then
-		cap=1500
-	end
-	local diminishingLevel=math.min(100+monLvl*1.4,cap)
-	if dmgType == "spell" then
-		local intellect = pl.GetIntellect and pl:GetIntellect() or 0
-		critDamageMultiplier = intellect/(diminishingLevel*4) + 1.5
-	elseif dmgType == "heal" then
-		--local intellect = pl.GetIntellect and pl:GetIntellect() or 0
-		--critDamageMultiplier = intellect*3/4000 + 1.25
-		return 0, 0, false
-	else
-		local accuracy = pl.GetAccuracy and pl:GetAccuracy() or 0
-		critDamageMultiplier = accuracy/(diminishingLevel) + 1.5
-	end
-	critDamageMultiplier=round(critDamageMultiplier*100)/100
-	-- dagger bonus
-	if not dmgType then
-		for i = 0, 1 do
-			local it = pl:GetActiveItem(i)
-			if it then
-				local itSkill = it:T().Skill
-				if itSkill == 2 then
-					local s, m = SplitSkill(pl:GetSkill(const.Skills.Dagger))
-					if m > 2 then
-						totalCrit = totalCrit + 0.05 + 0.01*s / math.min(1 + monLvl/200, 4)
-					end
-				end
-			end
-		end
-	end
+    local luck = pl.GetLuck and pl:GetLuck() or 0
+    local totalCrit = luck / math.min((500 + monLvl * 7.5), 5000) + 0.05
+    local critDamageMultiplier = 1
 
-	-- axe bonus
-	if not dmgType then
-		local it = pl:GetActiveItem(1)
-		if it and (table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number)) then
-			local s, m = SplitSkill(pl:GetSkill(const.Skills.Axe))
-			if m == 4 then
-				critDamageMultiplier = critDamageMultiplier + math.min(0.01* cap / diminishingLevel, 0.05) *s
-			end
-		end
-	end
+    local cap = 1000
+    if vars.madnessMode then
+        cap = 1500
+    end
+    local diminishingLevel = math.min(100 + monLvl * 1.4, cap)
+    if dmgType == "spell" then
+        local intellect = pl.GetIntellect and pl:GetIntellect() or 0
+        critDamageMultiplier = intellect /(diminishingLevel * 4) + 1.5
+    elseif dmgType == "heal" then
+        -- local intellect = pl.GetIntellect and pl:GetIntellect() or 0
+        -- critDamageMultiplier = intellect*3/4000 + 1.25
+        return 0, 0, false
+    else
+        local accuracy = pl.GetAccuracy and pl:GetAccuracy() or 0
+        critDamageMultiplier = accuracy /(diminishingLevel) + 1.5
+    end
+    critDamageMultiplier = round(critDamageMultiplier * 100) / 100
+    -- dagger bonus
+    if not dmgType then
+        for i = 0, 1 do
+            local it = pl:GetActiveItem(i)
+            if it then
+                local itSkill = it:T().Skill
+                if itSkill == 2 then
+                    local s, m = SplitSkill(pl:GetSkill(const.Skills.Dagger))
+                    if m > 2 then
+                        totalCrit = totalCrit + 0.05 + 0.01 * s / math.min(1 + monLvl / 200, 4)
+                    end
+                end
+            end
+        end
+    end
 
-	-- Fate / HoP (buff rework)
-	if vars.MAWSETTINGS == nil or vars.MAWSETTINGS.buffRework == "ON" then
-		if pl.SpellBuffs and pl.SpellBuffs[4] and pl.SpellBuffs[4].ExpireTime >= Game.Time then
-			local s, m	= getBuffSkill(47)
-			local s2, m2 = getBuffSkill(86)
-			s = math.max(s, s2/1.5)
-			m = math.max(m, m2)
-			if buffPower and buffPower[47] and buffPower[47].Base and buffPower[47].Scaling then
-				local bonus = (buffPower[47].Base[m] or 0)/100 + (buffPower[47].Scaling[m] or 0)*s/1000
-				totalCrit = totalCrit + bonus
-			end
-		end
-	end
+    -- axe bonus
+    if not dmgType then
+        local it = pl:GetActiveItem(1)
+        if it and(table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number)) then
+            local s, m = SplitSkill(pl:GetSkill(const.Skills.Axe))
+            if m == 4 then
+                critDamageMultiplier = critDamageMultiplier + math.min(0.01 * cap / diminishingLevel, 0.05) * s
+            end
+        end
+    end
 
-	if getMapAffixPower then
-		if getMapAffixPower(20) then 
-			totalCrit = totalCrit - getMapAffixPower(20)/100 
-		end
-		if getMapAffixPower(21) then
-			critDamageMultiplier = (critDamageMultiplier - 1) * (1 - getMapAffixPower(21)/100) + 1
-		end
-	end
+    -- Fate / HoP (buff rework)
+    if vars.MAWSETTINGS == nil or vars.MAWSETTINGS.buffRework == "ON" then
+        if pl.SpellBuffs and pl.SpellBuffs[4] and pl.SpellBuffs[4].ExpireTime >= Game.Time then
+            local s, m = getBuffSkill(47)
+            local s2, m2 = getBuffSkill(86)
+            s = math.max(s, s2 / 1.5)
+            m = math.max(m, m2)
+            if buffPower and buffPower[47] and buffPower[47].Base and buffPower[47].Scaling then
+                local bonus =(buffPower[47].Base[m] or 0) / 100 +(buffPower[47].Scaling[m] or 0) * s / 1000
+                totalCrit = totalCrit + bonus
+            end
+        end
+    end
 
-	local id = pl:GetIndex()
-	if not (vars.legendaries and table.find(vars.legendaries[id], 14)) then
-		totalCrit = math.min(totalCrit, 1)
-	else
-		totalCrit=totalCrit+0.1
-	end
+    if getMapAffixPower then
+        if getMapAffixPower(20) then
+            totalCrit = totalCrit - getMapAffixPower(20) / 100
+        end
+        if getMapAffixPower(21) then
+            critDamageMultiplier =(critDamageMultiplier - 1) *(1 - getMapAffixPower(21) / 100) + 1
+        end
+    end
 
-	local success = math.random() < totalCrit
-	return totalCrit, critDamageMultiplier, success
+    local id = pl:GetIndex()
+    if not(vars.legendaries and table.find(vars.legendaries[id], 14)) then
+        totalCrit = math.min(totalCrit, 1)
+    else
+        totalCrit = totalCrit + 0.1
+    end
+
+    local success = math.random() < totalCrit
+    return totalCrit, critDamageMultiplier, success
 end
 
-local SERVICE_CASTER = (Multiplayer and Multiplayer.SERVICE_CASTER) or 49
+local SERVICE_CASTER =(Multiplayer and Multiplayer.SERVICE_CASTER) or 49
 
 function events.CalcDamageToMonster(t)
-  local data = WhoHitMonster()
-  if not (data and data.Player and (t.DamageKind == 4
-    or (data.Object and data.Object.Spell == 133 and data.Object.Item and data.Object.Item.Bonus2 == 3)
-    or data.Spell == 135)) then
-    return
-  end
-
-  local pl = t.Player
-  if not pl then return end
-
-  local idx = data.Player:GetIndex()
-  if idx == SERVICE_CASTER or (not evt.IsPlayerInParty or not evt.IsPlayerInParty(idx)) then
-    return
-  end
-
-  if not damageMultiplier or not damageMultiplier[idx] then
-    return
-  end
-
-  local dmgMult
-  local baseDamage, maxDamage, randomDamage, damage
-  if (data.Object == nil) or (data.Spell == 135) then
-    baseDamage   = pl:GetMeleeDamageMin()
-    maxDamage    = pl:GetMeleeDamageMax()
-    randomDamage = math.random(baseDamage, maxDamage) + math.random(baseDamage, maxDamage)
-    damage       = round(randomDamage/2)
-
-    if table.find(assassinClass, pl.Class) and assassinationDamage then
-      local isolatedDamageReduction = assassinationDamage(pl, t.Monster, data.Object)
-      damage = damage - (isolatedDamageReduction or 0)
+    local data = WhoHitMonster()
+    if not(data and data.Player and(t.DamageKind == 4
+        or(data.Object and data.Object.Spell == 133 and data.Object.Item and data.Object.Item.Bonus2 == 3)
+        or data.Spell == 135)) then
+        return
     end
 
-    dmgMult = damageMultiplier[idx]["Melee"]
-  else
-    baseDamage   = pl:GetRangedDamageMin()
-    maxDamage    = pl:GetRangedDamageMax()
-    randomDamage = math.random(baseDamage, maxDamage) + math.random(baseDamage, maxDamage)
-    damage       = round(randomDamage/2)
+    local pl = t.Player
+    if not pl then return end
 
-    dmgMult = damageMultiplier[idx]["Ranged"]
-    if table.find(assassinClass, pl.Class) and assassinationDamage then
-      assassinationDamage(pl, t.Monster, data.Object)
+    local idx = data.Player:GetIndex()
+    if idx == SERVICE_CASTER or(not evt.IsPlayerInParty or not evt.IsPlayerInParty(idx)) then
+        return
     end
-  end
 
-  t.Result = damage * (dmgMult or 1)
+    if not damageMultiplier or not damageMultiplier[idx] then
+        return
+    end
+
+    local dmgMult
+    local baseDamage, maxDamage, randomDamage, damage
+    if (data.Object == nil) or(data.Spell == 135) then
+        baseDamage = pl:GetMeleeDamageMin()
+        maxDamage = pl:GetMeleeDamageMax()
+        randomDamage = math.random(baseDamage, maxDamage) + math.random(baseDamage, maxDamage)
+        damage = round(randomDamage / 2)
+
+        if table.find(assassinClass, pl.Class) and assassinationDamage then
+            local isolatedDamageReduction = assassinationDamage(pl, t.Monster, data.Object)
+            damage = damage -(isolatedDamageReduction or 0)
+        end
+
+        dmgMult = damageMultiplier[idx]["Melee"]
+    else
+        baseDamage = pl:GetRangedDamageMin()
+        maxDamage = pl:GetRangedDamageMax()
+        randomDamage = math.random(baseDamage, maxDamage) + math.random(baseDamage, maxDamage)
+        damage = round(randomDamage / 2)
+
+        dmgMult = damageMultiplier[idx]["Ranged"]
+        if table.find(assassinClass, pl.Class) and assassinationDamage then
+            assassinationDamage(pl, t.Monster, data.Object)
+        end
+    end
+
+    t.Result = damage *(dmgMult or 1)
 
 
-  local critChance, critMult, success = getCritInfo(pl, false, safeGetMonsterLevel(t.Monster))
-  if success then
-    t.Result = t.Result * critMult
-	crit=true
-  end
+    local critChance, critMult, success = getCritInfo(pl, false, safeGetMonsterLevel(t.Monster))
+    if success then
+        t.Result = t.Result * critMult
+        crit = true
+    end
 
-  if data.Player.Weak and data.Player.Weak > 0 then
-    t.Result = t.Result * 0.5
-  end
-  if data.Object and data.Object.Spell == 133 and data.Object.Item and data.Object.Item.Bonus2 == 3 then
-    t.Result = t.Result * 0.25
-  end
+    if data.Player.Weak and data.Player.Weak > 0 then
+        t.Result = t.Result * 0.5
+    end
+    if data.Object and data.Object.Spell == 133 and data.Object.Item and data.Object.Item.Bonus2 == 3 then
+        t.Result = t.Result * 0.25
+    end
 end
 
 
 
---speed
---SPEED WILL NOW REDUCE RECOVERY TIME
-masteryName={"Normal", "Expert", "Master", "GM"}
-oldTable={}
+-- speed
+-- SPEED WILL NOW REDUCE RECOVERY TIME
+masteryName = { "Normal", "Expert", "Master", "GM" }
+oldTable = { }
 function events.GameInitialized2()
-	for i=0,132 do 
-		oldTable[i]={}
-		for v=1,4 do
-			oldTable[i][v]=Game.Spells[i]["Delay" .. masteryName[v]]
-		end
-	end
+    for i = 0, 132 do
+        oldTable[i] = { }
+        for v = 1, 4 do
+            oldTable[i][v] = Game.Spells[i]["Delay" .. masteryName[v]]
+        end
+    end
 end
 function events.PlayerCastSpell(t)
-	local spell=t.SpellId
-	local m=math.max(1,t.Mastery)
-	Game.Spells[spell]["Delay" .. masteryName[m]]=getSpellDelay(t.Player,spell)
+    local spell = t.SpellId
+    local m = math.max(1, t.Mastery)
+    Game.Spells[spell]["Delay" .. masteryName[m]] = getSpellDelay(t.Player, spell)
 end
 
-function getSpellDelay(pl,spell)
-	if table.find(assassinClass, pl.Class) then
-		return GetAssassinSpellDelay(pl,spell)
-	end
-	local s,m=SplitSkill(pl.Skills[math.ceil(spell/11)+11])
-	if m==0 then return 150 end
-	local haste=math.floor(pl:GetSpeed()/10)
-	local enchantMult=1
-	for i=0,2 do
-		local it=pl:GetActiveItem(i)
-		if it and it.Bonus2==40 then
-			enchantMult=enchantMult+0.1
-		end
-	end
-	local ascensionSkill=0
-	local skill=SplitSkill(pl:GetSkill(const.Skills.Learning))
-	if table.find(spells, spell) or (healingSpells and healingSpells[spell]) then
-		ascensionSkill=skill
-	end
-	
-	--shield/armor impair
-	--slow depending on item
-	armorDelay=1
-	local it=pl:GetActiveItem(0)
-	if it then
-		local skill=it:T().Skill
-		if weaponImpair[skill] then
-			local s,m=SplitSkill(pl:GetSkill(skill))
-			armorDelay=armorDelay+weaponImpair[skill][m]/100
-		end
-	end
-	local it=pl:GetActiveItem(3)
-	if it then
-		local skill=it:T().Skill
-		if weaponImpair[skill] then
-			local s,m=SplitSkill(pl:GetSkill(skill))
-			armorDelay=armorDelay+weaponImpair[skill][m]/100
-		end
-	end
+function getSpellDelay(pl, spell)
+    if table.find(assassinClass, pl.Class) then
+        return GetAssassinSpellDelay(pl, spell)
+    end
+    local s, m = SplitSkill(pl.Skills[math.ceil(spell / 11) + 11])
+    if m == 0 then return 150 end
+    local haste = math.floor(pl:GetSpeed() / 10)
+    local enchantMult = 1
+    for i = 0, 2 do
+        local it = pl:GetActiveItem(i)
+        if it and it.Bonus2 == 40 then
+            enchantMult = enchantMult + 0.1
+        end
+    end
+    local ascensionSkill = 0
+    local skill = SplitSkill(pl:GetSkill(const.Skills.Learning))
+    if table.find(spells, spell) or(healingSpells and healingSpells[spell]) then
+        ascensionSkill = skill
+        if table.find(elementalistClass, pl.Class) then
+            ascensionSkill = 0
+            for i = 12, 15 do
+                local s, m = SplitSkill(pl.Skills[i])
+                ascensionSkill = ascensionSkill + s / 4
+            end
+            ascensionSkill = math.floor(ascensionSkill)
+        end
+    end
 
-	
-	local hasteDiv=1
-	if vars.MAWSETTINGS.buffRework=="ON" then
-		local hasteMult=1
-		if Party.SpellBuffs[8].ExpireTime>=Game.Time or pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime>Game.Time then
-			local s, m=getBuffSkill(5)
-			local s2,m2=getBuffSkill(86)
-			local s3=0
-			local m3=0
-			if pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime>Game.Time then
-				s3=25
-				m3=3
-			end
-			s=math.max(s,s2/1.5,s3)
-			m=math.max(m,m2,m3)
-			hasteDiv=math.max(1+buffPower[5].Base[m]/100+buffPower[5].Scaling[m]*s/1000, hasteDiv)
-		end
-	end
-	local delay=round(oldTable[spell][m]/(1+haste/100)*1.015^ascensionSkill/hasteDiv/enchantMult)*armorDelay
-	if table.find(elementalistClass, pl.Class) then
-		delay=delay*1.5
-		local id=pl:GetIndex()
-		vars.eleStacks=vars.eleStacks or {}
-		vars.eleStacks[id]=vars.eleStacks[id] or 0
-		local stacks=vars.eleStacks[id]
-		local speedIncrease=1+stacks*0.05
-		delay=delay/speedIncrease
-	end
-	if spell==123 then
-		delay=round(pl:GetAttackDelay(true)*1.5)
-	end
-	if getMapAffixPower(27) then
-		delay=delay/(1-getMapAffixPower(27)/100)
-	end
-	delay=round(delay)
-	return delay
+    -- shield/armor impair
+    -- slow depending on item
+    armorDelay = 1
+    local it = pl:GetActiveItem(0)
+    if it then
+        local skill = it:T().Skill
+        if weaponImpair[skill] then
+            local s, m = SplitSkill(pl:GetSkill(skill))
+            armorDelay = armorDelay + weaponImpair[skill][m] / 100
+        end
+    end
+    local it = pl:GetActiveItem(3)
+    if it then
+        local skill = it:T().Skill
+        if weaponImpair[skill] then
+            local s, m = SplitSkill(pl:GetSkill(skill))
+            armorDelay = armorDelay + weaponImpair[skill][m] / 100
+        end
+    end
+
+
+    local hasteDiv = 1
+    if vars.MAWSETTINGS.buffRework == "ON" then
+        local hasteMult = 1
+        if Party.SpellBuffs[8].ExpireTime >= Game.Time or pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime > Game.Time then
+            local s, m = getBuffSkill(5)
+            local s2, m2 = getBuffSkill(86)
+            local s3 = 0
+            local m3 = 0
+            if pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime > Game.Time then
+                s3 = 25
+                m3 = 3
+            end
+            s = math.max(s, s2 / 1.5, s3)
+            m = math.max(m, m2, m3)
+            hasteDiv = math.max(1 + buffPower[5].Base[m] / 100 + buffPower[5].Scaling[m] * s / 1000, hasteDiv)
+        end
+    end
+    local delay = round(oldTable[spell][m] /(1 + haste / 100) * 1.015 ^ ascensionSkill / hasteDiv / enchantMult) * armorDelay
+    if table.find(elementalistClass, pl.Class) then
+        delay = delay * 1.5
+        local id = pl:GetIndex()
+        vars.eleStacks = vars.eleStacks or { }
+        vars.eleStacks[id] = vars.eleStacks[id] or 0
+        local stacks = vars.eleStacks[id]
+        local speedIncrease = 1 + stacks * 0.05
+        delay = delay / speedIncrease
+    end
+    if spell == 123 then
+        delay = round(pl:GetAttackDelay(true) * 1.5)
+    end
+    if getMapAffixPower(27) then
+        delay = delay /(1 - getMapAffixPower(27) / 100)
+    end
+    delay = round(delay)
+    return delay
 end
---remove AC from hit calculation and unarmed code from misctweaks
-nextACToZero=0
-acNerf=0
+-- remove AC from hit calculation and unarmed code from misctweaks
+nextACToZero = 0
+acNerf = 0
 function events.PlayerAttacked(t)
-	if t.Attacker and t.Attacker.Monster then
-		mon=t.Attacker.Monster --don't set local
-		local lvl=getMonsterLevel(mon)
-		nerfAmount=math.max(1,lvl/255) --don't set local
-		if t.Attacker.MonsterAction==0 then
-			ac=t.Player:GetArmorClass()
-			if t.Attacker.Monster.Attack1.Type~=4 then
-				nextACToZero=2
-			elseif Game.BolsterAmount>100 then
-				acNerf=2
-				nerfAmount=nerfAmount*math.min(Game.BolsterAmount,300)/100
-			end
-		elseif t.Attacker.MonsterAction==1 then
-			if t.Attacker.Monster.Attack2.Type~=4 then
-				nextACToZero=2
-			elseif Game.BolsterAmount>100 then
-				acNerf=2
-				nerfAmount=nerfAmount*math.min(Game.BolsterAmount,300)/100
-			end
-		end
-	end
+    if t.Attacker and t.Attacker.Monster then
+        mon = t.Attacker.Monster
+        -- don't set local
+        local lvl = getMonsterLevel(mon)
+        nerfAmount = math.max(1, lvl / 255)
+        -- don't set local
+        if t.Attacker.MonsterAction == 0 then
+            ac = t.Player:GetArmorClass()
+            if t.Attacker.Monster.Attack1.Type ~= 4 then
+                nextACToZero = 2
+            elseif Game.BolsterAmount > 100 then
+                acNerf = 2
+                nerfAmount = nerfAmount * math.min(Game.BolsterAmount, 300) / 100
+            end
+        elseif t.Attacker.MonsterAction == 1 then
+            if t.Attacker.Monster.Attack2.Type ~= 4 then
+                nextACToZero = 2
+            elseif Game.BolsterAmount > 100 then
+                acNerf = 2
+                nerfAmount = nerfAmount * math.min(Game.BolsterAmount, 300) / 100
+            end
+        end
+    end
 end
 
 function events.GetArmorClass(t)
-	if nextACToZero>0 then
-		t.AC=0
-		nextACToZero=nextACToZero-1
-	elseif acNerf>0 then
-		local lvl=getMonsterLevel(mon)
-		local hit=CalcHitOrMiss(lvl, t.AC/nerfAmount)
-		if hit then
-			t.AC=0
-		else
-			t.AC=64000
-		end
-		acNerf=acNerf-1
-	end
+    if nextACToZero > 0 then
+        t.AC = 0
+        nextACToZero = nextACToZero - 1
+    elseif acNerf > 0 then
+        local lvl = getMonsterLevel(mon)
+        local hit = CalcHitOrMiss(lvl, t.AC / nerfAmount)
+        if hit then
+            t.AC = 0
+        else
+            t.AC = 64000
+        end
+        acNerf = acNerf - 1
+    end
 end
 
 function CalcHitOrMiss(monLvl, AC)
-	local hitChance=(5+monLvl*2)/(10+monLvl*2+AC)
-	if hitChance<math.random() then
-		return false
-	else
-		return true
-	end
+    local hitChance =(5 + monLvl * 2) /(10 + monLvl * 2 + AC)
+    if hitChance < math.random() then
+        return false
+    else
+        return true
+    end
 end
 
---body building description
+-- body building description
 function events.GameInitialized2()
-	txt=Skillz.getDesc(27,1) .. "\n\nHit Points are also increased 2-3-4-5% per skill point, depending on mastery."
-	Skillz.setDesc(27,1,txt)
+    txt = Skillz.getDesc(27, 1) .. "\n\nHit Points are also increased 2-3-4-5% per skill point, depending on mastery."
+    Skillz.setDesc(27, 1, txt)
 end
 
 function events.BuildStatInformationBox(t)
-	if t.Stat==0 then
-		i=Game.CurrentPlayer
-		might=Party[i]:GetMight()
-		t.Text=string.format("%s\n\nBonus Melee/Bow Damage: %s%s",Game.StatsDescriptions[0],might/10,"%")
-	end
-	if t.Stat==1 then
-		i=Game.CurrentPlayer
-		intellect=Party[i]:GetIntellect()
-		_,critDmg=getCritInfo(Party[i],"spell")
-		local baseText="Intellect represents a character's ability to reason and understand complex, abstract concepts.\nSpell Damage and Spell Critical Damage are based on Intellect."
-		t.Text=string.format("%s\n\nBonus magic damage: %s%s\n\nCritical spell strike damage: %s%s",baseText,intellect/10,"%",critDmg*100-100,"%")
-	end
-	if t.Stat==2 then
-		i=Game.CurrentPlayer
-		personality=Party[i]:GetPersonality()
-		_,critDmg=getCritInfo(Party[i],"spell")
-		-- Calculate spell cost reduction percentage
-		local level = Party[i].LevelBase
-		local spellCostReduction = round((1-getPersonalityManaCostReduction(Party[i]))*1000)/10
-		local healingBonus = round(personality/math.min(1000+level*3, 4000)*1000)/10
-		local baseText="Personality represents both a character's strength of will and personal charm. Maximum spell points, Mana cost and Healing Power are based on Personality."
-		t.Text=string.format("%s\n\nBonus healing: %s%s\n\nSpell cost reduction: %s%s\n\nIncrease the mana by 2 levels worth of mana per 5 personality",baseText,healingBonus,"%",spellCostReduction,"%")
-	end
-	if t.Stat==3 then
-		i=Game.CurrentPlayer
-		endurance=Party[i]:GetEndurance()
-		HPScaling=Game.Classes.HPFactor[Party[i].Class]
-		level=Party[i]:GetLevel()
-		t.Text=string.format("%s\n\nHealth bonus from Endurance: %s%s\n\nFlat HP bonus from Endurance: %s",Game.StatsDescriptions[3],endurance/10,"%",math.floor(endurance/5)*HPScaling)
-	end
-	if t.Stat==4 then
-		i=Game.CurrentPlayer
-		accuracy=Party[i]:GetAccuracy()
-		_,critDmg=getCritInfo(Party[i])
-		t.Text=string.format("%s\n\nCritical melee and bow strike damage bonus: %s%s",Game.StatsDescriptions[4],critDmg*100-100,"%")
-	end
-	if t.Stat==5 then
-		i=Game.CurrentPlayer
-		speed=Party[i]:GetSpeed()
-		dodging=0
-		Skill, Mas = SplitSkill(Party[i]:GetSkill(const.Skills.Dodging))
-		if Mas == 4 and Game.CharacterPortraits[pl.Face].Race~=const.Race.Dragon then
-			dodging=Skill+10
-			dodgeChance=1-1/(1+dodging/200)
-			t.Text=string.format("%s\n\nDodge chance: %s%%",Game.StatsDescriptions[5],math.floor(dodgeChance*1000)/10)
-		end
-		--spell haste
-		speed=Party[i]:GetSpeed()
-		spellSpeedEffect=math.floor(speed/10)
-		local it=Party[i]:GetActiveItem(1)
-		if it and it.Bonus2==40 then
-			spellSpeedEffect=spellSpeedEffect+20
-		end
-		--melee haste
-		delay=math.max(Party[i]:GetAttackDelay())
-		meleeHaste=bonusSpeed
-		--bow haste
-		delay=Party[i]:GetAttackDelay(true)
-		bowHaste=bonusSpeed
-		t.Text=string.format("%s\n\nMelee Haste:   %s%%\nRanged Haste: %s%%\nSpell Haste:   %s%%",t.Text,meleeHaste,bowHaste,spellSpeedEffect)
-	end
-	if t.Stat==6 then
-		local i=Game.CurrentPlayer
-		local lvl=Party[i].LevelBase
-		if Party.High==0 then
-			lvl=calcLevel(Party[0].Experience/5)
-		end
-		local critChance=round(getCritInfo(Party[i], "ranged",lvl)*10000)/100
-		local daggerCritBonus=round(getCritInfo(Party[i],false,lvl)*10000)/100
-		t.Text=string.format("%s\n\nCritical strike chance: %s%%",Game.StatsDescriptions[6],critChance)
-		daggerBonus=daggerCritBonus~=critChance
-		if daggerBonus then
-			t.Text=string.format("%s\n\nCritical strike chance: %s%%(%s%% with dagger)",Game.StatsDescriptions[6],critChance, daggerCritBonus)
-		end
-	end
-	if t.Stat==7 then
-		local i=Game.CurrentPlayer
-		local pl=Party[i]
-		HPregenItem=HPregenItem
-		regen=math.round(getBuffHealthRegen(pl)*10)/10
-		
-		hpMap=hpStatsMap[i]
-		
-		t.Text=string.format("%s\n\nHP bonus from Endurance: %s\nHP bonus from Body building: %s\nHP bonus from items: %s\nBase HP: %s\n\n HP Regen per second: %s",t.Text,StrColor(0,255,0,hpMap.totalEnduranceBonus), StrColor(0,255,0,hpMap.totalBBBonus),StrColor(0,255,0,round(hpMap.totalhpFromItems)),StrColor(0,255,0,hpMap.totalBaseHP),StrColor(0,255,0,regen))
-	end
-	if t.Stat==8 then
-		local i=Game.CurrentPlayer
-		local fullSP=Party[i]:GetFullSP()
-		if vars.MAWSETTINGS.buffRework=="ON" and vars.currentManaPool and vars.currentManaPool[i] then
-			fullSP=fullSP*(vars.currentManaPool[Game.CurrentPlayer]/fullSP)^0.5
-		end
-		local skill=Party[i]:GetSkill(const.Skills.Meditation)
-		local s,m=SplitSkill(skill)
-		if m==4 then
-			m=5
-		end
-		local medRegen = round(fullSP^0.35*s^1.4*(m+1)/20)+2
-		--meditation buff
-		if vars.MAWSETTINGS.buffRework=="ON" and vars.mawbuff[56] then
-			local s, m, level=getBuffSkill(56)
-			local level=level^0.65
-			medRegen = medRegen + round((fullSP^0.35*level^1.4*((buffPower[56].Base[m])/100) +10)*(1+buffPower[56].Scaling[m]/100*s))
-		end
-		
-		local SPregenItem=0
-		local bonusregen=0
-		for it in Party[i]:EnumActiveItems() do
-			if it.Bonus2 == 38 or it.Bonus2==47 or it.Bonus2==55 or it.Bonus2==66 then		
-				--SPregenItem=SPregenItem+1
-				--bonusregen=1
-				--such enchants now increase meditation instead
-			end
-			if table.find(artifactSpRegen, it.Number) then
-				SPregenItem=SPregenItem+1
-				bonusregen=1
-			end
-		end
-		regen=math.ceil(Party[i]:GetFullSP()*SPregenItem*0.01)+medRegen+bonusregen
-		t.Text=string.format("%s\n\nSpell point regen per second: %s",t.Text,StrColor(40,100,255,regen/10))
-	end
-	
-	if t.Stat==9 then
-		i=Game.CurrentPlayer
-		local ac=Party[i]:GetArmorClass()
-		local acReduction=round((100-calcMawDamage(Party[i],4,10000)/100)*100)/100
-		local lvl=math.min(Party[i].LevelBase)
-		local nerfAmount=math.max(1,lvl/255)
-		if Game.BolsterAmount>100 then
-			nerfAmount=Game.BolsterAmount/100
-			ac=ac/nerfAmount
-		end
-		blockChance= 100-round((5+lvl*2)/(10+lvl*2+ac)*10000)/100
-		totRed= 100-round((100-blockChance)*(100-acReduction))/100
-		t.Text=string.format("%s\n\nPhysical damage reduction: %s%s",t.Text,StrColor(255,255,100,acReduction),StrColor(255,255,100,"%") .. "\nBlock chance vs same level monsters: " .. StrColor(255,255,100,blockChance) .. StrColor(255,255,100,"%") .. "\n\nTotal average damage reduction: " .. StrColor(255,255,100,totRed) .. "%")
-	end
-	
-	if t.Stat==5234672 then
-		i=Game.CurrentPlayer
-		local pl=Party[i]
-		--get spell and its damage
-		DPS1, DPS2, DPS3, vitality=calcPowerVitality(pl)
-		local txt=string.format("Melee Power: %s\nRanged Power: %s\nSpell Power: %s",StrColor(255,0,0,DPS1),StrColor(200,200,0,DPS2),StrColor(50,50,220,DPS3))
-			
-		t.Text=string.format("%s\n%s",t.Text,txt)
-		
-	end
-	
-	if t.Stat==11 then
-		local i=Game.CurrentPlayer
-		local pl=Party[i]
-		local id=pl:GetIndex()
-		--check and add equipped legendaries
-		local legTxt="Currently Active Legendary effects:"
-		for i=1,#legendaryEffects-10 do
-			local legId=i+10
-			if vars.legendaries and vars.legendaries[id] and table.find(vars.legendaries[id], legId) then
-				legTxt= legTxt .. StrColor(255,255,30,"\n\n - " .. legendaryEffects[legId])
-			end
-		end
-		
-		t.Text=legTxt
-	end
-	
-	if t.Stat==13 or t.Stat==14 then
-		local bolsterLevel8=getPartyLevel(1)
-		local bolsterLevel7=getPartyLevel(2)
-		local bolsterLevel6=getPartyLevel(3)
-		local bolsterLevel8=math.max(bolsterLevel8-4,0)
-		local bolsterLevel7=math.max(bolsterLevel7-4,0)
-		local bolsterLevel6=math.max(bolsterLevel6-4,0)
-		if Multiplayer and Multiplayer.in_game and not Multiplayer.im_host() and vars.MultiplayerBolsterLevels then
-			t.Text=t.Text .."\n\nTotal Levels gained: " .. StrColor(255,255,153,round(getTotalLevel()*100)/100).. "\n\nLevels gained in MM6: " .. StrColor(255,255,153,round(vars.MultiplayerBolsterLevels[3]*100)/100) .. "\nLevels gained in MM7: " .. StrColor(255,255,153,round(vars.MultiplayerBolsterLevels[2]*100)/100) .. "\nLevels gained in MM8: " .. StrColor(255,255,153,round(vars.MultiplayerBolsterLevels[1]*100)/100) .. "\n\nBolster Level in MM6: " .. StrColor(255,255,153,round(bolsterLevel6)) .."\nBolster Level in MM7: " .. StrColor(255,255,153,round(bolsterLevel7)) .."\nBolster Level in MM8: " .. StrColor(255,255,153,round(bolsterLevel8))
-		else
-			t.Text=t.Text .."\n\nTotal Levels gained: " .. StrColor(255,255,153,round(getTotalLevel())).. "\n\nLevels gained in MM6: " .. StrColor(255,255,153,round(vars.MMLVL[3]*100)/100) .. "\nLevels gained in MM7: " .. StrColor(255,255,153,round(vars.MMLVL[2]*100)/100) .. "\nLevels gained in MM8: " .. StrColor(255,255,153,round(vars.MMLVL[1]*100)/100) .. "\n\nBolster Level in MM6: " .. StrColor(255,255,153,round(bolsterLevel6)) .."\nBolster Level in MM7: " .. StrColor(255,255,153,round(bolsterLevel7)) .."\nBolster Level in MM8: " .. StrColor(255,255,153,round(bolsterLevel8))
-		end
-	end
-	if t.Stat==15 then
-		local i=Game.CurrentPlayer
-		local atk=Party[i]:GetMeleeAttack()
-		local lvl=Party[i].LevelBase
-		local hitChance= round((15+atk*2)/(30+atk*2+lvl)*10000)/100
-		t.Text=string.format("%s\n\nHit chance vs same level monster: %s%s",t.Text,StrColor(255,255,100,hitChance),StrColor(255,255,100,"%"))
-	end
-	
-	if t.Stat==16 then
-		local i=Game.CurrentPlayer
-		--damage tracker
-		vars.damageTrack=vars.damageTrack or {}
-		vars.damageTrack[Party[i]:GetIndex()]=vars.damageTrack[Party[i]:GetIndex()] or 0
-		vars.backstabTrack = vars.backstabTrack or { }
-		vars.backstabTrack[Party[i]:GetIndex()] = vars.backstabTrack[Party[i]:GetIndex()] or 0
-		vars.backstabTrackCount = vars.backstabTrackCount or { }
-		vars.backstabTrackCount[Party[i]:GetIndex()] = vars.backstabTrackCount[Party[i]:GetIndex()] or 0
-vars.retaliationTrack = vars.retaliationTrack or { }
-vars.retaliationTrack[Party[i]:GetIndex()] = vars.retaliationTrack[Party[i]:GetIndex()] or 0
-vars.retaliationTrackCount = vars.retaliationTrackCount or { }
-vars.retaliationTrackCount[Party[i]:GetIndex()] = vars.retaliationTrackCount[Party[i]:GetIndex()] or 0
+    if t.Stat == 0 then
+        i = Game.CurrentPlayer
+        might = Party[i]:GetMight()
+        t.Text = string.format("%s\n\nBonus Melee/Bow Damage: %s%s", Game.StatsDescriptions[0], might / 10, "%")
+    end
+    if t.Stat == 1 then
+        i = Game.CurrentPlayer
+        intellect = Party[i]:GetIntellect()
+        _, critDmg = getCritInfo(Party[i], "spell")
+        local baseText = "Intellect represents a character's ability to reason and understand complex, abstract concepts.\nSpell Damage and Spell Critical Damage are based on Intellect."
+        t.Text = string.format("%s\n\nBonus magic damage: %s%s\n\nCritical spell strike damage: %s%s", baseText, intellect / 10, "%", critDmg * 100 - 100, "%")
+    end
+    if t.Stat == 2 then
+        i = Game.CurrentPlayer
+        personality = Party[i]:GetPersonality()
+        _, critDmg = getCritInfo(Party[i], "spell")
+        -- Calculate spell cost reduction percentage
+        local level = Party[i].LevelBase
+        local spellCostReduction = round((1 - getPersonalityManaCostReduction(Party[i])) * 1000) / 10
+        local healingBonus = round(personality / math.min(1000 + level * 3, 4000) * 1000) / 10
+        local baseText = "Personality represents both a character's strength of will and personal charm. Maximum spell points, Mana cost and Healing Power are based on Personality."
+        t.Text = string.format("%s\n\nBonus healing: %s%s\n\nSpell cost reduction: %s%s\n\nIncrease the mana by 2 levels worth of mana per 5 personality", baseText, healingBonus, "%", spellCostReduction, "%")
+    end
+    if t.Stat == 3 then
+        i = Game.CurrentPlayer
+        endurance = Party[i]:GetEndurance()
+        HPScaling = Game.Classes.HPFactor[Party[i].Class]
+        level = Party[i]:GetLevel()
+        t.Text = string.format("%s\n\nHealth bonus from Endurance: %s%s\n\nFlat HP bonus from Endurance: %s", Game.StatsDescriptions[3], endurance / 10, "%", math.floor(endurance / 5) * HPScaling)
+    end
+    if t.Stat == 4 then
+        i = Game.CurrentPlayer
+        accuracy = Party[i]:GetAccuracy()
+        _, critDmg = getCritInfo(Party[i])
+        t.Text = string.format("%s\n\nCritical melee and bow strike damage bonus: %s%s", Game.StatsDescriptions[4], critDmg * 100 - 100, "%")
+    end
+    if t.Stat == 5 then
+        i = Game.CurrentPlayer
+        speed = Party[i]:GetSpeed()
+        dodging = 0
+        Skill, Mas = SplitSkill(Party[i]:GetSkill(const.Skills.Dodging))
+        if Mas == 4 and Game.CharacterPortraits[pl.Face].Race ~= const.Race.Dragon then
+            dodging = Skill + 10
+            dodgeChance = 1 - 1 /(1 + dodging / 200)
+            t.Text = string.format("%s\n\nDodge chance: %s%%", Game.StatsDescriptions[5], math.floor(dodgeChance * 1000) / 10)
+        end
+        -- spell haste
+        speed = Party[i]:GetSpeed()
+        spellSpeedEffect = math.floor(speed / 10)
+        local it = Party[i]:GetActiveItem(1)
+        if it and it.Bonus2 == 40 then
+            spellSpeedEffect = spellSpeedEffect + 20
+        end
+        -- melee haste
+        delay = math.max(Party[i]:GetAttackDelay())
+        meleeHaste = bonusSpeed
+        -- bow haste
+        delay = Party[i]:GetAttackDelay(true)
+        bowHaste = bonusSpeed
+        t.Text = string.format("%s\n\nMelee Haste:   %s%%\nRanged Haste: %s%%\nSpell Haste:   %s%%", t.Text, meleeHaste, bowHaste, spellSpeedEffect)
+    end
+    if t.Stat == 6 then
+        local i = Game.CurrentPlayer
+        local lvl = Party[i].LevelBase
+        if Party.High == 0 then
+            lvl = calcLevel(Party[0].Experience / 5)
+        end
+        local critChance = round(getCritInfo(Party[i], "ranged", lvl) * 10000) / 100
+        local daggerCritBonus = round(getCritInfo(Party[i], false, lvl) * 10000) / 100
+        t.Text = string.format("%s\n\nCritical strike chance: %s%%", Game.StatsDescriptions[6], critChance)
+        daggerBonus = daggerCritBonus ~= critChance
+        if daggerBonus then
+            t.Text = string.format("%s\n\nCritical strike chance: %s%%(%s%% with dagger)", Game.StatsDescriptions[6], critChance, daggerCritBonus)
+        end
+    end
+    if t.Stat == 7 then
+        local i = Game.CurrentPlayer
+        local pl = Party[i]
+        HPregenItem = HPregenItem
+        regen = math.round(getBuffHealthRegen(pl) * 10) / 10
+
+        hpMap = hpStatsMap[i]
+
+        t.Text = string.format("%s\n\nHP bonus from Endurance: %s\nHP bonus from Body building: %s\nHP bonus from items: %s\nBase HP: %s\n\n HP Regen per second: %s", t.Text, StrColor(0, 255, 0, hpMap.totalEnduranceBonus), StrColor(0, 255, 0, hpMap.totalBBBonus), StrColor(0, 255, 0, round(hpMap.totalhpFromItems)), StrColor(0, 255, 0, hpMap.totalBaseHP), StrColor(0, 255, 0, regen))
+    end
+    if t.Stat == 8 then
+        local i = Game.CurrentPlayer
+        local fullSP = Party[i]:GetFullSP()
+        if vars.MAWSETTINGS.buffRework == "ON" and vars.currentManaPool and vars.currentManaPool[i] then
+            fullSP = fullSP *(vars.currentManaPool[Game.CurrentPlayer] / fullSP) ^ 0.5
+        end
+        local skill = Party[i]:GetSkill(const.Skills.Meditation)
+        local s, m = SplitSkill(skill)
+        if m == 4 then
+            m = 5
+        end
+        local medRegen = round(fullSP ^ 0.35 * s ^ 1.4 *(m + 1) / 20) + 2
+        -- meditation buff
+        if vars.MAWSETTINGS.buffRework == "ON" and vars.mawbuff[56] then
+            local s, m, level = getBuffSkill(56)
+            local level = level ^ 0.65
+            medRegen = medRegen + round((fullSP ^ 0.35 * level ^ 1.4 *((buffPower[56].Base[m]) / 100) + 10) *(1 + buffPower[56].Scaling[m] / 100 * s))
+        end
+
+        local SPregenItem = 0
+        local bonusregen = 0
+        for it in Party[i]:EnumActiveItems() do
+            if it.Bonus2 == 38 or it.Bonus2 == 47 or it.Bonus2 == 55 or it.Bonus2 == 66 then
+                -- SPregenItem=SPregenItem+1
+                -- bonusregen=1
+                -- such enchants now increase meditation instead
+            end
+            if table.find(artifactSpRegen, it.Number) then
+                SPregenItem = SPregenItem + 1
+                bonusregen = 1
+            end
+        end
+        regen = math.ceil(Party[i]:GetFullSP() * SPregenItem * 0.01) + medRegen + bonusregen
+        t.Text = string.format("%s\n\nSpell point regen per second: %s", t.Text, StrColor(40, 100, 255, regen / 10))
+    end
+
+    if t.Stat == 9 then
+        i = Game.CurrentPlayer
+        local ac = Party[i]:GetArmorClass()
+        local acReduction = round((100 - calcMawDamage(Party[i], 4, 10000) / 100) * 100) / 100
+        local lvl = math.min(Party[i].LevelBase)
+        local nerfAmount = math.max(1, lvl / 255)
+        if Game.BolsterAmount > 100 then
+            nerfAmount = Game.BolsterAmount / 100
+            ac = ac / nerfAmount
+        end
+        blockChance = 100 - round((5 + lvl * 2) /(10 + lvl * 2 + ac) * 10000) / 100
+        totRed = 100 - round((100 - blockChance) *(100 - acReduction)) / 100
+        t.Text = string.format("%s\n\nPhysical damage reduction: %s%s", t.Text, StrColor(255, 255, 100, acReduction), StrColor(255, 255, 100, "%") .. "\nBlock chance vs same level monsters: " .. StrColor(255, 255, 100, blockChance) .. StrColor(255, 255, 100, "%") .. "\n\nTotal average damage reduction: " .. StrColor(255, 255, 100, totRed) .. "%")
+    end
+
+    if t.Stat == 5234672 then
+        i = Game.CurrentPlayer
+        local pl = Party[i]
+        -- get spell and its damage
+        DPS1, DPS2, DPS3, vitality = calcPowerVitality(pl)
+        local txt = string.format("Melee Power: %s\nRanged Power: %s\nSpell Power: %s", StrColor(255, 0, 0, DPS1), StrColor(200, 200, 0, DPS2), StrColor(50, 50, 220, DPS3))
+
+        t.Text = string.format("%s\n%s", t.Text, txt)
+
+    end
+
+    if t.Stat == 11 then
+        local i = Game.CurrentPlayer
+        local pl = Party[i]
+        local id = pl:GetIndex()
+        -- check and add equipped legendaries
+        local legTxt = "Currently Active Legendary effects:"
+        for i = 1, #legendaryEffects - 10 do
+            local legId = i + 10
+            if vars.legendaries and vars.legendaries[id] and table.find(vars.legendaries[id], legId) then
+                legTxt = legTxt .. StrColor(255, 255, 30, "\n\n - " .. legendaryEffects[legId])
+            end
+        end
+
+        t.Text = legTxt
+    end
+
+    if t.Stat == 13 or t.Stat == 14 then
+        local bolsterLevel8 = getPartyLevel(1)
+        local bolsterLevel7 = getPartyLevel(2)
+        local bolsterLevel6 = getPartyLevel(3)
+        local bolsterLevel8 = math.max(bolsterLevel8 - 4, 0)
+        local bolsterLevel7 = math.max(bolsterLevel7 - 4, 0)
+        local bolsterLevel6 = math.max(bolsterLevel6 - 4, 0)
+        if Multiplayer and Multiplayer.in_game and not Multiplayer.im_host() and vars.MultiplayerBolsterLevels then
+            t.Text = t.Text .. "\n\nTotal Levels gained: " .. StrColor(255, 255, 153, round(getTotalLevel() * 100) / 100) .. "\n\nLevels gained in MM6: " .. StrColor(255, 255, 153, round(vars.MultiplayerBolsterLevels[3] * 100) / 100) .. "\nLevels gained in MM7: " .. StrColor(255, 255, 153, round(vars.MultiplayerBolsterLevels[2] * 100) / 100) .. "\nLevels gained in MM8: " .. StrColor(255, 255, 153, round(vars.MultiplayerBolsterLevels[1] * 100) / 100) .. "\n\nBolster Level in MM6: " .. StrColor(255, 255, 153, round(bolsterLevel6)) .. "\nBolster Level in MM7: " .. StrColor(255, 255, 153, round(bolsterLevel7)) .. "\nBolster Level in MM8: " .. StrColor(255, 255, 153, round(bolsterLevel8))
+        else
+            t.Text = t.Text .. "\n\nTotal Levels gained: " .. StrColor(255, 255, 153, round(getTotalLevel())) .. "\n\nLevels gained in MM6: " .. StrColor(255, 255, 153, round(vars.MMLVL[3] * 100) / 100) .. "\nLevels gained in MM7: " .. StrColor(255, 255, 153, round(vars.MMLVL[2] * 100) / 100) .. "\nLevels gained in MM8: " .. StrColor(255, 255, 153, round(vars.MMLVL[1] * 100) / 100) .. "\n\nBolster Level in MM6: " .. StrColor(255, 255, 153, round(bolsterLevel6)) .. "\nBolster Level in MM7: " .. StrColor(255, 255, 153, round(bolsterLevel7)) .. "\nBolster Level in MM8: " .. StrColor(255, 255, 153, round(bolsterLevel8))
+        end
+    end
+    if t.Stat == 15 then
+        local i = Game.CurrentPlayer
+        local atk = Party[i]:GetMeleeAttack()
+        local lvl = Party[i].LevelBase
+        local hitChance = round((15 + atk * 2) /(30 + atk * 2 + lvl) * 10000) / 100
+        t.Text = string.format("%s\n\nHit chance vs same level monster: %s%s", t.Text, StrColor(255, 255, 100, hitChance), StrColor(255, 255, 100, "%"))
+    end
+
+    if t.Stat == 16 then
+        local i = Game.CurrentPlayer
+        -- damage tracker
+        vars.damageTrack = vars.damageTrack or { }
+        vars.damageTrack[Party[i]:GetIndex()] = vars.damageTrack[Party[i]:GetIndex()] or 0
+        vars.backstabTrack = vars.backstabTrack or { }
+        vars.backstabTrack[Party[i]:GetIndex()] = vars.backstabTrack[Party[i]:GetIndex()] or 0
+        vars.backstabTrackCount = vars.backstabTrackCount or { }
+        vars.backstabTrackCount[Party[i]:GetIndex()] = vars.backstabTrackCount[Party[i]:GetIndex()] or 0
+        vars.retaliationTrack = vars.retaliationTrack or { }
+        vars.retaliationTrack[Party[i]:GetIndex()] = vars.retaliationTrack[Party[i]:GetIndex()] or 0
+        vars.retaliationTrackCount = vars.retaliationTrackCount or { }
+        vars.retaliationTrackCount[Party[i]:GetIndex()] = vars.retaliationTrackCount[Party[i]:GetIndex()] or 0
 
 
-		vars.damageTrack=vars.damageTrack or {}
-		vars.damageTrack[Party[i]:GetIndex()]=vars.damageTrack[Party[i]:GetIndex()] or 0
-		vars.damageTrackRanged=vars.damageTrackRanged or {}
-		vars.damageTrackRanged[Party[i]:GetIndex()]=vars.damageTrackRanged[Party[i]:GetIndex()] or 0
-				
-		local damage= vars.damageTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text=string.format("%s\n\nTOTAL DAMAGE RECOUNT\nTotal Damage done: %s",t.Text,StrColor(255,255,100,round(damage)))
-		local damage= vars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text=string.format("%s\nTotal Ranged Damage done: %s",t.Text,StrColor(255,255,100,round(damage)))
-		local backstabs = vars.backstabTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		local bsCount = vars.backstabTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"		
-local retaliations = vars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-local retCount = vars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
-t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
+        vars.damageTrack = vars.damageTrack or { }
+        vars.damageTrack[Party[i]:GetIndex()] = vars.damageTrack[Party[i]:GetIndex()] or 0
+        vars.damageTrackRanged = vars.damageTrackRanged or { }
+        vars.damageTrackRanged[Party[i]:GetIndex()] = vars.damageTrackRanged[Party[i]:GetIndex()] or 0
+
+        local damage = vars.damageTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\n\nTOTAL DAMAGE RECOUNT\nTotal Damage done: %s", t.Text, StrColor(255, 255, 100, round(damage)))
+        local damage = vars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nTotal Ranged Damage done: %s", t.Text, StrColor(255, 255, 100, round(damage)))
+        local backstabs = vars.backstabTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        local bsCount = vars.backstabTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"
+        local retaliations = vars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        local retCount = vars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
 
         t.Text = string.format("%s\n\nTotal percentage, Melee/Ranged/Total:", t.Text)
-		local total_map_damage_m = 0
-		local total_map_damage_r = 0                
-		local player_damage_m = {}
-		local player_damage_r = {}
-		for i = 0, Party.High do
-			player_damage_m[i] = (vars.damageTrack[Party[i]:GetIndex()] or 0)
-			player_damage_r[i] = (vars.damageTrackRanged[Party[i]:GetIndex()] or 0)
-			total_map_damage_m = total_map_damage_m + player_damage_m[i]
-			total_map_damage_r = total_map_damage_r + player_damage_r[i]
-		end
-		
-		total_map_damage_m=math.max(total_map_damage_m,1)
-		total_map_damage_r=math.max(total_map_damage_r,1)
+        local total_map_damage_m = 0
+        local total_map_damage_r = 0
+        local player_damage_m = { }
+        local player_damage_r = { }
+        for i = 0, Party.High do
+            player_damage_m[i] =(vars.damageTrack[Party[i]:GetIndex()] or 0)
+            player_damage_r[i] =(vars.damageTrackRanged[Party[i]:GetIndex()] or 0)
+            total_map_damage_m = total_map_damage_m + player_damage_m[i]
+            total_map_damage_r = total_map_damage_r + player_damage_r[i]
+        end
+
+        total_map_damage_m = math.max(total_map_damage_m, 1)
+        total_map_damage_r = math.max(total_map_damage_r, 1)
         for i = 0, Party.High do
             t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s", t.Text, Party[i].Name,
-			round(100 * player_damage_m[i] / total_map_damage_m),'/', 
-			round(100 * player_damage_r[i] / total_map_damage_r),'/',
-			round(100 * (player_damage_m[i] + player_damage_r[i]) / (total_map_damage_m + total_map_damage_r)),' %')
+            round(100 * player_damage_m[i] / total_map_damage_m), '/',
+            round(100 * player_damage_r[i] / total_map_damage_r), '/',
+            round(100 *(player_damage_m[i] + player_damage_r[i]) /(total_map_damage_m + total_map_damage_r)), ' %')
         end
-		
-		--HEALING RECOUNT
-		for i=0,Party.High do
-			local id=Party[i]:GetIndex()
-			--initialize
-			vars.regenerationHeal=vars.regenerationHeal or {}
-			vars.regenerationHeal[id]=vars.regenerationHeal[id] or 0
-			
-			vars.healingDone=vars.healingDone or {}
-			vars.healingDone[id]=vars.healingDone[id] or 0
-			
-			vars.leechDone=vars.leechDone or {}
-			vars.leechDone[id]=vars.leechDone[id] or 0
 
-			vars.coveredTargetTrack = vars.coveredTargetTrack or { }
-			vars.coveredTargetTrack[id] = vars.coveredTargetTrack[id] or 0
-
-			vars.coveredTrack = vars.coveredTrack or { }
-			vars.coveredTrack[id] = vars.coveredTrack[id] or 0
-
-		end
-		local id=Party[Game.CurrentPlayer]:GetIndex()
-		--show
-		t.Text = t.Text .. "\n\nTOTAL HEALING RECOUNT:\nTotal Healing Done:  " .. StrColor(0,255,0,vars.healingDone[id]) .. "\nTotal Regen Healing: " .. StrColor(0,255,0,vars.regenerationHeal[id]) .. "\nTotal Leech Healing: " .. StrColor(0,255,0,vars.leechDone[id])
-		t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target: " .. StrColor(0, 255, 0, vars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, vars.coveredTrack[id]) 
-
-		--matrix
-		t.Text = t.Text .. "\n\nTotal percentage, Heal/Regen/Leech/Total:"
-
-		--totals
-		local tot1=0
-		local tot2=0
-		local tot3=0
-		for i=0,Party.High do
-			local id=Party[i]:GetIndex()
-			tot1=tot1+vars.healingDone[id]
-			tot2=tot2+vars.regenerationHeal[id]
-			tot3=tot3+vars.leechDone[id]
-		end
-		tot1=math.max(tot1,1)
-		tot2=math.max(tot2,1)
-		tot3=math.max(tot3,1)
-		local tot4=tot1+tot2+tot3
-		
+        -- HEALING RECOUNT
         for i = 0, Party.High do
-			local id=Party[i]:GetIndex()
-            t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s %s\t%47s", t.Text, Party[i].Name,
-			round(100 * vars.healingDone[id] / tot1),'/', 
-			round(100 * vars.regenerationHeal[id] / tot2),'/',
-			round(100 * vars.leechDone[id] / tot3),'/',
-			round(100 * (vars.healingDone[id]+vars.regenerationHeal[id]+vars.leechDone[id]) / tot4),' %')
+            local id = Party[i]:GetIndex()
+            -- initialize
+            vars.regenerationHeal = vars.regenerationHeal or { }
+            vars.regenerationHeal[id] = vars.regenerationHeal[id] or 0
+
+            vars.healingDone = vars.healingDone or { }
+            vars.healingDone[id] = vars.healingDone[id] or 0
+
+            vars.leechDone = vars.leechDone or { }
+            vars.leechDone[id] = vars.leechDone[id] or 0
+
+            vars.coveredTargetTrack = vars.coveredTargetTrack or { }
+            vars.coveredTargetTrack[id] = vars.coveredTargetTrack[id] or 0
+
+            vars.coveredTrack = vars.coveredTrack or { }
+            vars.coveredTrack[id] = vars.coveredTrack[id] or 0
+
         end
-		
-		t.Text = t.Text .. "\n\nOnly healing done when monsters are in the nearbies is counted" 
-		
-	end
-	
-	
-	
-	if t.Stat==17 then
-		local i=Game.CurrentPlayer
-		local atk=Party[i]:GetRangedAttack()
-		local lvl=Party[i].LevelBase
-		local hitChance= round((15+atk*2)/(30+atk*2+lvl)*10000)/100
-		t.Text=string.format("%s\n\nHit chance vs same level monster: %s%s",t.Text,StrColor(255,255,100,hitChance),StrColor(255,255,100,"%"))
-	end
-	
-	if t.Stat==18 then
-		local i=Game.CurrentPlayer
-local idx = Party[i]:GetIndex()
-		mapvars.damageTrackRanged=mapvars.damageTrackRanged or {}
-		mapvars.damageTrackRanged[Party[i]:GetIndex()]=mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
+        local id = Party[Game.CurrentPlayer]:GetIndex()
+        -- show
+        t.Text = t.Text .. "\n\nTOTAL HEALING RECOUNT:\nTotal Healing Done:  " .. StrColor(0, 255, 0, vars.healingDone[id]) .. "\nTotal Regen Healing: " .. StrColor(0, 255, 0, vars.regenerationHeal[id]) .. "\nTotal Leech Healing: " .. StrColor(0, 255, 0, vars.leechDone[id])
+        t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target: " .. StrColor(0, 255, 0, vars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, vars.coveredTrack[id])
 
-		mapvars.backstabTrack = mapvars.backstabTrack or { }
-		mapvars.backstabTrack[idx] = mapvars.backstabTrack[idx] or 0
-		
-		mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
-		mapvars.backstabTrackCount[idx] = mapvars.backstabTrackCount[idx] or 0
+        -- matrix
+        t.Text = t.Text .. "\n\nTotal percentage, Heal/Regen/Leech/Total:"
 
-		mapvars.damageTrack=mapvars.damageTrack or {}
-		mapvars.damageTrack[Party[i]:GetIndex()]=mapvars.damageTrack[Party[i]:GetIndex()] or 0
+        -- totals
+        local tot1 = 0
+        local tot2 = 0
+        local tot3 = 0
+        for i = 0, Party.High do
+            local id = Party[i]:GetIndex()
+            tot1 = tot1 + vars.healingDone[id]
+            tot2 = tot2 + vars.regenerationHeal[id]
+            tot3 = tot3 + vars.leechDone[id]
+        end
+        tot1 = math.max(tot1, 1)
+        tot2 = math.max(tot2, 1)
+        tot3 = math.max(tot3, 1)
+        local tot4 = tot1 + tot2 + tot3
 
-		mapvars.damageTrackRanged=mapvars.damageTrackRanged or {}
-		mapvars.damageTrackRanged[Party[i]:GetIndex()]=mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
+        for i = 0, Party.High do
+            local id = Party[i]:GetIndex()
+            t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s %s\t%47s", t.Text, Party[i].Name,
+            round(100 * vars.healingDone[id] / tot1), '/',
+            round(100 * vars.regenerationHeal[id] / tot2), '/',
+            round(100 * vars.leechDone[id] / tot3), '/',
+            round(100 *(vars.healingDone[id] + vars.regenerationHeal[id] + vars.leechDone[id]) / tot4), ' %')
+        end
 
+        t.Text = t.Text .. "\n\nOnly healing done when monsters are in the nearbies is counted"
 
-		mapvars.retaliationTrack = mapvars.retaliationTrack or { }
-mapvars.retaliationTrack[Party[i]:GetIndex()] = mapvars.retaliationTrack[Party[i]:GetIndex()] or 0
-mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
-mapvars.retaliationTrackCount[Party[i]:GetIndex()] = mapvars.retaliationTrackCount[Party[i]:GetIndex()] or 0
+    end
 
 
-		local damage= mapvars.damageTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text=string.format("%s\n\nCURRENT MAP DAMAGE RECOUNT\nMelee Damage done in current map: %s",t.Text,StrColor(255,255,100,round(damage)))
-		local damage= mapvars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text=string.format("%s\nRanged Damage done in current map: %s",t.Text,StrColor(255,255,100,round(damage)))
-		local backstabs = mapvars.backstabTrack[idx] or 0
-		local bsCount = mapvars.backstabTrackCount[idx] or 0
-		t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"		
-		local retaliations = mapvars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		local retCount = mapvars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
-		t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
+
+    if t.Stat == 17 then
+        local i = Game.CurrentPlayer
+        local atk = Party[i]:GetRangedAttack()
+        local lvl = Party[i].LevelBase
+        local hitChance = round((15 + atk * 2) /(30 + atk * 2 + lvl) * 10000) / 100
+        t.Text = string.format("%s\n\nHit chance vs same level monster: %s%s", t.Text, StrColor(255, 255, 100, hitChance), StrColor(255, 255, 100, "%"))
+    end
+
+    if t.Stat == 18 then
+        local i = Game.CurrentPlayer
+        local idx = Party[i]:GetIndex()
+        mapvars.damageTrackRanged = mapvars.damageTrackRanged or { }
+        mapvars.damageTrackRanged[Party[i]:GetIndex()] = mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
+
+        mapvars.backstabTrack = mapvars.backstabTrack or { }
+        mapvars.backstabTrack[idx] = mapvars.backstabTrack[idx] or 0
+
+        mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
+        mapvars.backstabTrackCount[idx] = mapvars.backstabTrackCount[idx] or 0
+
+        mapvars.damageTrack = mapvars.damageTrack or { }
+        mapvars.damageTrack[Party[i]:GetIndex()] = mapvars.damageTrack[Party[i]:GetIndex()] or 0
+
+        mapvars.damageTrackRanged = mapvars.damageTrackRanged or { }
+        mapvars.damageTrackRanged[Party[i]:GetIndex()] = mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
 
 
-            	t.Text = string.format("%s\n\nMap percentage, Melee/Ranged/Total:", t.Text)
-		local total_map_damage_m = 0
-		local total_map_damage_r = 0                
-		local player_damage_m = {}
-		local player_damage_r = {}
-		for i = 0, Party.High do
-			player_damage_m[i] = (mapvars.damageTrack[Party[i]:GetIndex()] or 0)
-			player_damage_r[i] = (mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0)
-			total_map_damage_m = total_map_damage_m + player_damage_m[i]
-			total_map_damage_r = total_map_damage_r + player_damage_r[i]
-		end
-		
-		total_map_damage_m=math.max(total_map_damage_m,1)
-		total_map_damage_r=math.max(total_map_damage_r,1)
+        mapvars.retaliationTrack = mapvars.retaliationTrack or { }
+        mapvars.retaliationTrack[Party[i]:GetIndex()] = mapvars.retaliationTrack[Party[i]:GetIndex()] or 0
+        mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
+        mapvars.retaliationTrackCount[Party[i]:GetIndex()] = mapvars.retaliationTrackCount[Party[i]:GetIndex()] or 0
+
+
+        local damage = mapvars.damageTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\n\nCURRENT MAP DAMAGE RECOUNT\nMelee Damage done in current map: %s", t.Text, StrColor(255, 255, 100, round(damage)))
+        local damage = mapvars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nRanged Damage done in current map: %s", t.Text, StrColor(255, 255, 100, round(damage)))
+        local backstabs = mapvars.backstabTrack[idx] or 0
+        local bsCount = mapvars.backstabTrackCount[idx] or 0
+        t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"
+        local retaliations = mapvars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        local retCount = mapvars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
+
+
+        t.Text = string.format("%s\n\nMap percentage, Melee/Ranged/Total:", t.Text)
+        local total_map_damage_m = 0
+        local total_map_damage_r = 0
+        local player_damage_m = { }
+        local player_damage_r = { }
+        for i = 0, Party.High do
+            player_damage_m[i] =(mapvars.damageTrack[Party[i]:GetIndex()] or 0)
+            player_damage_r[i] =(mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0)
+            total_map_damage_m = total_map_damage_m + player_damage_m[i]
+            total_map_damage_r = total_map_damage_r + player_damage_r[i]
+        end
+
+        total_map_damage_m = math.max(total_map_damage_m, 1)
+        total_map_damage_r = math.max(total_map_damage_r, 1)
         for i = 0, Party.High do
             t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s", t.Text, Party[i].Name,
-			round(100 * player_damage_m[i] / total_map_damage_m),'/', 
-			round(100 * player_damage_r[i] / total_map_damage_r),'/',
-			round(100 * (player_damage_m[i] + player_damage_r[i]) / (total_map_damage_m + total_map_damage_r)),' %')
+            round(100 * player_damage_m[i] / total_map_damage_m), '/',
+            round(100 * player_damage_r[i] / total_map_damage_r), '/',
+            round(100 *(player_damage_m[i] + player_damage_r[i]) /(total_map_damage_m + total_map_damage_r)), ' %')
         end
-		
-		
-		--HEALING RECOUNT
-		for i=0,Party.High do
-			local id=Party[i]:GetIndex()
-			--initialize
-			mapvars.regenerationHeal=mapvars.regenerationHeal or {}
-			mapvars.regenerationHeal[id]=mapvars.regenerationHeal[id] or 0
-			
-			mapvars.healingDone=mapvars.healingDone or {}
-			mapvars.healingDone[id]=mapvars.healingDone[id] or 0
-			
-			mapvars.leechDone=mapvars.leechDone or {}
-			mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 
-			mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
-			mapvars.coveredTargetTrack[id] = mapvars.coveredTargetTrack[id] or 0
 
-			mapvars.coveredTrack = mapvars.coveredTrack or { }
-			mapvars.coveredTrack[id] = mapvars.coveredTrack[id] or 0
-
-		end
-		local id=Party[Game.CurrentPlayer]:GetIndex()
-		--show
-		t.Text = t.Text .. "\n\nCURRENT MAP HEALING RECOUNT:\nHealing Done in current Map:  " .. StrColor(0,255,0,mapvars.healingDone[id]) .. "\nRegen Healing in current Map: " .. StrColor(0,255,0,mapvars.regenerationHeal[id]) .. "\nLeech Healing in current Map: " .. StrColor(0,255,0,mapvars.leechDone[id])
-		
-		t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target in current Map: " .. StrColor(0, 255, 0, mapvars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, mapvars.coveredTrack[id]) 
-		--matrix
-		t.Text = t.Text .. "\n\nMap percentage, Heal/Regen/Leech/Total:"
-
-		--totals
-		local tot1=0
-		local tot2=0
-		local tot3=0
-		for i=0,Party.High do
-			local id=Party[i]:GetIndex()
-			tot1=tot1+mapvars.healingDone[id]
-			tot2=tot2+mapvars.regenerationHeal[id]
-			tot3=tot3+mapvars.leechDone[id]
-		end
-		tot1=math.max(tot1,1)
-		tot2=math.max(tot2,1)
-		tot3=math.max(tot3,1)
-		local tot4=tot1+tot2+tot3
-		
+        -- HEALING RECOUNT
         for i = 0, Party.High do
-			local id=Party[i]:GetIndex()
-            t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s %s\t%47s", t.Text, Party[i].Name,
-			round(100 * mapvars.healingDone[id] / tot1),'/', 
-			round(100 * mapvars.regenerationHeal[id] / tot2),'/',
-			round(100 * mapvars.leechDone[id] / tot3),'/',
-			round(100 * (mapvars.healingDone[id]+mapvars.regenerationHeal[id]+mapvars.leechDone[id]) / tot4),' %')
+            local id = Party[i]:GetIndex()
+            -- initialize
+            mapvars.regenerationHeal = mapvars.regenerationHeal or { }
+            mapvars.regenerationHeal[id] = mapvars.regenerationHeal[id] or 0
+
+            mapvars.healingDone = mapvars.healingDone or { }
+            mapvars.healingDone[id] = mapvars.healingDone[id] or 0
+
+            mapvars.leechDone = mapvars.leechDone or { }
+            mapvars.leechDone[id] = mapvars.leechDone[id] or 0
+
+            mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
+            mapvars.coveredTargetTrack[id] = mapvars.coveredTargetTrack[id] or 0
+
+            mapvars.coveredTrack = mapvars.coveredTrack or { }
+            mapvars.coveredTrack[id] = mapvars.coveredTrack[id] or 0
+
         end
-		t.Text = t.Text .. "\n\nOnly healing done when monsters are in the nearbies is counted" 
-	end
-	
-	if t.Stat>=19 and t.Stat<=24 then
-		t.Text=t.Text .. "\n\nDamage is reduced by an amount equal to % shown.\n\nLight resistance is equal to the lowest between Mind and Body resistances.\nDark resistance is equal to the lowest between elemental resistances.\nEnergy resistance is equal to the lowest resistance."
-	end
+        local id = Party[Game.CurrentPlayer]:GetIndex()
+        -- show
+        t.Text = t.Text .. "\n\nCURRENT MAP HEALING RECOUNT:\nHealing Done in current Map:  " .. StrColor(0, 255, 0, mapvars.healingDone[id]) .. "\nRegen Healing in current Map: " .. StrColor(0, 255, 0, mapvars.regenerationHeal[id]) .. "\nLeech Healing in current Map: " .. StrColor(0, 255, 0, mapvars.leechDone[id])
+
+        t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target in current Map: " .. StrColor(0, 255, 0, mapvars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, mapvars.coveredTrack[id])
+        -- matrix
+        t.Text = t.Text .. "\n\nMap percentage, Heal/Regen/Leech/Total:"
+
+        -- totals
+        local tot1 = 0
+        local tot2 = 0
+        local tot3 = 0
+        for i = 0, Party.High do
+            local id = Party[i]:GetIndex()
+            tot1 = tot1 + mapvars.healingDone[id]
+            tot2 = tot2 + mapvars.regenerationHeal[id]
+            tot3 = tot3 + mapvars.leechDone[id]
+        end
+        tot1 = math.max(tot1, 1)
+        tot2 = math.max(tot2, 1)
+        tot3 = math.max(tot3, 1)
+        local tot4 = tot1 + tot2 + tot3
+
+        for i = 0, Party.High do
+            local id = Party[i]:GetIndex()
+            t.Text = string.format("%s\n %s\t %29s\t%32s %s\t%37s %s\t%42s %s\t%47s", t.Text, Party[i].Name,
+            round(100 * mapvars.healingDone[id] / tot1), '/',
+            round(100 * mapvars.regenerationHeal[id] / tot2), '/',
+            round(100 * mapvars.leechDone[id] / tot3), '/',
+            round(100 *(mapvars.healingDone[id] + mapvars.regenerationHeal[id] + mapvars.leechDone[id]) / tot4), ' %')
+        end
+        t.Text = t.Text .. "\n\nOnly healing done when monsters are in the nearbies is counted"
+    end
+
+    if t.Stat >= 19 and t.Stat <= 24 then
+        t.Text = t.Text .. "\n\nDamage is reduced by an amount equal to % shown.\n\nLight resistance is equal to the lowest between Mind and Body resistances.\nDark resistance is equal to the lowest between elemental resistances.\nEnergy resistance is equal to the lowest resistance."
+    end
 end
 
 function events.Regeneration(t)
-	--HP
-	if t.PlayerIndex<=Party.High then
-		totHP=Party[t.PlayerIndex]:GetFullHP()
-			for it in Party[t.PlayerIndex]:EnumActiveItems() do
-				if it.Bonus2 == 37 or it.Bonus2==44 or it.Bonus2==50 or it.Bonus2==54 then			
-					t.HP=t.HP+math.max(totHP*0.01-1,0)
-				end
-			end
-		t.HP=round(t.HP)
-		--SP
-		totSP=Party[t.PlayerIndex]:GetFullSP()
-			for it in Party[t.PlayerIndex]:EnumActiveItems() do
-				if it.Bonus2 == 38 or it.Bonus2==47 or it.Bonus2==55 then		
-					t.SP=t.SP+math.max(totSP*0.01-1,0)
-				end
-			end
-		t.SP=round(t.SP)
-	end
+    -- HP
+    if t.PlayerIndex <= Party.High then
+        totHP = Party[t.PlayerIndex]:GetFullHP()
+        for it in Party[t.PlayerIndex]:EnumActiveItems() do
+            if it.Bonus2 == 37 or it.Bonus2 == 44 or it.Bonus2 == 50 or it.Bonus2 == 54 then
+                t.HP = t.HP + math.max(totHP * 0.01 - 1, 0)
+            end
+        end
+        t.HP = round(t.HP)
+        -- SP
+        totSP = Party[t.PlayerIndex]:GetFullSP()
+        for it in Party[t.PlayerIndex]:EnumActiveItems() do
+            if it.Bonus2 == 38 or it.Bonus2 == 47 or it.Bonus2 == 55 then
+                t.SP = t.SP + math.max(totSP * 0.01 - 1, 0)
+            end
+        end
+        t.SP = round(t.SP)
+    end
 end
 
-painReflectionHit=false
---fix for pain reflection:
+painReflectionHit = false
+-- fix for pain reflection:
 function events.CalcDamageToMonster(t)
-	if reflecting then
-		reflecting=false
-		return
-	end
-	if t.Monster.SpellBuffs[19].ExpireTime>=Game.Time then
-		painReflectionHit=true
-	end
+    if reflecting then
+        reflecting = false
+        return
+    end
+    if t.Monster.SpellBuffs[19].ExpireTime >= Game.Time then
+        painReflectionHit = true
+    end
 end
 
 
---reduce damage by %
+-- reduce damage by %
 function events.CalcDamageToPlayer(t)
-	local data=mawCustomMonObj or WhoHitPlayer()
-	if reflectedDamage then
-		data=nil
-	end
-	local pl=t.Player
-	
-	if reflectedDamage then
-		reflectedDamage=false
-		t.Result=t.Result^0.85
-		return
-	end
-	--PAIN REFLECTION FIX
-	if painReflectionHit then
-		painReflectionHit=false
-		t.Result=t.Result^0.85
-		return
-	end
-	if pl.SpellBuffs[10].ExpireTime>Game.Time then
-		reflecting=true
-	end
-	if data and data.Player and data.Spell and data.Spell==133 then
-		return
-	end
-	--properly calculate friendly fire damage
-	if data and data.Player and data.Spell and data.Spell<133 and data.Spell>0 then	
-		local s,m = SplitSkill(data.Player:GetSkill(const.Skills.Learning))
-		local diceMin, diceMax, damageAdd = ascendSpellDamage(s, m, data.Spell,data.Player:GetIndex())
-		local damage=damageAdd
-		for i=1, data.SpellSkill do
-			damage=damage+math.random(diceMin,diceMax)
-		end
-		local distance=getDistance(data.Object.X,data.Object.Y,data.Object.Z)/512
-		local damageMult=math.max(1-distance, 0)
-		damage=damage*damageMult
-		
-		--no crit nor intellect buff
-		t.Result=calcMawDamage(t.Player,t.DamageKind,damage,false,data.Player.LevelBase)
-		return
-	end
-	
-	if not (data) or not (data and data.Monster) then
-		if (t.DamageKind~=4 and t.DamageKind~=2) or Map.IndoorOrOutdoor==1 then --drown and fall
-			--[[
+    local data = mawCustomMonObj or WhoHitPlayer()
+    if reflectedDamage then
+        data = nil
+    end
+    local pl = t.Player
+
+    if reflectedDamage then
+        reflectedDamage = false
+        t.Result = t.Result ^ 0.85
+        return
+    end
+    -- PAIN REFLECTION FIX
+    if painReflectionHit then
+        painReflectionHit = false
+        t.Result = t.Result ^ 0.85
+        return
+    end
+    if pl.SpellBuffs[10].ExpireTime > Game.Time then
+        reflecting = true
+    end
+    if data and data.Player and data.Spell and data.Spell == 133 then
+        return
+    end
+    -- properly calculate friendly fire damage
+    if data and data.Player and data.Spell and data.Spell < 133 and data.Spell > 0 then
+        local s, m = SplitSkill(data.Player:GetSkill(const.Skills.Learning))
+        local diceMin, diceMax, damageAdd = ascendSpellDamage(s, m, data.Spell, data.Player:GetIndex())
+        local damage = damageAdd
+        for i = 1, data.SpellSkill do
+            damage = damage + math.random(diceMin, diceMax)
+        end
+        local distance = getDistance(data.Object.X, data.Object.Y, data.Object.Z) / 512
+        local damageMult = math.max(1 - distance, 0)
+        damage = damage * damageMult
+
+        -- no crit nor intellect buff
+        t.Result = calcMawDamage(t.Player, t.DamageKind, damage, false, data.Player.LevelBase)
+        return
+    end
+
+    if not(data) or not(data and data.Monster) then
+        if (t.DamageKind ~= 4 and t.DamageKind ~= 2) or Map.IndoorOrOutdoor == 1 then
+            -- drown and fall
+            --[[
 			local name=Game.MapStats[Map.MapStatsIndex].Name
 			local bolster=getPartyLevel()
 			local mapLevel=mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High
@@ -885,266 +900,269 @@ function events.CalcDamageToPlayer(t)
 				mapLevel=getTotalLevel()
 			end
 			]]
-			mapLevel=getTotalLevel()
-			--trap and objects multiplier
-			local damage=getMonsterDamage(false, mapLevel)
-			
-			if data and data.Object and data.Object.SpellType==15 then 
-				damage=damage/3
-			end
-			local s,m=SplitSkill(t.Player.Skills[const.Skills.Perception])
-			damage=damage*math.min((11-m*2)/10,1)
-			t.Result=calcMawDamage(t.Player,t.DamageKind,damage)
-		end
-		
-		return
-	end
-	
-	--carnage fix
-	if data and data.Player and data.Spell==133 then
-		t.Result=0
-		return
-	end
-	
-	local mon=data.Monster
-	local lvl=getMonsterLevel(mon)
+            mapLevel = getTotalLevel()
+            -- trap and objects multiplier
+            local damage = getMonsterDamage(false, mapLevel)
 
-	--dodging DODGE 
-	local dodging=0
-	local Skill, Mas = SplitSkill(pl:GetSkill(const.Skills.Dodging))
-	if Mas == 4 then
-		dodging=Skill+10
-	end
-	local dodgeChance=1-1/(1+dodging/200)
-	if Game.CharacterPortraits[pl.Face].Race==const.Race.Dragon then
-		dodgeChance=0
-	end
-	--[[
+            if data and data.Object and data.Object.SpellType == 15 then
+                damage = damage / 3
+            end
+            local s, m = SplitSkill(t.Player.Skills[const.Skills.Perception])
+            damage = damage * math.min((11 - m * 2) / 10, 1)
+            t.Result = calcMawDamage(t.Player, t.DamageKind, damage)
+        end
+
+        return
+    end
+
+    -- carnage fix
+    if data and data.Player and data.Spell == 133 then
+        t.Result = 0
+        return
+    end
+
+    local mon = data.Monster
+    local lvl = getMonsterLevel(mon)
+
+    -- dodging DODGE
+    local dodging = 0
+    local Skill, Mas = SplitSkill(pl:GetSkill(const.Skills.Dodging))
+    if Mas == 4 then
+        dodging = Skill + 10
+    end
+    local dodgeChance = 1 - 1 /(1 + dodging / 200)
+    if Game.CharacterPortraits[pl.Face].Race == const.Race.Dragon then
+        dodgeChance = 0
+    end
+    --[[
 	if table.find(assassinClass,pl.Class) then
 		local Skill, Mas = SplitSkill(pl:GetSkill(const.Skills.Air))
 		dodgeChance=1-0.995^Skill+0.05
 	end
 	]]
-	roll=math.random()
-	if dodgeChance>=roll then
-	    AddCombatLog(pl.Name .. "  Dodged")
-		t.Result=0
-		-- Use the same player that performed the dodge calculation
-		local index = -1
-		for i = 0, Party.High do
-			if Party[i]:GetIndex() == t.PlayerIndex then
-				index = i
-				break
-			end
-		end
-		if index >= 0 then
-			evt.FaceExpression{Player = index, Frame = 33}
-		end
-		return
-	end
-	
-	local damage=getMonsterDamage(mon)
-	--works for attack 1 and 2
-	if data.MonsterAction==1 then
-		local atk1=mon["Attack1"]
-		local damage1=atk1.DamageAdd
-		for i=1,atk1.DamageDiceCount do
-			damage1=damage1+(atk1.DamageDiceSides+1)/2
-		end
-		local atk2=mon["Attack2"]
-		local damage2=atk2.DamageAdd
-		for i=1,atk2.DamageDiceCount do
-			damage2=damage2+(atk2.DamageDiceSides+1)/2
-		end
-		local mult=damage2/damage1
-		
-		t.DamageKind=atk2.Type
-		t.Damage=damage*mult
-	elseif data.MonsterAction==0 then
-		local atk=mon["Attack1"]
-		t.DamageKind=atk.Type
-		t.Damage=damage
-		
-	end
-	
-	if t.Damage==0 and t.Result==0 then return end
+    roll = math.random()
+    if dodgeChance >= roll then
+        AddCombatLog(pl.Name .. "  Dodged")
+        t.Result = 0
+        -- Use the same player that performed the dodge calculation
+        local index = -1
+        for i = 0, Party.High do
+            if Party[i]:GetIndex() == t.PlayerIndex then
+                index = i
+                break
+            end
+        end
+        if index >= 0 then
+            evt.FaceExpression { Player = index, Frame = 33 }
+        end
+        return
+    end
 
-	if t.DamageKind==4 and pl.SpellBuffs[26].ExpireTime>Game.Time then --mistform 
-		t.Damage=t.Damage*0.25
-	end
+    local damage = getMonsterDamage(mon)
+    -- works for attack 1 and 2
+    if data.MonsterAction == 1 then
+        local atk1 = mon["Attack1"]
+        local damage1 = atk1.DamageAdd
+        for i = 1, atk1.DamageDiceCount do
+            damage1 = damage1 +(atk1.DamageDiceSides + 1) / 2
+        end
+        local atk2 = mon["Attack2"]
+        local damage2 = atk2.DamageAdd
+        for i = 1, atk2.DamageDiceCount do
+            damage2 = damage2 +(atk2.DamageDiceSides + 1) / 2
+        end
+        local mult = damage2 / damage1
 
-	--mapping
-	if getMapAffixPower(14) and math.random()<getMapAffixPower(14) then
-		t.DamageKind=12
-	end
-	
-	--apply Damage
-	--modify spell damage as it's not handled in maw-monsters
-	if data and data.Monster and data.Object and data.Object.Spell<100 and data.Object.Spell>0 then
-		local damage=getMonsterDamage(mon)
-		if monsterSpellMultiplierList[data.Object.Spell] then
-			damage=damage*monsterSpellMultiplierList[data.Object.Spell]
-		end
-		t.Damage=damage
-	end
-	t.Damage=round(t.Damage)
-	--randomize
-	local roll=(math.random(75,125)+math.random(75,125))/200
-	t.Damage=t.Damage*roll
-	
-	if mon and mon.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime>=Game.Time then
-		t.Damage=t.Damage/2
-	end
-	
-	if data and data.Monster and data.Object and data.Object.Spell<100 and data.Object.Spell>0 then
-		t.Result = calcMawDamage(t.Player,t.DamageKind,t.Damage,false,lvl) -- spell randomization is off
-	elseif data and data.Monster then
-		t.Result = calcMawDamage(t.Player,t.DamageKind,t.Damage,false,lvl)
-	else
-		t.Result = calcMawDamage(t.Player,t.DamageKind,t.Damage,true)
-	end
-	
-	local DiseaseDamage = 1
-	if t.Player.Disease3>0 then
-		DiseaseDamage = 2
-	elseif t.Player.Disease2>0 then
-		DiseaseDamage = 1.5
-	elseif t.Player.Disease1>0 then
-		DiseaseDamage = 1.25
-	end
-	if Party.High==0 then
-		DiseaseDamage = (DiseaseDamage-1)/2 + 1
-	end
-	t.Result = t.Result * DiseaseDamage
-	if data and data.Monster and data.Monster.NameId>220 then
-		local mon=data.Monster
-		local skill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
-		if skill=="Exploding" or skill=="Omnipotent" then
-			t.Result=t.Result/2
-			aoeDamage=t.Result/Party.Count
-			for i=0,Party.High do
-				local damage = calcManaShield(Party[i], aoeDamage)
-				Party[i].HP=Party[i].HP-damage
-				Party[i]:ShowFaceAnimation(24)
-			end
-		end
-	end
-	if(t.Result>0) then
-	 local monName="??"
-	 if(data.Monster) then
-	   monName = Game.MonstersTxt[data.Monster.Id].Name
-	 end
-	 AddCombatLog(monName .. " damaged ".. t.Player.Name .." " .. StrColor(255,0,0, shortenNumber(t.Result,4,true)))
-	end
+        t.DamageKind = atk2.Type
+        t.Damage = damage * mult
+    elseif data.MonsterAction == 0 then
+        local atk = mon["Attack1"]
+        t.DamageKind = atk.Type
+        t.Damage = damage
+
+    end
+
+    if t.Damage == 0 and t.Result == 0 then return end
+
+    if t.DamageKind == 4 and pl.SpellBuffs[26].ExpireTime > Game.Time then
+        -- mistform
+        t.Damage = t.Damage * 0.25
+    end
+
+    -- mapping
+    if getMapAffixPower(14) and math.random() < getMapAffixPower(14) then
+        t.DamageKind = 12
+    end
+
+    -- apply Damage
+    -- modify spell damage as it's not handled in maw-monsters
+    if data and data.Monster and data.Object and data.Object.Spell < 100 and data.Object.Spell > 0 then
+        local damage = getMonsterDamage(mon)
+        if monsterSpellMultiplierList[data.Object.Spell] then
+            damage = damage * monsterSpellMultiplierList[data.Object.Spell]
+        end
+        t.Damage = damage
+    end
+    t.Damage = round(t.Damage)
+    -- randomize
+    local roll =(math.random(75, 125) + math.random(75, 125)) / 200
+    t.Damage = t.Damage * roll
+
+    if mon and mon.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime >= Game.Time then
+        t.Damage = t.Damage / 2
+    end
+
+    if data and data.Monster and data.Object and data.Object.Spell < 100 and data.Object.Spell > 0 then
+        t.Result = calcMawDamage(t.Player, t.DamageKind, t.Damage, false, lvl)
+        -- spell randomization is off
+    elseif data and data.Monster then
+        t.Result = calcMawDamage(t.Player, t.DamageKind, t.Damage, false, lvl)
+    else
+        t.Result = calcMawDamage(t.Player, t.DamageKind, t.Damage, true)
+    end
+
+    local DiseaseDamage = 1
+    if t.Player.Disease3 > 0 then
+        DiseaseDamage = 2
+    elseif t.Player.Disease2 > 0 then
+        DiseaseDamage = 1.5
+    elseif t.Player.Disease1 > 0 then
+        DiseaseDamage = 1.25
+    end
+    if Party.High == 0 then
+        DiseaseDamage =(DiseaseDamage - 1) / 2 + 1
+    end
+    t.Result = t.Result * DiseaseDamage
+    if data and data.Monster and data.Monster.NameId > 220 then
+        local mon = data.Monster
+        local skill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
+        if skill == "Exploding" or skill == "Omnipotent" then
+            t.Result = t.Result / 2
+            aoeDamage = t.Result / Party.Count
+            for i = 0, Party.High do
+                local damage = calcManaShield(Party[i], aoeDamage)
+                Party[i].HP = Party[i].HP - damage
+                Party[i]:ShowFaceAnimation(24)
+            end
+        end
+    end
+    if (t.Result > 0) then
+        local monName = "??"
+        if (data.Monster) then
+            monName = Game.MonstersTxt[data.Monster.Id].Name
+        end
+        AddCombatLog(monName .. " damaged " .. t.Player.Name .. " " .. StrColor(255, 0, 0, shortenNumber(t.Result, 4, true)))
+    end
 end
 
---TOOLTIPS
+-- TOOLTIPS
 function events.Action(t)
-	if vars.MAWSETTINGS.buffRework=="ON" then
-		if t.Action==94 then
-			local i=t.Param-1
-			if i>=0 and i<=Party.High and vars.currentManaPool[i] and vars.maxManaPool[i]>0 then
-				local manaPool=round(vars.currentManaPool[i]/vars.maxManaPool[i]*1000)/10
-				Game.GlobalTxt[212]=StrColor(0,100,255,"Mana " .. manaPool .. "%")
-				if manaPool==100 then
-					Game.GlobalTxt[212]=StrColor(0,100,255,"Mana")
-				end
-			end
-			if i>=0 and i<=Party.High and vars.currentHPPool[i] and vars.maxHPPool[i]>0 then
-				local hpPool=round(vars.currentHPPool[i]/vars.maxHPPool[i]*1000)/10
-				Game.GlobalTxt[108]=StrColor(0,255, 0,"HP " .. hpPool .. "%")
-				if hpPool==100 then
-					Game.GlobalTxt[108]=StrColor(0,255, 0,"Hit Points")
-				end
-			end
-		end
-	end
+    if vars.MAWSETTINGS.buffRework == "ON" then
+        if t.Action == 94 then
+            local i = t.Param - 1
+            if i >= 0 and i <= Party.High and vars.currentManaPool[i] and vars.maxManaPool[i] > 0 then
+                local manaPool = round(vars.currentManaPool[i] / vars.maxManaPool[i] * 1000) / 10
+                Game.GlobalTxt[212] = StrColor(0, 100, 255, "Mana " .. manaPool .. "%")
+                if manaPool == 100 then
+                    Game.GlobalTxt[212] = StrColor(0, 100, 255, "Mana")
+                end
+            end
+            if i >= 0 and i <= Party.High and vars.currentHPPool[i] and vars.maxHPPool[i] > 0 then
+                local hpPool = round(vars.currentHPPool[i] / vars.maxHPPool[i] * 1000) / 10
+                Game.GlobalTxt[108] = StrColor(0, 255, 0, "HP " .. hpPool .. "%")
+                if hpPool == 100 then
+                    Game.GlobalTxt[108] = StrColor(0, 255, 0, "Hit Points")
+                end
+            end
+        end
+    end
 end
 function events.Tick()
-	if Game.CurrentCharScreen==100 and Game.CurrentScreen==7 then
-		i=Game.CurrentPlayer 
-		if i==-1 then return end --prevent bug message
-		if vars.MAWSETTINGS.buffRework=="ON" and vars.maxManaPool[i]>0 then
-			local manaPool=round(vars.currentManaPool[i]/vars.maxManaPool[i]*1000)/10
-			Game.GlobalTxt[212]=StrColor(0,100,255,"Mana " .. manaPool .. "%")
-			if manaPool==100 then
-				Game.GlobalTxt[212]=StrColor(0,100,255,"Mana")
-			end
-		end
-		
-		if vars.MAWSETTINGS.buffRework=="ON" and vars.maxHPPool[i]>0 then
-			local hpPool=round(vars.currentHPPool[i]/vars.maxHPPool[i]*1000)/10
-			Game.GlobalTxt[108]=StrColor(0,255, 0,"HP " .. hpPool .. "%")
-			if hpPool==100 then
-				Game.GlobalTxt[108]=StrColor(0,255, 0,"Hit Points")
-			end
-		end
-		
-		pl=Party[i]
-		local resistances={}
-		local resistances2={}
-		local damageList={0,1,2,3,7,8}
-		for i=10,15 do
-			resistances[i]=pl:GetResistance(i)
-			if resistances[i]>=64000 then
-				resistances[i]="Immune"
-			end
-			resistances2[i]=100-math.max(round(calcMawDamage(pl,damageList[i-9],1000))/10, 0)
-			resistances2[i]=round(resistances2[i]*100)/100
-			if resistances2[i]%1==0 then
-				resistances2[i]=resistances2[i] .. ".0"
-			end
-		end
-		local resistanceText={}
-		local id=pl:GetIndex()
-		for i=1,6 do
-			if vars.normalEnchantResistance[id][10+i]>0 then
-				resistanceText[i]=StrColor(0,255,0,string.format("%6s", resistances[9+i]))
-			else
-				resistanceText[i]=string.format("%6s", resistances[9+i])
-			end
-		end
-		Game.GlobalTxt[87]=StrColor(255, 70, 70,    string.format(resListBackup[1] .. "\t            %s%s ",resistances2[10],"%")) .. resistanceText[1] .. "\n\n\n\n\n\n\n\n\n"
-		Game.GlobalTxt[6]=StrColor(173, 216, 230,   string.format(resListBackup[2] .. "\t            %s%s ",resistances2[11],"%")) .. resistanceText[2] .. "\n\n\n\n\n\n\n\n\n"
-		Game.GlobalTxt[240]=StrColor(100, 180, 255, string.format(resListBackup[3] .. "\t            %s%s ",resistances2[12],"%")) .. resistanceText[3] .. "\n\n\n\n\n\n\n\n\n"
-		Game.GlobalTxt[70]=StrColor(153, 76, 0,     string.format(resListBackup[4] .. "\t            %s%s ",resistances2[13],"%")) .. resistanceText[4] .. "\n\n\n\n\n\n\n\n\n"
-		Game.GlobalTxt[142]=StrColor(200, 200, 255, string.format(resListBackup[5] .. "\t            %s%s ",resistances2[14],"%")) .. resistanceText[5] .. "\n\n\n\n\n\n\n\n\n"
-		Game.GlobalTxt[29]=StrColor(255, 192, 203,  string.format(resListBackup[6] .. "\t            %s%s ",resistances2[15],"%"))	 .. resistanceText[6] .. "\n\n\n\n\n\n\n\n\n"
-		statsChanged=true
-	elseif statsChanged and (Game.CurrentCharScreen~=100 or Game.CurrentScreen~=7) then
-		Game.GlobalTxt[87]=resListBackup[1]
-		Game.GlobalTxt[6]=resListBackup[2]
-		Game.GlobalTxt[240]=resListBackup[3]
-		Game.GlobalTxt[70]=resListBackup[4]
-		Game.GlobalTxt[142]=resListBackup[5]
-		Game.GlobalTxt[29]=resListBackup[6]
-		statsChanged=false
-	end
+    if Game.CurrentCharScreen == 100 and Game.CurrentScreen == 7 then
+        i = Game.CurrentPlayer
+        if i == -1 then return end
+        -- prevent bug message
+        if vars.MAWSETTINGS.buffRework == "ON" and vars.maxManaPool[i] > 0 then
+            local manaPool = round(vars.currentManaPool[i] / vars.maxManaPool[i] * 1000) / 10
+            Game.GlobalTxt[212] = StrColor(0, 100, 255, "Mana " .. manaPool .. "%")
+            if manaPool == 100 then
+                Game.GlobalTxt[212] = StrColor(0, 100, 255, "Mana")
+            end
+        end
+
+        if vars.MAWSETTINGS.buffRework == "ON" and vars.maxHPPool[i] > 0 then
+            local hpPool = round(vars.currentHPPool[i] / vars.maxHPPool[i] * 1000) / 10
+            Game.GlobalTxt[108] = StrColor(0, 255, 0, "HP " .. hpPool .. "%")
+            if hpPool == 100 then
+                Game.GlobalTxt[108] = StrColor(0, 255, 0, "Hit Points")
+            end
+        end
+
+        pl = Party[i]
+        local resistances = { }
+        local resistances2 = { }
+        local damageList = { 0, 1, 2, 3, 7, 8 }
+        for i = 10, 15 do
+            resistances[i] = pl:GetResistance(i)
+            if resistances[i] >= 64000 then
+                resistances[i] = "Immune"
+            end
+            resistances2[i] = 100 - math.max(round(calcMawDamage(pl, damageList[i - 9], 1000)) / 10, 0)
+            resistances2[i] = round(resistances2[i] * 100) / 100
+            if resistances2[i] % 1 == 0 then
+                resistances2[i] = resistances2[i] .. ".0"
+            end
+        end
+        local resistanceText = { }
+        local id = pl:GetIndex()
+        for i = 1, 6 do
+            if vars.normalEnchantResistance[id][10 + i] > 0 then
+                resistanceText[i] = StrColor(0, 255, 0, string.format("%6s", resistances[9 + i]))
+            else
+                resistanceText[i] = string.format("%6s", resistances[9 + i])
+            end
+        end
+        Game.GlobalTxt[87] = StrColor(255, 70, 70, string.format(resListBackup[1] .. "\t            %s%s ", resistances2[10], "%")) .. resistanceText[1] .. "\n\n\n\n\n\n\n\n\n"
+        Game.GlobalTxt[6] = StrColor(173, 216, 230, string.format(resListBackup[2] .. "\t            %s%s ", resistances2[11], "%")) .. resistanceText[2] .. "\n\n\n\n\n\n\n\n\n"
+        Game.GlobalTxt[240] = StrColor(100, 180, 255, string.format(resListBackup[3] .. "\t            %s%s ", resistances2[12], "%")) .. resistanceText[3] .. "\n\n\n\n\n\n\n\n\n"
+        Game.GlobalTxt[70] = StrColor(153, 76, 0, string.format(resListBackup[4] .. "\t            %s%s ", resistances2[13], "%")) .. resistanceText[4] .. "\n\n\n\n\n\n\n\n\n"
+        Game.GlobalTxt[142] = StrColor(200, 200, 255, string.format(resListBackup[5] .. "\t            %s%s ", resistances2[14], "%")) .. resistanceText[5] .. "\n\n\n\n\n\n\n\n\n"
+        Game.GlobalTxt[29] = StrColor(255, 192, 203, string.format(resListBackup[6] .. "\t            %s%s ", resistances2[15], "%")) .. resistanceText[6] .. "\n\n\n\n\n\n\n\n\n"
+        statsChanged = true
+    elseif statsChanged and(Game.CurrentCharScreen ~= 100 or Game.CurrentScreen ~= 7) then
+        Game.GlobalTxt[87] = resListBackup[1]
+        Game.GlobalTxt[6] = resListBackup[2]
+        Game.GlobalTxt[240] = resListBackup[3]
+        Game.GlobalTxt[70] = resListBackup[4]
+        Game.GlobalTxt[142] = resListBackup[5]
+        Game.GlobalTxt[29] = resListBackup[6]
+        statsChanged = false
+    end
 end
 
 function events.BeforeLoadMap()
-	if not resListBackup then
-		resListBackup={}
-		resListBackup[1]=Game.GlobalTxt[87]
-		resListBackup[2]=Game.GlobalTxt[6]
-		resListBackup[3]=Game.GlobalTxt[240]
-		resListBackup[4]=Game.GlobalTxt[70]
-		resListBackup[5]=Game.GlobalTxt[142]
-		resListBackup[6]=Game.GlobalTxt[29]
-	end
+    if not resListBackup then
+        resListBackup = { }
+        resListBackup[1] = Game.GlobalTxt[87]
+        resListBackup[2] = Game.GlobalTxt[6]
+        resListBackup[3] = Game.GlobalTxt[240]
+        resListBackup[4] = Game.GlobalTxt[70]
+        resListBackup[5] = Game.GlobalTxt[142]
+        resListBackup[6] = Game.GlobalTxt[29]
+    end
 end
 
-damageKindMap={
-	[0]=const.Damage.Fire,
-	[1]=const.Damage.Air,
-	[2]=const.Damage.Water,
-	[3]=const.Damage.Earth,
-	[4]=const.Damage.Phys,
-	[6]=const.Damage.Spirit,
-	[7]=const.Damage.Mind,
-	[8]=const.Damage.Body,
-	[9]=const.Damage.Light,
-	[10]=const.Damage.Dark,
+damageKindMap = {
+    [0] = const.Damage.Fire,
+    [1] = const.Damage.Air,
+    [2] = const.Damage.Water,
+    [3] = const.Damage.Earth,
+    [4] = const.Damage.Phys,
+    [6] = const.Damage.Spirit,
+    [7] = const.Damage.Mind,
+    [8] = const.Damage.Body,
+    [9] = const.Damage.Light,
+    [10] = const.Damage.Dark,
 }
 function events.CalcDamageToMonster(t)
 	backStabHit=false

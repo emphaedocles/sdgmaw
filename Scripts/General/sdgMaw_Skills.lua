@@ -14,14 +14,14 @@ local function InitSDGSettings()
     SDGMAWSETTINGS.ftMonsterHealthBoss = true
     SDGMAWSETTINGS.ftPlayerHealing = true
     SDGMAWSETTINGS.ftAbbreviateNames = true
-
+    SDGMAWSETTINGS.drgAdj=true
     -- debug.Message(SDGMAWSETTINGS)
 end
 
 -- new stealth skill
 function events.GameInitialized2()
 
-    -- InitSDGSettings()
+    InitSDGSettings()
 
     local stealthSkill = 54
     Skillz.new_armor(stealthSkill)
@@ -881,7 +881,7 @@ function CheckBarSize(mon)
 end
 
 function InitCombatLog()
-    
+    --InitSDGOverlayLog()
     iCombatLogRows=8
     iLastCombatLog=0--will clear on new map
     iCombatLogBaseY=75
