@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MyLibTest.vcxproj" Id="1d962069-6ba0-4d4e-87fd-8fa5a195159f" />
+</Solution>

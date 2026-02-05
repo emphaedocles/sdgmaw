@@ -661,7 +661,35 @@ function events.AfterLoadMap()
 --                    }
 --    end
 --    txtMonOnMap.Text="Mobs " .. Map.Monsters.High
-    
+    --vars.UseDoomMapLevels = vars.UseDoomMapLevels or false
+
+    --debug.Message("Doom Map Levels active %s" , vars.UseDoomMapLevels)
+
+  if(vars.UseDoomMapLevels) then
+      AddCombatLog(StrColor(255,0,0, "Mad-Doom Map Levels active"))
+          -- calculate party experience
+        bolsterLevel = getPartyLevel() -4
+        -- slight nerf at the start
+        bolsterLevel = math.max(bolsterLevel, 0)
+
+        -- add a bonus in case dungeon is resetted
+        vars.mapResetCount = vars.mapResetCount or { }
+        vars.mapResetCount[Map.Name] = vars.mapResetCount[Map.Name] or 0
+        local bonus = vars.mapResetCount[Map.Name] * 20
+
+        -- madness, used to calculate gold
+        local name = Game.MapStats[Map.MapStatsIndex].Name
+        bolsterLevel = doomMapLevels[name]
+
+        bolsterLevel = bolsterLevel + bonus
+
+        if mapvars.mapAffixes then
+            bolsterLevel = mapvars.mapAffixes.Power * 10 + 20
+        end
+        AddCombatLog(StrColor(32,64,255,"Doom Map Level set to ") .. StrColor(0,255,0, bolsterLevel))
+
+  end
+
 
 end
 
@@ -881,7 +909,7 @@ function CheckBarSize(mon)
 end
 
 function InitCombatLog()
-    --InitSDGOverlayLog()
+    InitSDGOverlayLog()
     iCombatLogRows=8
     iLastCombatLog=0--will clear on new map
     iCombatLogBaseY=75
@@ -955,7 +983,9 @@ function events.ExitMapAction(t)
  --ClearCombatLog()-- don't clear on death
  
 end
+
 function AddCombatLog(msg)
+SDGAddToOverlayLog(msg)
   local iRow=iLastCombatLog
   if(iRow >= iCombatLogRows) then
     iRow=iCombatLogRows-1
@@ -971,10 +1001,29 @@ function AddCombatLog(msg)
   iLastCombatLog=iRow+1
 end
 function ClearCombatLog()
+ SDGClearLog()
   iLastCombatLog=0
   for i=0,iCombatLogRows-1 do
     txtCombatLog[i].Text=""
     txtCombatLog[i].Active=false
   end
   Game.Redraw=true
+end
+
+function AddHealToLog(spellName, totHeal,gotCrit,targetId,player)
+
+-- combat log
+		local healTxt = StrColor(64, 255, 64, round(totHeal))
+		if(gotCrit) then
+			healTxt = healTxt .. StrColor(255, 215, 0, " (crit)")
+		end
+		local healerTxt=StrColor(255,128,255,player.Name)
+
+		local targetTxt= "<???>"
+		if(targetId>=0) then			
+			targetTxt= StrColor(0, 255, 255, Party[targetId].Name)
+		end
+--debug.Message("Adding heal to log %s", spellName)
+		AddCombatLog("  <".. spellName ..">" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
+
 end

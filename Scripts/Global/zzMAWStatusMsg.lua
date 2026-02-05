@@ -252,6 +252,15 @@ function events.CalcDamageToMonster(t)
 		function events.Tick()
 			events.Remove("Tick", 1)
 			if id<=Map.Monsters.High and MSGdamage>0 then
+				
+				msgTxt = StrColor(255, 32, 32, msgTxt)
+				monName = StrColor(128, 255, 128, monName)
+		        if(not castedAoe) then
+					name = StrColor(255, 128, 255, name)				   
+				else
+					name = StrColor(255, 128, 128, name)				   
+				end
+
 				if shoot=="shoots" then
 				msg=string.format("%s shoots %s for %s points!%s", name, monName, msgTxt, critMessage)
 				else

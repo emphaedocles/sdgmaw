@@ -280,6 +280,17 @@ function events.CalcDamageToMonster(t)
 
 		local healTarget, lowestHealthPercentage=pickLowestPartyMember()
 
+		--add to combatlog
+
+		local healTxt = StrColor(64, 255, 64, healValue)
+		local healerTxt=StrColor(255,128,255,pl.Name)
+		local targetTxt = StrColor(0, 255, 255, Party[healTarget].Name)
+		--AddCombatLog("  <Seraph-Strike-Heal>" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
+
+		 AddHealToLog("Seraph-Strike", healValue,false,healTarget,pl, 4, false)
+
+
+		--add to floating text
 		SetHealText(healTarget,healValue)
 		
 		local percent, partyId, playerId=OnlineLowestHealthPercentage()
@@ -520,7 +531,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local speedDelay=0.03
@@ -547,7 +558,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
@@ -583,7 +594,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local speedDelay=0.03
@@ -613,7 +624,7 @@ function events.GameInitialized2()
 			end
 			
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local speedDelay=0.03
@@ -637,7 +648,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
@@ -653,7 +664,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)
@@ -1243,10 +1254,14 @@ function events.GameInitialized2()
 				--dark grasp
 				if vars.dkActiveAttackSpell and vars.dkActiveAttackSpell[id]==96 then
 					pl.SP=pl.SP-15
-					t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime, Game.Time+const.Minute)
-					local s, m=SplitSkill(pl.Skills[const.Skills.Dark])
-					if m==4 then
-						t.Monster.SpellBuffs[const.MonsterBuff.MeleeOnly].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.MeleeOnly].ExpireTime, Game.Time+const.Minute)
+										local darkGraspCC = {Debuff = const.MonsterBuff.DamageHalved}
+					local graspDuration = calcDebuffDuration(t.Monster, darkGraspCC, const.Minute)
+					if graspDuration > 0 then
+						t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime, Game.Time+graspDuration)
+						local s, m=SplitSkill(pl.Skills[const.Skills.Dark])
+						if m==4 then
+							t.Monster.SpellBuffs[const.MonsterBuff.MeleeOnly].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.MeleeOnly].ExpireTime, Game.Time+graspDuration)
+						end
 					end
 				end
 				--restore SP
@@ -1265,11 +1280,19 @@ function events.GameInitialized2()
 					local s,m=SplitSkill(pl.Skills[const.Skills.Water])
 					if m>=2 then
 						local power=math.floor(m/2)*2
-						t.Monster.SpellBuffs[const.MonsterBuff.Slow].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.Slow].ExpireTime, Game.Time+const.Minute)
-						t.Monster.SpellBuffs[const.MonsterBuff.Slow].Power=power
+						local slowCC = {Debuff = const.MonsterBuff.Slow}
+						local slowDuration = calcDebuffDuration(t.Monster, slowCC, const.Minute)
+						if slowDuration > 0 then
+							t.Monster.SpellBuffs[const.MonsterBuff.Slow].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.Slow].ExpireTime, Game.Time+slowDuration)
+							t.Monster.SpellBuffs[const.MonsterBuff.Slow].Power=power
+						end
 					end
 				elseif data.Object.Spell==76 then
-					t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime, Game.Time+const.Minute)
+					local paraCC = {Debuff = const.MonsterBuff.Paralyze}
+					local paraDuration = calcDebuffDuration(t.Monster, paraCC, const.Minute*1.5)
+					if paraDuration > 0 then
+						t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime, Game.Time+paraDuration)
+					end
 				end
 			end
 		end
@@ -1437,7 +1460,7 @@ function dkSkills(isDK, id)
 		-- Spell 76: Asphyxiate (no entry in DKDamageMult, but description mentions 110% and 140%)
 		local mult76= DKDamageMult[76]
 		Game.SpellsTxt[76].Name="Asphyxiate"
-		Game.SpellsTxt[76].Description="Asphyxiate the target deal damage equal to " .. (mult76[3]*100) .. "% and making him unable to act for 2 seconds"
+		Game.SpellsTxt[76].Description="Asphyxiate the target deal damage equal to " .. (mult76[3]*100) .. "% and making him unable to act for 3 seconds"
 		Game.SpellsTxt[76].Master="No additional effects"
 		Game.SpellsTxt[76].GM="Damage increased to " .. (mult76[4]*100) .. "%"
 		

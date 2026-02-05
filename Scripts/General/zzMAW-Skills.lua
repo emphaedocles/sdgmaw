@@ -740,14 +740,17 @@ function events.KeyDown(t)
                         evt.FaceExpression { Player = "All", Frame = 46 }
                         Game.ShowStatusText(string.format("%s casts Charge stunning the enemy", Party[0].Name))
                         mon.SpellBuffs[6].Skill = 4
+						local chargeCC = {Debuff = const.MonsterBuff.Paralyze}
                         if class == 16 then
                             duration = const.Minute * 1.5
-                            mon.SpellBuffs[6].ExpireTime = Game.Time + duration
                         elseif class == 17 then
                             duration = const.Minute * 2
-                            mon.SpellBuffs[6].ExpireTime = Game.Time + duration
                         else
                             duration = const.Minute * 2.5
+						end
+						duration = calcDebuffDuration(mon, chargeCC, duration)
+						if duration > 0 then
+
                             mon.SpellBuffs[6].ExpireTime = Game.Time + duration
                         end
                         local vel = mon.Velocity
@@ -1597,7 +1600,7 @@ function events.LoadMap()
 	end
 	for i=1,#trainingCenters[currentWorld] do
 		Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/20)*10
-		if vars.madnessMode then
+		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 			Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/10)*10
 		end
 	end
@@ -1742,6 +1745,7 @@ local normalCosts={0,1000,4000,20000}
 local doomCosts={0,2000,10000,50000}
 local insanityCost={0,10000,50000,250000}
 local madnessCost={0,25000,500000,2000000}
+local doomMadReq={0,8,16,24}
 
 local function getReqAndCost(mastery, player)
 	local pl = Party[player or Game.CurrentPlayer]
@@ -1753,6 +1757,9 @@ local function getReqAndCost(mastery, player)
 	elseif vars.insanityMode then
 		baseCost = insanityCost[mastery]
 		requirements = insanityLearningRequirements[mastery]
+	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			baseCost = doomCosts[mastery]
+			requirements = doomMadReq[mastery]
 	elseif  vars.Mode==2 then
 		baseCost = doomCosts[mastery]
 		requirements = learningRequirements[mastery]
@@ -1774,6 +1781,7 @@ local function getReqAndCost(mastery, player)
 			cost = cost + baseCost
 		end
 	end
+	
 	
 	return requirements, cost
 end
@@ -1903,6 +1911,8 @@ function events.Action(t)
 						requirements={0,12,30,50}
 					elseif vars.insanityMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,8,20,32}
+					elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+						requirements = { 0, 8, 16, 24}
 					elseif Game.freeProgression or not table.find(horizontalSkills, t.Param) then
 						requirements={0,4,7,10}
 					else
@@ -2422,6 +2432,7 @@ function events.BeforeLoadMap(wasInGame)
 end
 
 --mace stun
+local maceStunCC = {Debuff = const.MonsterBuff.Paralyze}
 function events.CalcDamageToMonster(t)
 	if t.Player then
 		local it=t.Player:GetActiveItem(1)
@@ -2443,17 +2454,16 @@ function events.CalcDamageToMonster(t)
 				local duration=0
 				if chance>math.random() then
 					applyParalyze[id]=true
-					duration=const.Minute*2.5
-					if mon.NameId>220 and mon.NameId<300 then
-						duration=duration/2.5
-					end
+					duration=const.Minute*3
 					if m==3 then
 						duration=duration/2
 					end
+										-- Apply diminishing returns
+					duration = calcDebuffDuration(mon, maceStunCC, duration)
 				end
 				function events.Tick()
 					events.Remove("Tick",1)
-					if applyParalyze[id] then
+					if applyParalyze[id] and duration > 0 then
 						if mon.HP~=0 then
 							mon.SpellBuffs[6].ExpireTime=Game.Time+duration
 						end

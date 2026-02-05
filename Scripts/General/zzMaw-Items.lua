@@ -418,6 +418,8 @@ function events.AfterLoadMap()
 		local mapLevel=(mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3
 		if vars.madnessMode and madnessMapLevels[name] then
 			bolsterLevel=madnessMapLevels[name]
+	    elseif (vars.Mode == 2 and vars.UseDoomMapLevels and doomMapLevels[name]) then
+			bolsterLevel = doomMapLevels[name] 
 		end	
 		if mapvars.mapAffixes then
 			bolsterLevel=mapvars.mapAffixes.Power*10+20
@@ -526,7 +528,11 @@ function events.ItemGenerated(t)
 			vars.artifactPity[rolledIndex] = vars.artifactPity[rolledIndex] + 1
 			t.Item.Number = allArtifacts[rolledIndex]
 			local level = round(getTotalLevel())
-			t.Item.BonusStrength = math.min(math.max(level,1), 1000)
+			t.Item.BonusExpireTime = math.min(math.max(level,1), 1000)
+			t.Item.BonusStrength=0
+			t.Item.Bonus2=0
+			t.Item.Bonus=0
+			t.Item.Charges=0
 		else
 			vars.artifactRollPity = vars.artifactRollPity + lootMultiplier
 		end
@@ -617,6 +623,13 @@ function events.ItemGenerated(t)
 				partyLevel=((mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3)^1.5
 			end
 			mapLevel=0
+		elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if doomMapLevels[name] then
+				partyLevel=doomMapLevels[name]
+			else
+				partyLevel=((mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3)^1.3
+			end
+			mapLevel = 0
 		end
 		if mapvars.mapAffixes then
 			currentLevel=mapvars.mapAffixes.Power*10+20
@@ -659,7 +672,7 @@ function events.ItemGenerated(t)
 		cap1=cap1/2
 		maxChargesCap=maxChargesCap/2
 		
-		if vars.madnessMode then
+		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 			maxChargesCap=200
 		end
 		it.MaxCharges=math.floor(partyLevel/10+mapLevel/80)
@@ -674,7 +687,7 @@ function events.ItemGenerated(t)
 			bonusCap=bonusCap+20
 		end
 		cap2=14+bonusCap
-		if vars.madnessMode then
+		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 			cap2=54
 			bonusCap=42
 		end
@@ -1380,7 +1393,7 @@ function updateCelestialItem(it,pl)
 			lvl=lvl2*1.2
 		end
 		local tier=math.min(lvl/11+5,60)
-		if vars.madnessMode then
+		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 			tier=math.min(math.min(lvl,1000)/11+5,90)
 		end
 		local mult=3
@@ -1400,7 +1413,7 @@ function updateCelestialItem(it,pl)
 			it.Charges=math.floor(it.Charges/1000)*1000+math.min(math.round(tier*mult*slotMult),999)
 		end
 		local cap=180 
-		if vars.madnessMode then
+		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 			cap=240
 		end
 		it.MaxCharges=math.min(math.round(tier*mult*0.8),cap)
@@ -1801,7 +1814,7 @@ function events.BuildItemInformationBox(t)
 			maxChargesCap=maxChargesCap+100 --mapping release
 			maxChargesCap=maxChargesCap/2
 
-			if vars.madnessMode then
+			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				maxChargesCap=150
 			end
 			maxChargesCap=round(maxChargesCap)
@@ -2456,13 +2469,16 @@ function events.BuildItemInformationBox(t)
 		require("string")
 		pattern = "(%d+)"
 		text=t.Description
-		t.Description = text:gsub(pattern, function(match) return replaceNumber(match, t.Item.BonusStrength) end)
+		t.Description = text:gsub(pattern, function(match) return replaceNumber(match, t.Item.BonusExpireTime) end)
 		local txt="\n\nScale with player level, up to level 550."
 		if vars.madnessMode then
 			txt="\n\nScale with player level, up to level 900."
+		elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		--?? not sure yet
+			txt = "\n\nScale with player level, up to level <special doom>???."
 		end
-		if t.Item.BonusStrength>=1 then
-			txt=StrColor(120, 240, 255,"\n\nArtifact Level: " .. t.Item.BonusStrength)
+		if t.Item.BonusExpireTime>=1 then
+			txt=StrColor(120, 240, 255,"\n\nArtifact Level: " .. t.Item.BonusExpireTime)
 		end
 		t.Description = t.Description .. txt
 	end
@@ -2489,14 +2505,14 @@ function events.BuildItemInformationBox(t)
 			if id==-1 then
 				id=0
 			end
-			local artifactMult=artifactPowerMult(Party[id].LevelBase, true, t.Item.BonusStrength)
+			local artifactMult=artifactPowerMult(Party[id].LevelBase, true, t.Item.BonusExpireTime)
 			local txt=Game.ItemsTxt[t.Item.Number]
 			local ac=math.ceil((txt.Mod2+txt.Mod1DiceCount)*artifactMult)
 			if ac>0 then 			
 				t.BasicStat= "Armor: +" .. ac
 			end
 			--WEAPONS
-			artifactMult=artifactPowerMult(Party[id].LevelBase, false, t.Item.BonusStrength)
+			artifactMult=artifactPowerMult(Party[id].LevelBase, false, t.Item.BonusExpireTime)
 			local equipStat=txt.EquipStat
 			if equipStat<=2 then
 				local bonus=math.ceil(txt.Mod2*artifactMult)
@@ -2777,6 +2793,9 @@ function events.BuildItemInformationBox(t)
 				txt=StrColor(120, 240, 255,"\n\nCelestial Items cannot be upgraded with crafting Gems or Cubes, but scale with player level, up to level 600.")
 				if vars.madnessMode then
 					txt=StrColor(120, 240, 255,"\n\nCelestial Items cannot be upgraded with crafting Gems or Cubes, but scale with player level, up to level 1000.")
+				elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+					-- ?? not sure yet
+					txt = StrColor(120, 240, 255, "\n\nCelestial Items cannot be upgraded with crafting Gems or Cubes, but scale with player level, up to level <special doom>???.")	
 				end
 			end
 			t.Description = t.Description .. txt
@@ -3031,7 +3050,7 @@ function itemStats(index)
 			end
 			--artifacts
 			if table.find(artArmors,it.Number) then 
-				artifactMult=artifactPowerMult(pl.LevelBase, true, it.BonusStrength)
+				artifactMult=artifactPowerMult(pl.LevelBase, true, it.BonusExpireTime)
 				acBonus=math.ceil(acBonus*artifactMult)
 			end
 			acBonus=round(acBonus*(1+mult))
@@ -3202,7 +3221,7 @@ function itemStats(index)
 			
 			if table.find(artWeap1h,it.Number) or table.find(artWeap2h,it.Number) then 
 				if txt.EquipStat<=1 then
-					artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusStrength)
+					artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusExpireTime)
 					bonus=math.ceil(txt.Mod2*artifactMult)
 					sidesBonus=math.ceil(txt.Mod1DiceSides*artifactMult)
 				end
@@ -3360,14 +3379,14 @@ function itemStats(index)
 		--artifacts stats bonus
 		
 		if artifactStatsBonus[it.Number] then
-			artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusStrength)
+			artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusExpireTime)
 			for key,value in pairs(artifactStatsBonus[it.Number]) do
 				tab[key+1]=tab[key+1]+value*artifactMult
 			end
 		end
 		--artifacts skill bonuses
 		if artifactSkillBonus[it.Number] then
-			artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusStrength)
+			artifactMult=artifactPowerMult(pl.LevelBase, false, it.BonusExpireTime)
 			for key,value in pairs(artifactSkillBonus[it.Number]) do
 				tab[key+50]=tab[key+50] or 0
 				tab[key+50]=tab[key+50]+round(value*artifactMult)
@@ -3436,7 +3455,6 @@ function itemStats(index)
 	   if(SDGMAWSETTINGS.drgAdj) then
 		mult=2
 	   end
-
 		for i=1,16 do
 			tab[i]=tab[i]*mult
 		end
@@ -4375,7 +4393,7 @@ function artifactPowerMult(level, isAC, customLevel)
 	end
 	]]
 	local cap=550
-	if vars.madnessMode then
+	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 		cap=900
 	end
 	if customLevel>=1 then
@@ -4605,7 +4623,7 @@ function calcFireAuraDamage(pl, it, res, speedMult, isSpell, calcType)
 		local id=pl:GetIndex()
 		local mult=math.max((0.5+it.MaxCharges/20)^1.5,0.5)
 		if table.find(artWeap1h, it.Number) or table.find(artWeap2h, it.Number) then
-			mult=(1+artifactPowerMult(pl.LevelBase, false, it.BonusStrength))^1.5
+			mult=(1+artifactPowerMult(pl.LevelBase, false, it.BonusExpireTime))^1.5
 		end
 		if vars.legendaries and vars.legendaries[id] and table.find(vars.legendaries[id], 19) then
 			local str=pl:GetMight()
@@ -5035,7 +5053,7 @@ function events.AfterLoadMap()
 			local pl=Party.PlayersArray[i]
 			for k=1,138 do
 				local it=pl.Items[k]
-				if it.MaxCharges==0 then
+				if IsEnchantableItem(it) and it.MaxCharges==0 and it.Number~=2020 then
 					it.MaxCharges=extraPower
 				end
 			end

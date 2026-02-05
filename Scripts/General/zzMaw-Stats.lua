@@ -77,7 +77,7 @@ function getCritInfo(pl, dmgType, monLvl)
     local critDamageMultiplier = 1
 
     local cap = 1000
-    if vars.madnessMode then
+    if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
         cap = 1500
     end
     local diminishingLevel = math.min(100 + monLvl * 1.4, cap)
@@ -243,6 +243,10 @@ function getSpellDelay(pl, spell)
     if table.find(assassinClass, pl.Class) then
         return GetAssassinSpellDelay(pl, spell)
     end
+
+	
+	if spell==122 then return 120 end
+
     local s, m = SplitSkill(pl.Skills[math.ceil(spell / 11) + 11])
     if m == 0 then return 150 end
     local haste = math.floor(pl:GetSpeed() / 10)
@@ -255,8 +259,8 @@ function getSpellDelay(pl, spell)
     end
     local ascensionSkill = 0
     local skill = SplitSkill(pl:GetSkill(const.Skills.Learning))
-    if table.find(spells, spell) or(healingSpells and healingSpells[spell]) then
-        ascensionSkill = skill
+	if table.find(spells, spell) or (healingSpells and healingSpells[spell]) or CCMAP[spell] then
+		ascensionSkill = skill
         if table.find(elementalistClass, pl.Class) then
             ascensionSkill = 0
             for i = 12, 15 do
@@ -287,6 +291,13 @@ function getSpellDelay(pl, spell)
         end
     end
 
+	if CCMAP[spell] then
+		local school=math.ceil(spell/11)+11
+		local s,m=SplitSkill(pl:GetSkill(school))
+		local speedMultiplier=1.015^(ascensionSkill-s)
+		local delay=round(oldTable[spell][m]*speedMultiplier)
+		return delay
+	end
 
     local hasteDiv = 1
     if vars.MAWSETTINGS.buffRework == "ON" then
@@ -1009,7 +1020,7 @@ function events.CalcDamageToPlayer(t)
     t.Damage = t.Damage * roll
 
     if mon and mon.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime >= Game.Time then
-        t.Damage = t.Damage / 2
+        t.Damage = t.Damage *0.75
     end
 
     if data and data.Monster and data.Object and data.Object.Spell < 100 and data.Object.Spell > 0 then
@@ -1051,7 +1062,7 @@ function events.CalcDamageToPlayer(t)
         if (data.Monster) then
             monName = Game.MonstersTxt[data.Monster.Id].Name
         end
-        AddCombatLog(monName .. " damaged " .. t.Player.Name .. " " .. StrColor(255, 0, 0, shortenNumber(t.Result, 4, true)))
+        AddCombatLog( monName .. " damaged " .. t.Player.Name .. " " .. StrColor(255, 0, 0, shortenNumber(t.Result, 4, true)))
     end
 end
 
@@ -1860,7 +1871,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	local baseScaling=3
 	local endScaling=9
 	local maxPromotionLevel=250
-	if vars.madnessMode then
+	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 		maxPromotionLevel=500
 	end
 	local scalingHP=math.min((endScaling-baseScaling)*lvl/maxPromotionLevel,endScaling-baseScaling)+baseScaling
@@ -1884,7 +1895,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	end
 	
 	local levelCap=700
-	if vars.madnessMode then
+	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 		levelCap=1050
 	end
 	local levelMult=math.min(lvl/levelCap,1)
@@ -1901,6 +1912,8 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
+	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		masterLearned = 16
 	end
 	local bbMasteryBonus=math.min(1+skill/masterLearned*2,3) --use master as a reference
 	local bbPercentBonus=bbMasteryBonus+1
@@ -2028,6 +2041,8 @@ function getPlayerEstimatedPower(lvl)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
+	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		masterLearned = 16
 	end
 	local armsMasterDamage=math.min(0.5+skill/masterLearned,2) --use gm as a reference
 	
@@ -2056,7 +2071,7 @@ function getPlayerEstimatedPower(lvl)
 	local accuracy=might
 	
 	local diminishingLevel=math.min(100+lvl*1.4,1000)
-	if vars.madnessMode then
+	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 		diminishingLevel=math.min(100+lvl*1.4,1500)
 	end
 	local critChance=0.05+(luck/math.min(500+lvl*7.5,5000))+0.1*math.min(lvl/300,1) --assume crit enchant at lvl 500
@@ -2148,6 +2163,9 @@ function GetDensityMultiplier(id)
 	elseif vars.insanityMode then
 		density=5
 		divisor=14*2
+	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		density=6
+		divisor = 12 * 2
 	elseif vars.Mode==2 then
 		density=4
 		divisor=18*2
@@ -2204,6 +2222,8 @@ function getBodyHealing(lvl, spellId, mastery)
 		masteries={0,12,30,50}
 	elseif vars.insanityMode then
 		masteries={0,8,20,32}
+	elseif(vars.Mode == 2 and vars.UseDoomMapLevels)then
+		masteries = { 0, 8, 16, 24 }
 	end
 
 	if not mastery then
@@ -2345,6 +2365,8 @@ function masteryThresholds()
 	  return {0, 12, 30, 50}
 	elseif vars.insanityMode then
 	  return {0, 8, 20, 32}
+	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		return { 0, 8, 16, 24 }
 	else
 	  return {0, 4, 7, 10}
 	end

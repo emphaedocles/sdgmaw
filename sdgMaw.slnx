@@ -1,5 +1,12 @@
 <Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MyLibTest/MyLibTest.vcxproj" Id="1d962069-6ba0-4d4e-87fd-8fa5a195159f" />
   <Project Path="sdgMaw.luaproj" Type="5697748a-77ef-44ca-8824-4f5637e5945b" Id="e439935d-b2a2-46ae-856d-2aa408428f33">
+    <Platform Project="AnyCPU" />
     <Build Project="false" />
   </Project>
 </Solution>

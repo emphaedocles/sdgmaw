@@ -22,8 +22,8 @@ local mm6MapProgression={
   ["Shadow Guild"] = 19,
   ["Icewind Keep"] = 20,
   ["Dragoons' Keep"] = 21,
-  ["Tomb of Ethric the Mad"] = 22,
-  ["Corlagon's Estate"] = 23,
+  ["Corlagon's Estate"] = 22,
+  ["Tomb of Ethric the Mad"] = 23,
   ["Temple of the Moon"] = 24,
   ["Mire of the Damned"] = 25,
   ["Temple of the Sun"] = 26,
@@ -155,18 +155,18 @@ local mm8MapProgression={
   ["Balthazar Lair"] = 19,
   ["Murmurwoods"] = 20,
   ["Ancient Troll Home"] = 21,
-  ["Temple of the Sun"] = 22,
-  ["Uplifted Library"] = 23,
-  ["Shadowspire"] = 24,
-  ["Chain of Fire"] = 25,
-  ["The Crypt of Korbu"] = 26,
-  ["Cyclops Larder"] = 27,
-  ["Garrote Gorge"] = 28,
-  ["Naga Vault"] = 29,
-  ["Dragon Hunter's Camp"] = 30,
-  ["Vampire Crypt"] = 31,
-  ["Necromancers' Guild"] = 32,
-  ["Mad Necromancer's Lab "] = 33,
+  ["Shadowspire"] = 22,
+  ["Mad Necromancer's Lab "] = 23,
+  ["Temple of the Sun"] = 24,
+  ["Uplifted Library"] = 25,
+  ["Chain of Fire"] = 26,
+  ["The Crypt of Korbu"] = 27,
+  ["Cyclops Larder"] = 28,
+  ["Garrote Gorge"] = 29,
+  ["Naga Vault"] = 30,
+  ["Dragon Hunter's Camp"] = 31,
+  ["Vampire Crypt"] = 32,
+  ["Necromancers' Guild"] = 33,
   ["Pirate Outpost"] = 34,
   ["Small Sub Pen"] = 35,
   ["Regna"] = 36,
@@ -194,25 +194,29 @@ local mm8MapProgression={
   ["Prison of the Lord of Fire"] = 58,
 }
 function events.GameInitialized2()
-    --set doom/insanity map levels to work like Madness, but with an end goal of 500 for last map levels (instead of 1000)
-    vars.UseDoomMapLevels=true
+    --set doom/insanity map levels to work like Madness,
 
+
+--vars.UseDoomMapLevels=true
+
+--debug.Message("Setting up Doom Map Levels %s", vars.UseDoomMapLevels)
 	doomMapLevels={}
 	for key, value in pairs(mm6MapProgression) do
-		doomMapLevels[key]=round(((value/54)*100)^1.5)/2
+		doomMapLevels[key]=round(((value/54)*100)^1.5)
 	end
 
 	for key, value in pairs(mm7MapProgression) do
-		doomMapLevels[key]=round(((value/52)*100)^1.5)/2
+		doomMapLevels[key]=round(((value/52)*100)^1.5)
 	end
 
 	for key, value in pairs(mm8MapProgression) do
-		doomMapLevels[key]=round(((value/58)*100)^1.5)/2
+		doomMapLevels[key]=round(((value/58)*100)^1.5)
 	end
 
-	doomMapLevels["Basement of the Breach"] = 500
-	doomMapLevels["The Breach"] = 500
+	doomMapLevels["Basement of the Breach"] = 1000
+	doomMapLevels["The Breach"] = 1000
 	doomMapLevels["The Arena"] = 1
 	doomMapLevels["Pending"] = 1
 	doomMapLevels["NWC"] = 1
+
 end

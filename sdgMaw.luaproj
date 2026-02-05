@@ -31,6 +31,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Tables\Class Skillz.txt" />
+    <Compile Include="Scripts\General\ExtraQuickSpells.lua" />
+    <Compile Include="Scripts\General\MenuChooseCharacter.lua" />
+    <Compile Include="Scripts\General\MenuChooseContinent.lua" />
+    <Compile Include="Scripts\General\MenuExtraSettings.lua" />
     <Compile Include="Scripts\General\sdgDoomMap.lua">
       <SubType>Code</SubType>
     </Compile>
@@ -38,6 +42,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Scripts\General\zzMaw-Items.lua" />
+    <Compile Include="Scripts\General\zzMaw-Spells.lua" />
     <Content Include="Scripts\General\sdgMaw_Skills.lua">
       <Publish>True</Publish>
     </Content>
