@@ -534,7 +534,7 @@ function events.GameInitialized2()
 			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
-			local speedDelay=0.03
+			local speedDelay=0.015
 			if Party.High==0 then
 				speedDelay=0.015
 			end
@@ -563,7 +563,7 @@ function events.GameInitialized2()
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
 			
-			local speedDelay=0.03
+			local speedDelay=0.015
 			if Party.High==0 then
 				speedDelay=0.015
 			end
@@ -597,7 +597,7 @@ function events.GameInitialized2()
 			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
-			local speedDelay=0.03
+			local speedDelay=0.015
 			if Party.High==0 then
 				speedDelay=0.015
 			end
@@ -627,7 +627,7 @@ function events.GameInitialized2()
 			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
 				cap=900
 			end
-			local speedDelay=0.03
+			local speedDelay=0.015
 			if Party.High==0 then
 				speedDelay=0.015
 			end
@@ -681,19 +681,11 @@ function events.GameInitialized2()
 		if Game.CharacterPortraits[t.Player.Face].Race==const.Race.Dragon then
 			if useBreathCooldown or t.Ranged then
 				local s, m = SplitSkill(t.Player:GetSkill(const.Skills.DragonAbility))
-				if Party.High==0 then
-					t.Result=t.Result * (1+0.015*s)
-				else
-					t.Result=t.Result * (1+0.03*s)
-				end
+				t.Result=t.Result * (1+0.015*s)
 				useBreathCooldown=false
 			else
 				local s, m = SplitSkill(t.Player:GetSkill(const.Skills.Unarmed))
-				if Party.High==0 then
-					t.Result=t.Result * (1+0.015*s)
-				else
-					t.Result=t.Result * (1+0.03*s)
-				end
+				t.Result=t.Result * (1+0.015*s)
 			end
 		end	
 	end
@@ -837,7 +829,7 @@ function dragonSkill(dragon, index)
 		pl=Party[index]
 		Skillz.setName(33, "Fangs")
 
-		local txt="Dragons can use their fangs to deal atrocious damage to enemies. Damage is 30 + 2 per level (up to level 600). Fang skill increases this amount by a percentage based on mastery and skill level.\n\nWhenever this skill is below dragon skill it will push monsters away\nEach point in the skill increases damage and increases recovery time by 3%.\n" .. "\n------------------------------------------------------------\n            Attack| Dmg|"
+		local txt="Dragons can use their fangs to deal atrocious damage to enemies. Damage is 30 + 2 per level (up to level 600). Fang skill increases this amount by a percentage based on mastery and skill level.\n\nWhenever this skill is below dragon skill it will push monsters away\nEach point in the skill increases damage and increases recovery time by 1.5%.\n" .. "\n------------------------------------------------------------\n            Attack| Dmg|"
 		Skillz.setDesc(33,1,txt)
 		Game.SkillDesNormal[33]=fangsNormal
 		Game.SkillDesExpert[33]=fangsExpert
