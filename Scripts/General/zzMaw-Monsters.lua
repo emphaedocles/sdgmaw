@@ -2226,6 +2226,7 @@ function events.BuildMonsterInformationBox(t)
     if t.IdentifiedDamage or t.IdentifiedAttack then
         if effectNames[mon.Bonus] then
             t.EffectsHeader.Text = t.EffectsHeader.Text .. string.format("\n\n\t15 ") .. effectNames[mon.Bonus]
+            
         end
         local partyLvl = getTotalLevel()
         local experience = mon.Experience / Party.count
@@ -2240,7 +2241,8 @@ function events.BuildMonsterInformationBox(t)
         local experienceAwarded = experience * healthRateo
         local lvl = pl.LevelBase
         experienceAwarded = round(math.min((lvl + 1) * 1000, experienceAwarded))
-        t.EffectsHeader.Text = t.EffectsHeader.Text .. "\n\nExperience: " .. experienceAwarded .. "\n\nCurrent Health: " .. shortenNumber(round(mon.HP * 2 ^(mon.Resistances[0] / 1000)), 4)
+        --t.EffectsHeader.Text = t.EffectsHeader.Text .. "\n\nExperience: " .. experienceAwarded .. "\n\nCurrent Health: " .. shortenNumber(round(mon.HP * 2 ^(mon.Resistances[0] / 1000)), 4)
+        t.EffectsHeader.Text=t.EffectsHeader.Text .. "\n\nExperience: " .. experienceAwarded .. "\n\nCurrent Health: " .. shortenNumber(round(mon.HP*2^math.floor(mon.Resistances[0]/1000)), 4)
 
         -- Display active debuffs
         local debuffNames = {

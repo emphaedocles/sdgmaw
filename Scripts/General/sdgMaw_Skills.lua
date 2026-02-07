@@ -14,7 +14,7 @@ local function InitSDGSettings()
     SDGMAWSETTINGS.ftMonsterHealthBoss = true
     SDGMAWSETTINGS.ftPlayerHealing = true
     SDGMAWSETTINGS.ftAbbreviateNames = true
-    SDGMAWSETTINGS.drgAdj=true
+    SDGMAWSETTINGS.drgAdj = true
     -- debug.Message(SDGMAWSETTINGS)
 end
 
@@ -33,8 +33,8 @@ function events.GameInitialized2()
     Skillz.setDesc(stealthSkill, 5, "Triple Cover bonus, chance to backstab per skill point x3, Backstab damage multiplier 3x")
     Skillz.learn_at(stealthSkill, 30)
 
-   InitCombatLog()
-    
+    InitCombatLog()
+
 end
 
 -- Stealth skill, points add
@@ -523,8 +523,8 @@ local function ProjectToScreen(x, y, z, height)
     local scale_y = screenCenterY / depth
     local screenX = screenCenterX - math.max(math.min(horizontal_offset * 1.25 * scale_x, screenCenterX / 1.1), - screenCenterX / 1.1)
     local screenY = screenCenterY - math.max(math.min(vertical_offset * 2 * scale_y + height *(screenHeight / distance) ^ 0.5, screenCenterY / 1.1), - screenCenterY / 1.8)
-    --local screenX = screenCenterX - math.max(math.min(horizontal_offset * scale_x, screenCenterX ), - screenCenterX )
-    --local screenY = screenCenterY - math.max(math.min(vertical_offset * 2 * scale_y + height *(screenHeight / distance) ^ 0.5, screenCenterY ), - screenCenterY )
+    -- local screenX = screenCenterX - math.max(math.min(horizontal_offset * scale_x, screenCenterX ), - screenCenterX )
+    -- local screenY = screenCenterY - math.max(math.min(vertical_offset * 2 * scale_y + height *(screenHeight / distance) ^ 0.5, screenCenterY ), - screenCenterY )
 
     return screenX, screenY
 end
@@ -554,6 +554,7 @@ function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
         end
         if (backstabx) then
             txt = string.format("%s %s%s)", txt, "(X", backstabmult)
+            AddCombatLog(StrColor(255, 255, 0, string.format("%s hits %s for %s damage with Backstab x%s!", player.Name, Game.PlaceMonTxt[mon.NameId], damTxt, backstabmult)))
         end
         txtMonDam = txtMonDam or { }
 
@@ -610,64 +611,64 @@ function events.AfterLoadMap()
         mon = Map.Monsters[i]
         if mon then
             -- and mon.NameId >= 220 and mon.NameId < 300 then
-            --if (mon.HP > 0 and(mon.AIState ~= 5 and mon.AIState ~= 11)) then
-                --                mapvars.damaged_monsters[i] = mapvars.damaged_monsters[i] or { }
-                --                mapvars.damaged_monsters[i].timestamp = os.clock()
-                --                mapvars.damaged_monsters[i].hp_before_hit = mon.HP
+            -- if (mon.HP > 0 and(mon.AIState ~= 5 and mon.AIState ~= 11)) then
+            --                mapvars.damaged_monsters[i] = mapvars.damaged_monsters[i] or { }
+            --                mapvars.damaged_monsters[i].timestamp = os.clock()
+            --                mapvars.damaged_monsters[i].hp_before_hit = mon.HP
 
-                local name = Game.MonstersTxt[mon.Id].Name
-                if mon.NameId > 0 then
-                    name = Game.PlaceMonTxt[mon.NameId]
-                end
-                --  name= name .. " " .. mon.AIState
-                txtMonHP[i] = txtMonHP[i]
-                if (not txtMonHP[i]) then
-                    txtMonHP[i] = CustomUI.CreateText {
-                        Text = name,
-                        Layer = 2,
-                        Screen = 0,
-                        X = 640 / 2,
-                        -- 5+i*96, Y = 410
-                        Y = 480 / 2,
-                        ColorStd = RGB(64,192,64),
-                        Width = 250,
-                        Height = 20,
-                        AlignLeft = true,
-                        Font = Game.Smallnum_fnt,
-                        Active = false-- deactive until in range etc...
-                    }
-                    
-                end
-          --  end
+            local name = Game.MonstersTxt[mon.Id].Name
+            if mon.NameId > 0 then
+                name = Game.PlaceMonTxt[mon.NameId]
+            end
+            --  name= name .. " " .. mon.AIState
+            txtMonHP[i] = txtMonHP[i]
+            if (not txtMonHP[i]) then
+                txtMonHP[i] = CustomUI.CreateText {
+                    Text = name,
+                    Layer = 2,
+                    Screen = 0,
+                    X = 640 / 2,
+                    -- 5+i*96, Y = 410
+                    Y = 480 / 2,
+                    ColorStd = RGB(64,192,64),
+                    Width = 250,
+                    Height = 20,
+                    AlignLeft = true,
+                    Font = Game.Smallnum_fnt,
+                    Active = false-- deactive until in range etc...
+                }
+
+            end
+            --  end
         end
     end
-       -- AddCombatLog("Monsters on map " .. Map.Monsters.High)
-    
+    -- AddCombatLog("Monsters on map " .. Map.Monsters.High)
 
---    if(not txtMonOnMap) then
---      txtMonOnMap=CustomUI.CreateText {
---                        Text = name,
---                        Layer = 2,
---                        Screen = 0,
---                        X = 540,
---                        -- 5+i*96, Y = 410
---                        Y = 0,
---                        ColorStd = RGB(64,192,192),
---                        Width = 100,
---                        Height = 100,
---                        AlignLeft = true,
---                        Font = Game.Smallnum_fnt,
---                        Active = true
---                    }
---    end
---    txtMonOnMap.Text="Mobs " .. Map.Monsters.High
-    --vars.UseDoomMapLevels = vars.UseDoomMapLevels or false
 
-    --debug.Message("Doom Map Levels active %s" , vars.UseDoomMapLevels)
+    --    if(not txtMonOnMap) then
+    --      txtMonOnMap=CustomUI.CreateText {
+    --                        Text = name,
+    --                        Layer = 2,
+    --                        Screen = 0,
+    --                        X = 540,
+    --                        -- 5+i*96, Y = 410
+    --                        Y = 0,
+    --                        ColorStd = RGB(64,192,192),
+    --                        Width = 100,
+    --                        Height = 100,
+    --                        AlignLeft = true,
+    --                        Font = Game.Smallnum_fnt,
+    --                        Active = true
+    --                    }
+    --    end
+    --    txtMonOnMap.Text="Mobs " .. Map.Monsters.High
+    -- vars.UseDoomMapLevels = vars.UseDoomMapLevels or false
 
-  if(vars.UseDoomMapLevels) then
-      AddCombatLog(StrColor(255,0,0, "Mad-Doom Map Levels active"))
-          -- calculate party experience
+    -- debug.Message("Doom Map Levels active %s" , vars.UseDoomMapLevels)
+
+    if (vars.UseDoomMapLevels) then
+        AddCombatLog(StrColor(255, 0, 0, "Mad-Doom Map Levels active"))
+        -- calculate party experience
         bolsterLevel = getPartyLevel() -4
         -- slight nerf at the start
         bolsterLevel = math.max(bolsterLevel, 0)
@@ -686,9 +687,13 @@ function events.AfterLoadMap()
         if mapvars.mapAffixes then
             bolsterLevel = mapvars.mapAffixes.Power * 10 + 20
         end
-        AddCombatLog(StrColor(32,64,255,"Doom Map Level set to ") .. StrColor(0,255,0, bolsterLevel))
+        AddCombatLog("Entered Map : " .. name)
 
-  end
+        AddCombatLog(StrColor(32, 64, 255, "Doom Map Level set to ") .. StrColor(0, 255, 0, bolsterLevel))
+
+        AddCombatLog(string.format("Timestamp: %s-%s-%s %s:%s", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
+
+    end
 
 
 end
@@ -719,15 +724,15 @@ function events.Tick()
             end
         end
     end
-    local distAdj=1+ maxM/4
+    local distAdj = 1 + maxM / 4
 
-    local alive=0
-    local total=Map.Monsters.High+1
-    local inRange=0
-    local onMap=0
-    local screenSpace=0
-    local activeC=0
-    
+    local alive = 0
+    local total = Map.Monsters.High + 1
+    local inRange = 0
+    local onMap = 0
+    local screenSpace = 0
+    local activeC = 0
+
 
 
     for i = 0, Map.Monsters.High do
@@ -735,25 +740,25 @@ function events.Tick()
 
         local exponent = math.floor(mon.Resistances[0] / 1000)
         local hp = mon.HP * 2 ^ exponent
-        local basehp=mon.HP
+        local basehp = mon.HP
         local fullHP = mon.FullHP * 2 ^ exponent
-        local bLifeDetect =maxS>4 or Party.SpellBuffs[const.PartyBuff.DetectLife].ExpireTime > Game.Time or hp < fullHP
+        local bLifeDetect = maxS > 4 or Party.SpellBuffs[const.PartyBuff.DetectLife].ExpireTime > Game.Time or hp < fullHP
 
-        if(baseHP>0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19)) then
-         alive=alive +1
+        if (baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19)) then
+            alive = alive + 1
         end
 
         if bLifeDetect and mon.ShowOnMap and mon.ShowAsHostile and baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19) then
-           onMap=onMap+1
+            onMap = onMap + 1
 
             local dist = getDistance(Party, mon)
 
             local barSize = CheckBarSize(mon)
-            local bTier = barSize>=250 or hp<fullHP
+            local bTier = barSize >= 250 or hp < fullHP
 
 
-            if dist <= (2000*distAdj) and bTier then
-                inRange=inRange+1
+            if dist <=(2000 * distAdj) and bTier then
+                inRange = inRange + 1
 
                 local name = Game.MonstersTxt[mon.Id].Name
                 if mon.NameId > 0 then
@@ -775,24 +780,24 @@ function events.Tick()
                 local screenX, screenY = ProjectToScreen(mon.X, mon.Y, mon.Z, height * hAdj)
 
                 if screenX and screenY then
-                    screenSpace=screenSpace+1
+                    screenSpace = screenSpace + 1
                     if (screenY < 50) then screenY = 50 end
-                    if(not txtMonHP[i]) then
+                    if (not txtMonHP[i]) then
                         txtMonHP[i] = CustomUI.CreateText {
-                        Text = name,
-                        Layer = 2,
-                        Screen = 0,
-                        X = 640 / 2,
-                        -- 5+i*96, Y = 410
-                        Y = 480 / 2,
-                        ColorStd = RGB(64,192,64),
-                        Width = 250,
-                        Height = 20,
-                        AlignLeft = true,
-                        Font = Game.Smallnum_fnt,
-                        Active = true-- deactive until in range etc...
-                    }
-                    
+                            Text = name,
+                            Layer = 2,
+                            Screen = 0,
+                            X = 640 / 2,
+                            -- 5+i*96, Y = 410
+                            Y = 480 / 2,
+                            ColorStd = RGB(64,192,64),
+                            Width = 250,
+                            Height = 20,
+                            AlignLeft = true,
+                            Font = Game.Smallnum_fnt,
+                            Active = true-- deactive until in range etc...
+                        }
+
                     end
                     txtMonHP[i] = txtMonHP[i] or { }
 
@@ -826,14 +831,14 @@ function events.Tick()
                         name = ""
                         -- show health only on minions
                     end
-                    local status=""
-                    if(mon.AIState==8) then
-                    --stunned
-                     status="<Stunned>"
+                    local status = ""
+                    if (mon.AIState == 8) then
+                        -- stunned
+                        status = "<Stunned>"
                     end
-                    if(mon.AIState==15) then
-                    --paralyzed
-                    status="<Paralyzed>"
+                    if (mon.AIState == 15) then
+                        -- paralyzed
+                        status = "<Paralyzed>"
                     end
                     local txt = string.format("%s  %s/%s ", name, hp, fullHP, status)
 
@@ -841,14 +846,14 @@ function events.Tick()
                     txtMonHP[i].X = screenX
                     txtMonHP[i].Y = screenY
                     txtMonHP[i].Active = true
-                    activeC=activeC+1
+                    activeC = activeC + 1
 
                     bRedraw = true
                 else
                     -- offscreen
                     txtMonHP[i] = txtMonHP[i] or { }
                     if (txtMonHP[i].Active) then bRedraw = true end
-                  txtMonHP[i].Active = false
+                    txtMonHP[i].Active = false
                 end
             else
                 -- too far away or filtered by tier
@@ -864,8 +869,8 @@ function events.Tick()
         end
 
     end
-    
-   
+
+
 
     if (bRedraw) then Game.NeedRedraw = true end
 
@@ -909,121 +914,123 @@ function CheckBarSize(mon)
 end
 
 function InitCombatLog()
+    ShowCombatLog = true
     InitSDGOverlayLog()
-    iCombatLogRows=8
-    iLastCombatLog=0--will clear on new map
-    iCombatLogBaseY=75
-    txtCombatLog={}
-    ShowCombatLog=true
+    -- in game log will hide if overlay log present
+    iCombatLogRows = 8
+    iLastCombatLog = 0
+    -- will clear on new map
+    iCombatLogBaseY = 75
+    txtCombatLog = { }
 
---    local TogglePreview = CustomUI.CreateButton{
---	IconUp = "tab6a",
---	IconDown = "tab6b",
---	Masked = true,
---	Screen = {0, const.Screens.SelectTarget},
---	Layer = 0,
---	X = MMPatch_UI and 477 or -1,
---	Y = MMPatch_UI and 30 or 100,
---	Condition = InGame,
---	MouseOverAction = function()
---		Game.ShowStatusText(ShowCombatLog and "Hide CLog" or "Show CLog")
---	end,
---	Action = function(t)
---		ShowCombatLog = not ShowCombatLog
---		t.IUpSrc, t.IDwSrc = t.IDwSrc, t.IUpSrc
---		t.IUpPtr, t.IDwPtr = t.IDwPtr, t.IUpPtr
---		Game.NeedRedraw = true
---	end,
---	Key = "ShowCombatLog"
---}
+    --    local TogglePreview = CustomUI.CreateButton{
+    -- IconUp = "tab6a",
+    -- IconDown = "tab6b",
+    -- Masked = true,
+    -- Screen = {0, const.Screens.SelectTarget},
+    -- Layer = 0,
+    -- X = MMPatch_UI and 477 or -1,
+    -- Y = MMPatch_UI and 30 or 100,
+    -- Condition = InGame,
+    -- MouseOverAction = function()
+    -- 	Game.ShowStatusText(ShowCombatLog and "Hide CLog" or "Show CLog")
+    -- end,
+    -- Action = function(t)
+    -- 	ShowCombatLog = not ShowCombatLog
+    -- 	t.IUpSrc, t.IDwSrc = t.IDwSrc, t.IUpSrc
+    -- 	t.IUpPtr, t.IDwPtr = t.IDwPtr, t.IUpPtr
+    -- 	Game.NeedRedraw = true
+    -- end,
+    -- Key = "ShowCombatLog"
+    -- }
 
-     for i=0,iCombatLogRows-1 do     
-        txtCombatLog[i]=CustomUI.CreateText {
-                        Text ="",
-                        Layer = 3,
-                        Screen = {0,20},
-                        X = 640-300,
-                        -- 5+i*96, Y = 410
-                        Y = iCombatLogBaseY+ (i*28),
-                        ColorStd = RGB(128,192,192),
-                        Width = 300,
-                        Height = 28,
-                        AlignLeft = true,
-                        Font = Game.Smallnum_fnt,
-                        Active = false
-                    }
-        
+    for i = 0, iCombatLogRows - 1 do
+        txtCombatLog[i] = CustomUI.CreateText {
+            Text = "",
+            Layer = 3,
+            Screen = { 0, 20 },
+            X = 640 - 300,
+            -- 5+i*96, Y = 410
+            Y = iCombatLogBaseY +(i * 28),
+            ColorStd = RGB(128,192,192),
+            Width = 300,
+            Height = 28,
+            AlignLeft = true,
+            Font = Game.Smallnum_fnt,
+            Active = false
+        }
+
     end
 end
 function events.KeyUp(t)
-    if(Game.CurrentScreen ~=0) then return end
+    if (Game.CurrentScreen ~= 0) then return end
 
-    if(t.Key==88)then
-    --L key
-     if(ShowCombatLog) then
-       ShowCombatLog=false
-     else
-        ShowCombatLog=true
-     end
-      for i=0,iLastCombatLog-1 do  
-        txtCombatLog[i].Active=ShowCombatLog
-      end
-      Game.Redraw=true
+    if (t.Key == 88) then
+        -- L key
+        if (ShowCombatLog) then
+            ShowCombatLog = false
+        else
+            ShowCombatLog = true
+        end
+        for i = 0, iLastCombatLog - 1 do
+            txtCombatLog[i].Active = ShowCombatLog
+        end
+        Game.Redraw = true
     end
-    if(t.Key==86) then
+    if (t.Key == 86) then
         ClearCombatLog()
     end
 end
 function events.LeaveMap()
- --ClearCombatLog()
-  
+    -- ClearCombatLog()
+
 end
 function events.ExitMapAction(t)
---like exit game, death exit etc
- --ClearCombatLog()-- don't clear on death
- 
+    -- like exit game, death exit etc
+    -- ClearCombatLog()-- don't clear on death
+
 end
 
 function AddCombatLog(msg)
-SDGAddToOverlayLog(msg)
-  local iRow=iLastCombatLog
-  if(iRow >= iCombatLogRows) then
-    iRow=iCombatLogRows-1
-    --move all items up one level
-    for i=0,iCombatLogRows-2 do
-        txtCombatLog[i].Text=txtCombatLog[i+1].Text
+    SDGAddToOverlayLog(msg)
+    local iRow = iLastCombatLog
+    if (iRow >= iCombatLogRows) then
+        iRow = iCombatLogRows - 1
+        -- move all items up one level
+        for i = 0, iCombatLogRows - 2 do
+            txtCombatLog[i].Text = txtCombatLog[i + 1].Text
+        end
     end
-  end
-    txtCombatLog[iRow].Text=msg
-    txtCombatLog[iRow].Active=ShowCombatLog
-    Game.Redraw=true
+    txtCombatLog[iRow].Text = msg
+    txtCombatLog[iRow].Active = ShowCombatLog
+    Game.Redraw = true
 
-  iLastCombatLog=iRow+1
+    iLastCombatLog = iRow + 1
 end
 function ClearCombatLog()
- SDGClearLog()
-  iLastCombatLog=0
-  for i=0,iCombatLogRows-1 do
-    txtCombatLog[i].Text=""
-    txtCombatLog[i].Active=false
-  end
-  Game.Redraw=true
+    SDGClearLog()
+    iLastCombatLog = 0
+    for i = 0, iCombatLogRows - 1 do
+        txtCombatLog[i].Text = ""
+        txtCombatLog[i].Active = false
+    end
+    Game.Redraw = true
 end
 
-function AddHealToLog(spellName, totHeal,gotCrit,targetId,player)
+function AddHealToLog(spellName, totHeal, gotCrit, targetId, player)
 
--- combat log
-		local healTxt = StrColor(64, 255, 64, round(totHeal))
-		if(gotCrit) then
-			healTxt = healTxt .. StrColor(255, 215, 0, " (crit)")
-		end
-		local healerTxt=StrColor(255,128,255,player.Name)
+    -- combat log
+    local healTxt = StrColor(64, 255, 64, round(totHeal))
+    if (gotCrit) then
+        healTxt = healTxt .. StrColor(255, 215, 0, " (crit)")
+    end
+    local healerTxt = StrColor(255, 128, 255, player.Name)
 
-		local targetTxt= "<???>"
-		if(targetId>=0) then			
-			targetTxt= StrColor(0, 255, 255, Party[targetId].Name)
-		end
---debug.Message("Adding heal to log %s", spellName)
-		AddCombatLog("  <".. spellName ..">" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
+    local targetTxt = "<???>"
+    if (targetId >= 0) then
+        targetTxt = StrColor(0, 255, 255, Party[targetId].Name)
+    end
+    -- debug.Message("Adding heal to log %s", spellName)
+    AddCombatLog("  <" .. spellName .. ">" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
 
 end

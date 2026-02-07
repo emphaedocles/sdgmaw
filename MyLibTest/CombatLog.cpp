@@ -1,6 +1,6 @@
 // (implementation file — update of existing myopen.cpp)
 #include "pch.h"
-#include "myopen.h"
+#include "CombatLog.h"
 #include <windows.h>
 #include <richedit.h>
 #include <string>
@@ -9,10 +9,10 @@
 
 #pragma once
 
-#ifdef MYOPEN_EXPORTS
-#define MYOPEN_API __declspec(dllexport)
+#ifdef CombatLog_EXPORTS
+#define CombatLog_API __declspec(dllexport)
 #else
-#define MYOPEN_API __declspec(dllimport)
+#define CombatLog_API __declspec(dllimport)
 #endif
 
 static std::atomic<HWND> g_hWnd{ nullptr };
@@ -255,7 +255,7 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             HDC hdc = GetDC(nullptr);
             int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
             ReleaseDC(nullptr, hdc);
-            int lfHeight = -MulDiv(14, dpiY, 72); // 14 pt
+            int lfHeight = -MulDiv(12, dpiY, 72); // 14 pt
             // Use Segoe UI if available, fall back to default GUI font family
             g_hFont = CreateFontW(lfHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
@@ -369,7 +369,7 @@ static DWORD WINAPI UiThreadProc(LPVOID lp)
 
     if (!hwnd) return 0;
 
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    SetWindowPos(hwnd, HWND_TOPMOST, 10, 10, 0, 0,  SWP_NOSIZE | SWP_SHOWWINDOW);
     g_hWnd = hwnd;
     g_threadId = GetCurrentThreadId();
 
@@ -401,7 +401,7 @@ static DWORD WINAPI UiThreadProc(LPVOID lp)
 }
 
 // ----- Public API implementations -----
-namespace myopen {
+namespace CombatLog {
 
     void OpenMe(const char* text, const char* title)
     {

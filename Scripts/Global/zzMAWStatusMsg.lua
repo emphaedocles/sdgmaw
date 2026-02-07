@@ -1,4 +1,4 @@
-local REMOTE_OWNER_BIT=0x800
+﻿local REMOTE_OWNER_BIT=0x800
 function events.CalcDamageToMonster(t)
 	local source = WhoHitMonster()
 	if source then
@@ -206,6 +206,8 @@ function events.CalcDamageToMonster(t)
 		MSGdamage=MSGdamage or 0
 		MSGdamage=MSGdamage+math.ceil(t.Result*divide)
 		local msgTxt=MSGdamage
+		local instanceTxt = math.ceil(t.Result*divide)--for aoe want instance value
+		instanceTxt = shortenNumber(instanceTxt, 4, true)
 		msgTxt=shortenNumber(msgTxt, 4, true)
 		attackIsSpell=false
 		castedAoe=false
@@ -252,28 +254,36 @@ function events.CalcDamageToMonster(t)
 		function events.Tick()
 			events.Remove("Tick", 1)
 			if id<=Map.Monsters.High and MSGdamage>0 then
-				
+				local clog
 				msgTxt = StrColor(255, 32, 32, msgTxt)
 				monName = StrColor(128, 255, 128, monName)
 		        if(not castedAoe) then
-					name = StrColor(255, 128, 255, name)				   
+					name = StrColor(255, 128, 255, name)		
+					instanceTxt = StrColor(255, 128, 255, msgTxt)
 				else
-					name = StrColor(255, 128, 128, name)				   
+					name = StrColor(255, 128, 128, name)		
+					instanceTxt = StrColor(255, 32, 32, instanceTxt)
 				end
 
 				if shoot=="shoots" then
-				msg=string.format("%s shoots %s for %s points!%s", name, monName, msgTxt, critMessage)
+					msg=string.format("%s shoots %s for %s points!%s", name, monName, msgTxt, critMessage)
+					clog=msg
 				else
 					msg=string.format("%s hits %s for %s points!%s", name, monName, msgTxt, critMessage)
+					clog=msg
 				end
 				if t.Monster.HP==0 then
 					msg=string.format("%s inflicts %s points killing %s!%s", name, msgTxt, monName, critMessage)
+					clog=msg
 				end
 				if castedAoe then
 					msg=string.format("%s hits for a total of %s points!%s", name, msgTxt, critMessage)
+					clog = string.format("%s hits %s for a total of %s points!%s", name, monName, instanceTxt .."(S" .. msgTxt ..")", critMessage)
 				end
+
 				Game.ShowStatusText(msg)
-				AddCombatLog(msg)
+
+				AddCombatLog(clog)
 				
 				if calls>0 then
 					calls=calls-1

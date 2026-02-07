@@ -2475,7 +2475,7 @@ function events.BuildItemInformationBox(t)
 			txt="\n\nScale with player level, up to level 900."
 		elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
 		--?? not sure yet
-			txt = "\n\nScale with player level, up to level <special doom>???."
+			txt = "\n\nScale with player level, up to level <mad-doom>???."
 		end
 		if t.Item.BonusExpireTime>=1 then
 			txt=StrColor(120, 240, 255,"\n\nArtifact Level: " .. t.Item.BonusExpireTime)

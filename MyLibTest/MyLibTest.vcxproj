@@ -24,7 +24,7 @@
     <ProjectGuid>{1d962069-6ba0-4d4e-87fd-8fa5a195159f}</ProjectGuid>
     <RootNamespace>MyLibTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>mylibtest</ProjectName>
+    <ProjectName>sdgmawix</ProjectName>
     <TargetFrameworkVersion>
     </TargetFrameworkVersion>
     <TargetFramework>net8.0</TargetFramework>
@@ -157,14 +157,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CharacterDetails.h" />
+    <ClInclude Include="CharacterStatsGdi.h" />
+    <ClInclude Include="CharacterStatsUI.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="mylibtest.h" />
-    <ClInclude Include="myopen.h" />
+    <ClInclude Include="sdgmawix.h" />
+    <ClInclude Include="CombatLog.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mylibtest.cpp" />
-    <ClCompile Include="myopen.cpp" />
+    <ClCompile Include="CharacterDetails.cpp" />
+    <ClCompile Include="CharacterStatsGdi.cpp" />
+    <ClCompile Include="CharacterStatsUI.cpp" />
+    <ClCompile Include="sdgmawix.cpp" />
+    <ClCompile Include="CombatLog.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
