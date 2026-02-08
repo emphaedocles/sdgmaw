@@ -249,12 +249,6 @@ function recalculateMawMonster()
                     else
                         partyLvl = oldTable.Level * 2
                     end
-                elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-                    if not madnessStartingMaps[name] and doomMapLevels[name] then
-                        partyLvl = doomMapLevels[name] +(mapLevels[name].High - mapLevels[name].Mid) * 2 - oldTable.Level
-                    else
-                        partyLvl = oldTable.Level * 2
-                    end
                 end
                 -- level increase
                 oldLevel = oldTable.Level
@@ -339,12 +333,6 @@ function events.Action(t)
             Game.freeProgression = false
             recalculateMonsterTable()
             recalculateMawMonster()
-        elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-            Game.BolsterAmount = 600
-            vars.freeProgression = false
-            Game.freeProgression = false
-            recalculateMonsterTable()
-            recalculateMawMonster()
         elseif vars.trueNightmare and Game.BolsterAmount ~= 300 and vars.Mode ~= 2 then
             Game.BolsterAmount = 300
             recalculateMonsterTable()
@@ -367,12 +355,6 @@ end
 
 function events.AfterLoadMap()
     if vars.madnessMode then
-        Game.BolsterAmount = 600
-        vars.freeProgression = false
-        Game.freeProgression = false
-        recalculateMonsterTable()
-        recalculateMawMonster()
-    elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
         Game.BolsterAmount = 600
         vars.freeProgression = false
         Game.freeProgression = false
@@ -591,8 +573,6 @@ function recalculateMonsterTable()
     local name = Game.MapStats[Map.MapStatsIndex].Name
     if vars.madnessMode and madnessMapLevels[name] then
         bolsterLevel = madnessMapLevels[name]
-    elseif (vars.Mode == 2 and vars.UseDoomMapLevels) and madnessMapLevels[name] then
-        bolsterLevel = doomMapLevels[name]
     end
 
     bolsterLevel = bolsterLevel + bonus
@@ -657,7 +637,7 @@ function recalculateMonsterTable()
         local adjust = 0
         local baseMapLevel = 0
         local adjustMult = 1.5
-        if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+        if vars.madnessMode  then
             adjustMult = 1
         end
         -- scale map monsters
@@ -718,15 +698,6 @@ function recalculateMonsterTable()
 
             totalLevel[i] = math.max(level, 5)
             mon.Level = math.min(totalLevel[i], 255)
-        elseif (vars.Mode == 2 and vars.UseDoomMapLevels) and not madnessStartingMaps[name] and not mapvars.mapAffixes then
-            local baseLevel = doomMapLevels[name] or 0
-            local withinMapDifference =(baseMapLevel - mean) * 2
-            local tierModifier =(base.Level - LevelB) * 2
-            local level = baseLevel + withinMapDifference + tierModifier
-
-            totalLevel[i] = math.max(level, 5)
-            mon.Level = math.min(totalLevel[i], 255)
-
         end
 
         -- arena
@@ -1042,7 +1013,7 @@ function AdjustMonsterDensity()
             end
         end
     end
-    if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+    if vars.madnessMode  then
         for i = 1, Game.MapStats.High do
             if Game.MapStats[i].Mon1Hi > 1 then
                 Game.MapStats[i].Mon1Low = 5
@@ -1080,7 +1051,7 @@ function AdjustMonsterDensity()
             local name2 = map.Monster2Pic
             local name3 = map.Monster3Pic
             local divisor = 18
-            if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+            if vars.madnessMode  then
                 divisor = 10
             elseif vars.insanityMode then
                 divisor = 14
@@ -2853,8 +2824,6 @@ function checkMapCompletition()
                 end
                 if vars.madnessMode then
                     bolster = madnessMapLevels[name] or 0
-                elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-                    bolster = doomMapLevels[name] or 0
                 end
                 if mapvars.mapAffixes then
                     bolster = mapvars.mapAffixes.Power * 10
@@ -2872,7 +2841,7 @@ function checkMapCompletition()
                 mapLevel = math.max(mapLevel, 1)
                 mapLevel = math.min(mapLevel, 100)
                 local experience = math.ceil(totalMonster ^ 0.7 *(mapLevel * 20 + mapLevel ^ 1.8) / 3 *(bolster + mapLevel) / mapLevel / 1000) * 1000
-                if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+                if vars.madnessMode then
                     experience = math.ceil(totalMonster ^ 0.7 *(bolster * 20 + bolster ^ 1.8) / 3 / 1000) * 1000
                     if not mapvars.mapAffixes then
                         experience = experience * 2
@@ -2881,7 +2850,7 @@ function checkMapCompletition()
                     end
                 end
                 local gold = math.ceil(experience ^ 0.9 / 1000) * 1000
-                if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+                if vars.madnessMode  then
                     gold = round(experience / 3 / 1000) * 1000
                 
                 end
@@ -4196,14 +4165,8 @@ function events.Tick()
                 for i = 0, #cover - 1 do
                     if cover[i] then
                         local hp = Party[i].HP / Party[i]:GetFullHP()
-                        -- stealth skill will increase chance attacked character is covered instead
-                        local st, mt = SplitSkill(Skillz.get(Party[i], 54))
-                        local stealthCvrBonus = 0
-                        if st > 0 then
-                            stealthCvrBonus = st * mt * 0.01
-                        end
 
-                        if ((cover[i].Chance + stealthCvrBonus) > math.random()) and hp > lastMaxHp then
+                        if ((cover[i].Chance) > math.random()) and hp > lastMaxHp then
                             lastMaxHp = hp
                             coverPlayerIndex = i
                             covered = true
@@ -4253,7 +4216,6 @@ function events.Tick()
 
                     -- retaliation code
                     local s, m = Skillz.get(pl, 53)
-                    local st, mt = SplitSkill(Skillz.get(Party[coverPlayerIndex], 54))
                     if s / 100 >= math.random() then
                         vars.retaliation = vars.retaliation or { }
                         vars.retaliation[id] = vars.retaliation[id] or { }
@@ -4267,19 +4229,7 @@ function events.Tick()
                         vars.retaliation[id]["Stacks"] = math.min(vars.retaliation[id]["Stacks"], cap)
                     end
 
-                    -- backstab/counterstrick from steath skilled trigged by covered player on their next attack
-                    if (st *(mt - 1)) / 100 > math.random() then
-                        vars.backstab = vars.backstab or { }
-                        vars.backstab[idxT] = vars.backstab[idxT] or { }
-                        vars.backstab[idxT]["Stacks"] = vars.backstab[idxT]["Stacks"] or 0
-                        vars.backstab[idxT]["Time"] = vars.backstab[idxT]["Time"] or 0
-                        vars.backstab[idxT]["Damage"] = vars.backstab[idxT]["Damage"] or 0
 
-                        vars.backstab[idxT]["Time"] = Game.Time
-                        vars.backstab[idxT]["Stacks"] = vars.backstab[idxT]["Stacks"] + 1
-                        -- debug.Message("backstab from cover - monster " .. idxT .. "stacks " .. vars.backstab[idxT]["Stacks"] )
-
-                    end
                 end
 
 

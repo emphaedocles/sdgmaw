@@ -285,8 +285,6 @@ function events.CalcDamageToMonster(t)
 		local healTxt = StrColor(64, 255, 64, healValue)
 		local healerTxt=StrColor(255,128,255,pl.Name)
 		local targetTxt = StrColor(0, 255, 255, Party[healTarget].Name)
-		--AddCombatLog("  <Seraph-Strike-Heal>" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
-
 		 AddHealToLog("Seraph-Strike", healValue,false,healTarget,pl, 4, false)
 
 
@@ -531,7 +529,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode then
 				cap=900
 			end
 			local speedDelay=0.015
@@ -558,7 +556,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
@@ -594,7 +592,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
 			end
 			local speedDelay=0.015
@@ -624,7 +622,7 @@ function events.GameInitialized2()
 			end
 			
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
 			end
 			local speedDelay=0.015
@@ -648,7 +646,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
@@ -664,7 +662,7 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)

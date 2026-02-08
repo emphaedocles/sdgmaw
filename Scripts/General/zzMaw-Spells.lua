@@ -107,8 +107,6 @@ local hopList = {8, 9, 14, 15}
 --modify Spells
 function events.PlayerCastSpell(t)
 	--refresh everyone before and after casting
-    --AddCombatLog("Casting spell ID: " .. t.SpellId .. " by " .. t.Player.Name)
-
 
 	mawRefresh(t.PlayerIndex)
 	function events.Tick() 

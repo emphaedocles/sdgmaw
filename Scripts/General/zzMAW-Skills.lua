@@ -740,16 +740,16 @@ function events.KeyDown(t)
                         evt.FaceExpression { Player = "All", Frame = 46 }
                         Game.ShowStatusText(string.format("%s casts Charge stunning the enemy", Party[0].Name))
                         mon.SpellBuffs[6].Skill = 4
-						local chargeCC = {Debuff = const.MonsterBuff.Paralyze}
+                        local chargeCC = { Debuff = const.MonsterBuff.Paralyze }
                         if class == 16 then
                             duration = const.Minute * 1.5
                         elseif class == 17 then
                             duration = const.Minute * 2
                         else
                             duration = const.Minute * 2.5
-						end
-						duration = calcDebuffDuration(mon, chargeCC, duration)
-						if duration > 0 then
+                        end
+                        duration = calcDebuffDuration(mon, chargeCC, duration)
+                        if duration > 0 then
 
                             mon.SpellBuffs[6].ExpireTime = Game.Time + duration
                         end
@@ -1055,7 +1055,6 @@ end
 --change target
 function events.PlayerAttacked(t)
 	if t.Attacker and t.Attacker.Monster then
-	backStabHit=false
 		local masteryRequired=0
 		if (t.Attacker.MonsterAction==0 or t.Attacker.MonsterAction==1) and t.Attacker.Monster["Attack" .. t.Attacker.MonsterAction+1].Type==4 then
 			masteryRequired=1
@@ -1085,13 +1084,6 @@ function events.PlayerAttacked(t)
 			t.PlayerSlot=lowestHPId
 			return
 		end
-		--stealth skill will increase chance attacked character is covered instead
-		local st, mt = SplitSkill(Skillz.get(Party[t.PlayerSlot], 54))
-		local stealthCvrBonus = 0
-		if st>0 then
-			stealthCvrBonus=st*mt*0.01
-			--debug.Message("stealth cover bonus" .. stealthCvrBonus)
-		end
 		cover={}
 		for i=0,Party.High do
 			local s, m= SplitSkill(Skillz.get(Party[i], 50))
@@ -1101,7 +1093,6 @@ function events.PlayerAttacked(t)
 					cover[i].Chance=cover[i].Chance+0.15
 					coverBonus[i]=false
 				end
-				cover[i].Chance = cover[i].Chance + stealthCvrBonus	
 			else
 				cover[i]=false
 			end
@@ -1157,20 +1148,6 @@ function events.PlayerAttacked(t)
 					cap=3
 				end
 				vars.retaliation[id]["Stacks"]=math.min(vars.retaliation[id]["Stacks"],cap)
-			end
-			--backstab/counterstrick from steath skilled trigged by covered player on their next attack
-			if  (st*(mt-1))/100>math.random() then
-				vars.backstab=vars.backstab or {}
-				vars.backstab[idxT]=vars.backstab[idxT] or {}
-				vars.backstab[idxT]["Stacks"]=vars.backstab[idxT]["Stacks"] or 0
-				vars.backstab[idxT]["Time"] = vars.backstab[idxT]["Time"] or 0	
-				vars.backstab[idxT]["Damage"] = vars.backstab[idxT]["Damage"] or 0
-
-				vars.backstab[idxT]["Time"]=Game.Time
-				vars.backstab[idxT]["Stacks"]= vars.backstab[idxT]["Stacks"]+ 1
-				--debug.Message("backstab from cover - skillz " .. idxT .. "stacks " .. vars.backstab[idxT]["Stacks"] )
-				
-
 			end
 		end
 	end
@@ -1600,7 +1577,7 @@ function events.LoadMap()
 	end
 	for i=1,#trainingCenters[currentWorld] do
 		Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/20)*10
-		if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+		if vars.madnessMode  then
 			Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/10)*10
 		end
 	end
@@ -1745,7 +1722,7 @@ local normalCosts={0,1000,4000,20000}
 local doomCosts={0,2000,10000,50000}
 local insanityCost={0,10000,50000,250000}
 local madnessCost={0,25000,500000,2000000}
-local doomMadReq={0,8,16,24}
+
 
 local function getReqAndCost(mastery, player)
 	local pl = Party[player or Game.CurrentPlayer]
@@ -1757,9 +1734,6 @@ local function getReqAndCost(mastery, player)
 	elseif vars.insanityMode then
 		baseCost = insanityCost[mastery]
 		requirements = insanityLearningRequirements[mastery]
-	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-			baseCost = doomCosts[mastery]
-			requirements = doomMadReq[mastery]
 	elseif  vars.Mode==2 then
 		baseCost = doomCosts[mastery]
 		requirements = learningRequirements[mastery]
@@ -1911,8 +1885,6 @@ function events.Action(t)
 						requirements={0,12,30,50}
 					elseif vars.insanityMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,8,20,32}
-					elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-						requirements = { 0, 8, 16, 24}
 					elseif Game.freeProgression or not table.find(horizontalSkills, t.Param) then
 						requirements={0,4,7,10}
 					else

@@ -183,8 +183,8 @@ function events.CalcDamageToMonster(t)
 		if ShowDamage then
 			ShowDamage(data.Player, damage, crit, data.Object, t.Monster)
 		end
-		AddDamageToMonText(t.Monster,damage,crit,data.Player,backstabHit or false, backstabMX or 0)
-		backstabHit=false
+		AddDamageToMonText(t.Monster,damage,crit,data.Player)
+		
 	end
 	
 	
