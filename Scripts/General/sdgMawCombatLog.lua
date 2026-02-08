@@ -407,6 +407,7 @@ function AddDamageToMonText(mon, dam, critx, player)
             txt = damTxt .. "(!)"
         end
 
+
         txtMonDam = txtMonDam or { }
 
         local idx = pl:GetIndex()
@@ -751,7 +752,7 @@ function events.ExitMapAction(t)
 end
 
 function AddCombatLog(msg)
-    -- SDGAddToOverlayLog(msg)  --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
+     SDGAddToOverlayLog(msg)  --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
     if (ShowCombatLog) then
         local iRow = iLastCombatLog
         if (iRow >= iCombatLogRows) then
@@ -769,7 +770,7 @@ function AddCombatLog(msg)
     end
 end
 function ClearCombatLog()
-    --SDGClearLog() --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
+    SDGClearLog() --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
     iLastCombatLog = 0
     for i = 0, iCombatLogRows - 1 do
         txtCombatLog[i].Text = ""

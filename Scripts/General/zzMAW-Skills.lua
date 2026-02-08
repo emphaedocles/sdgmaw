@@ -1097,6 +1097,8 @@ function events.PlayerAttacked(t)
 				cover[i]=false
 			end
 		end
+
+
 		--roll once per player with player and pick the one with max hp
 		coverPlayerIndex=-1
 		lastMaxHp=0
@@ -1116,6 +1118,8 @@ function events.PlayerAttacked(t)
 			local target = t.PlayerSlot
 			 local idxC =Party[coverPlayerIndex]:GetIndex()
 			 local idxT = Party[target]:GetIndex()
+			local plTarget = Party[target]
+			AddCombatLog(StrColor(0,255,255, Party[coverPlayerIndex].Name .. " covered " .. Party[target].Name ))
 			Party[coverPlayerIndex]:ShowFaceAnimation(14)
 			--Game.ShowStatusText(Party[coverPlayerIndex].Name .. " cover " .. Party[t.PlayerSlot].Name)
 			vars.coveredTrack = vars.coveredTrack or { }
@@ -1149,6 +1153,10 @@ function events.PlayerAttacked(t)
 				end
 				vars.retaliation[id]["Stacks"]=math.min(vars.retaliation[id]["Stacks"],cap)
 			end
+
+		if(g_allowStealth) then
+            AddBackstabStack(plTarget)
+        end
 		end
 	end
 end

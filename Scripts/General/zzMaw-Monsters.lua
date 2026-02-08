@@ -4137,6 +4137,7 @@ function events.Tick()
 
                 local target = math.random(1, #list)
                 target = list[target] or 0
+
                 local masteryRequired = 2
                 if not vars.covering then
                     vars.covering = { }
@@ -4144,6 +4145,12 @@ function events.Tick()
                         vars.covering[i] = true
                     end
                 end
+                local targetCoverBonus = 0
+                if(g_allowStealth) then
+                    targetCoverBonus = GetStealthCoverBonus(Party[target])
+                end
+
+
                 cover = { }
                 for i = 0, Party.High do
                     local s, m = SplitSkill(Skillz.get(Party[i], 50))
@@ -4166,7 +4173,7 @@ function events.Tick()
                     if cover[i] then
                         local hp = Party[i].HP / Party[i]:GetFullHP()
 
-                        if ((cover[i].Chance) > math.random()) and hp > lastMaxHp then
+                        if ((cover[i].Chance + targetCoverBonus) > math.random()) and hp > lastMaxHp then
                             lastMaxHp = hp
                             coverPlayerIndex = i
                             covered = true
@@ -4195,6 +4202,8 @@ function events.Tick()
                     -- Game.ShowStatusText(Party[coverPlayerIndex].Name .. " cover " .. Party[target].Name)
                     local idxC = Party[coverPlayerIndex]:GetIndex()
                     local idxT = Party[target]:GetIndex()
+                    local plTarget = Party[target]
+                    AddCombatLog(StrColor(0,255,255, Party[coverPlayerIndex].Name .. " covered " .. Party[target].Name .. "  m"))
 
                     mapvars.coveredTrack = mapvars.coveredTrack or { }
                     mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
@@ -4229,7 +4238,9 @@ function events.Tick()
                         vars.retaliation[id]["Stacks"] = math.min(vars.retaliation[id]["Stacks"], cap)
                     end
 
-
+                    if(g_allowStealth) then
+                        AddBackstabStack(plTarget)
+                    end
                 end
 
 

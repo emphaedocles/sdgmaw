@@ -34,6 +34,10 @@
     <Compile Include="Scripts\General\sdgMawCombatLog.lua">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Scripts\General\sdgMawOverlay.lua" />
+    <Compile Include="Scripts\General\sdgMAWSkills.lua">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Scripts\General\zzMaw-Spells.lua" />
     <Content Include="Scripts\General\zzClasses.lua">
       <Publish>True</Publish>

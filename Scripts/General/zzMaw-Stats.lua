@@ -1157,7 +1157,8 @@ damageKindMap = {
     [10] = const.Damage.Dark,
 }
 function events.CalcDamageToMonster(t)
-	
+		backStabHit=false
+
 
 	local data=WhoHitMonster()
 	if data and data.Player and data.Spell then
@@ -1278,6 +1279,9 @@ function events.CalcDamageToMonster(t)
 			mapvars.retaliationTrackCount[id] = mapvars.retaliationTrackCount[id] + 1
 
 			Game.ShowStatusText(StrColor(255, 100, 100,pl.Name .. " Retaliation dealt " .. round(totalRetDamage) .. " damage to " .. t.Monster.NameId))
+		end
+		if(g_allowStealth ) then
+		   t.Result=StealthBackstabDamage(t,res)
 		end
 	end
 	res=2^(res/100)
