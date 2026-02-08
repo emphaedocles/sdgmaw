@@ -1291,19 +1291,19 @@ end
 --CC REWORK
 ----------------------------------------
 CCMAP={
-	[const.Spells.Stun]=	{["Duration"]=const.Minute*2,["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=10},
-	[const.Spells.Slow]=	{["Duration"]=const.Minute*6, ["ChanceMult"]=0.03, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Earth, ["DamageKind"]=const.Damage.Earth,["Debuff"]=const.MonsterBuff.Slow},
-	[60]=					{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=5, ["ScalingCost"]=4, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm},--Mind Charm, has no const value, due to dark elf one overwriting
-	[const.Spells.Charm]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=1, ["ScalingCost"]=4, ["School"]=const.Skills.DarkElfAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm},--dark elf one
-	[const.Spells.Berserk]=	{["Duration"]=const.Minute*4.5, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Berserk},
-	[const.Spells.MassFear]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.1, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
-	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
-	[const.Spells.Enslave]=	{["Duration"]=const.Minute*5, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Enslave},
-	[const.Spells.Paralyze]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Light, ["DamageKind"]=const.Damage.Light,["Debuff"]=const.MonsterBuff.Paralyze},	
-[const.Spells.ShrinkingRay]={["Duration"]=const.Minute*6, ["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark,["Debuff"]=const.MonsterBuff.ShrinkingRay},
-[const.Spells.DarkGrasp]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]={const.MonsterBuff.ArmorHalved, const.MonsterBuff.Slow, const.MonsterBuff.DamageHalved, const.MonsterBuff.MeleeOnly}},																									
-	[const.Spells.TurnUndead]={["Duration"]=const.Minute*5, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Spirit, ["DamageKind"]=const.Damage.Spirit, ["Debuff"]=const.MonsterBuff.Fear},	
-	[const.Spells.ControlUndead]={["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]=const.MonsterBuff.Enslave},
+	[const.Spells.Stun]=	{["Duration"]=const.Minute*2,["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=10, ["CCName"]="Stunned"},
+	[const.Spells.Slow]=	{["Duration"]=const.Minute*6, ["ChanceMult"]=0.03, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Earth, ["DamageKind"]=const.Damage.Earth,["Debuff"]=const.MonsterBuff.Slow, ["CCName"]="Slowed"},
+	[60]=					{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=5, ["ScalingCost"]=4, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm, ["CCName"]="Charmed"},--Mind Charm, has no const value, due to dark elf one overwriting
+	[const.Spells.Charm]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=1, ["ScalingCost"]=4, ["School"]=const.Skills.DarkElfAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm, ["CCName"]="Charmed"},--dark elf one
+	[const.Spells.Berserk]=	{["Duration"]=const.Minute*4.5, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Berserk, ["CCName"]="Berserked"},
+	[const.Spells.MassFear]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.1, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Feared"},
+	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Feared"},
+	[const.Spells.Enslave]=	{["Duration"]=const.Minute*5, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Enslave, ["CCName"]="Enslaved"},
+	[const.Spells.Paralyze]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Light, ["DamageKind"]=const.Damage.Light,["Debuff"]=const.MonsterBuff.Paralyze, ["CCName"]="Paralyzed"},	
+[const.Spells.ShrinkingRay]={["Duration"]=const.Minute*6, ["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark,["Debuff"]=const.MonsterBuff.ShrinkingRay, ["CCName"]="Shrunk"},
+[const.Spells.DarkGrasp]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]={const.MonsterBuff.ArmorHalved, const.MonsterBuff.Slow, const.MonsterBuff.DamageHalved, const.MonsterBuff.MeleeOnly, ["CCName"]="Dark Grasped"}},																									
+	[const.Spells.TurnUndead]={["Duration"]=const.Minute*5, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Spirit, ["DamageKind"]=const.Damage.Spirit, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Turned"},	
+	[const.Spells.ControlUndead]={["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]=const.MonsterBuff.Enslave, ["CCName"]="Enslaved"},
 }
 --[[
 function events.PlayerCastSpell(t)
@@ -1401,7 +1401,8 @@ function events.PlayerCastSpell(t)
 			if wouldApply then
 				mon.Resistances[cc.DamageKind]=0
 				mon.Level=0
-				--Game.ShowStatusText("Hit" .. "  " .. hit)
+
+
 			else
 				mon.Resistances[cc.DamageKind]=65000
 				--Game.ShowStatusText("Miss" .. "  " .. hit)
@@ -1436,6 +1437,16 @@ function events.PlayerCastSpell(t)
 					currentExpireTime=mon.SpellBuffs[cc.Debuff].ExpireTime
 				end
 				if currentExpireTime > prevExpireTime[i] then
+				local monName= "??"
+				local cctxt=cc.CCName				
+				if(mon.NameId>0) then
+					monName = Game.PlaceMonTxt[mon.NameId]
+				else
+					monName = Game.MonstersTxt[mon.Id].Name
+				end
+				--Game.ShowStatusText("Hit" .. "  " .. hit)
+				AddCombatLog(StrColor(255, 148, 128, monName .. "--" .. cctxt))--add stunned notificatino to combatlog
+
 					-- Monster was affected, apply diminishing returns
 					local masteryMult = ({0.5, 0.65, 0.8, 1})[math.max(1,m)]
 					local duration=cc.Duration * masteryMult
@@ -1599,6 +1610,13 @@ function events.CalcDamageToMonster(t)
 		if hit>math.random() then
 			mon.Resistances[const.Damage.Earth]=0
 			mon.Level=0
+			local monName= "??"
+			if(mon.NameId>0) then
+				monName = Game.PlaceMonTxt[mon.NameId]
+			else
+				monName = Game.MonstersTxt[mon.Id].Name
+			end
+			AddCombatLog(StrColor(255, 148, 128, monName .. "  Stunned!!"))--add stunned notificatino to combatlog
 		else
 			mon.Resistances[const.Damage.Earth]=65000
 		end

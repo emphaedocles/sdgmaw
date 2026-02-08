@@ -119,6 +119,18 @@ static int lua_ShowCharStats(lua_State* L)
 	CharacterStatsUI::Show(title);
 	return 0;
 }
+static int lua_NewGame(lua_State* L)
+{
+	CharacterStatsUI::NewGame();
+	return 0;
+}
+static int lua_setstatustext(lua_State* L)
+{
+	const char* text = luaL_checkstring(L, 1);
+	int index = (int)luaL_optinteger(L, 2, 0); // default to index 0 if not provided
+	CombatLog::SetStatus(index, text); // Set status pane 0 (you can extend this to allow specifying index)
+	return 0;
+}
 
 // Register functions
 static const luaL_Reg sdgmawix_funcs[] = {
@@ -130,6 +142,8 @@ static const luaL_Reg sdgmawix_funcs[] = {
 	{"scrolltoend",lua_scrolltoend},
 	{"setchardetails",lua_SetCharDetails},
 	{"showcharstats",lua_ShowCharStats},
+	{"newgame",lua_NewGame},
+	{"setstatustext",lua_setstatustext},
 	{NULL, NULL}
 };
 // Entry point for Lua 5.1

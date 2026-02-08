@@ -166,6 +166,18 @@ void CharacterStatsUI::UpdateStats(const CharacterDetails& details)
 		g_renderers[slot]->SetDetails(details);
 	}
 }
+void CharacterStatsUI::NewGame()
+{
+	// Clear stored details and update renderers so UI shows empty slots.
+	for (int i = 0; i < MAX_CHAR_SLOTS; ++i)
+	{
+		g_details[i] = CharacterDetails(); // default-constructed, empty name => considered free
+		if (g_renderers[i])
+		{
+			g_renderers[i]->SetDetails(g_details[i]);
+		}
+	}
+}
 
 void CharacterStatsUI::Close()
 {

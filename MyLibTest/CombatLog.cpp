@@ -3,11 +3,12 @@
 #include "CombatLog.h"
 #include <windows.h>
 #include <richedit.h>
+#include <commctrl.h>
 #include <string>
 #include <atomic>
 #include <cctype> // isdigit
 
-#pragma once
+#pragma comment(lib, "comctl32.lib")
 
 #ifdef CombatLog_EXPORTS
 #define CombatLog_API __declspec(dllexport)
@@ -17,6 +18,7 @@
 
 static std::atomic<HWND> g_hWnd{ nullptr };
 static HWND g_hRichEdit = nullptr;
+static HWND g_hStatus = nullptr;
 static HFONT g_hFont = nullptr;
 static HBRUSH g_hBgBrush = nullptr;
 static HANDLE g_hThread = nullptr;
@@ -31,6 +33,7 @@ static const UINT WM_APPEND_TEXT = WM_USER + 1;
 static const UINT WM_APPEND_TEXT_COLOR = WM_USER + 2;
 static const UINT WM_CLEAR_TEXT = WM_USER + 3;
 static const UINT WM_SCROLL_TO_END = WM_USER + 4;
+static const UINT WM_SET_STATUS = WM_USER + 5; // wParam = index (0..2), lParam = wchar_t* (owned by handler)
 
 // highlight colors (adjust as desired)
 static const COLORREF HIGHLIGHT_COLOR = RGB(64, 64, 64);   // highlight background for trailing space
@@ -94,25 +97,6 @@ static void HighlightTrailingSpace(HWND hRich)
 {
     if (!hRich) return;
 
-    //// restore previous highlight (if still valid)
-    //int totalLen = (int)SendMessageW(hRich, WM_GETTEXTLENGTH, 0, 0);
-    //if (g_prevHighlightLen > 0 && g_prevHighlightStart >= 0 && g_prevHighlightStart <= totalLen) {
-    //    LONG prevStart = g_prevHighlightStart;
-    //    int prevLen = g_prevHighlightLen;
-    //    LONG prevEnd = prevStart + prevLen;
-    //    if (prevEnd > totalLen) prevEnd = totalLen;
-    //    if (prevEnd > prevStart) {
-    //        SendMessageW(hRich, EM_SETSEL, (WPARAM)prevStart, (LPARAM)prevEnd);
-    //        // reset backcolor to control background
-    //        CHARFORMAT2W cfRestore;
-    //        ZeroMemory(&cfRestore, sizeof(cfRestore));
-    //        cfRestore.cbSize = sizeof(cfRestore);
-    //        cfRestore.dwMask = CFM_BACKCOLOR;
-    //        cfRestore.crBackColor = CONTROL_BKG_COLOR;
-    //        SendMessageW(hRich, EM_SETCHARFORMAT, (WPARAM)SCF_SELECTION, (LPARAM)&cfRestore);
-    //    }
-    //}
-
     // find last line
     LRESULT lineCount = SendMessageW(hRich, EM_GETLINECOUNT, 0, 0);
     if (lineCount <= 0) {
@@ -146,14 +130,6 @@ static void HighlightTrailingSpace(HWND hRich)
 
     // select trailing space only
     SendMessageW(hRich, EM_SETSEL, (WPARAM)trailIdx, (LPARAM)(trailIdx + 1));
-
-    //// apply backcolor to the single-character selection
-    //CHARFORMAT2W cf;
-    //ZeroMemory(&cf, sizeof(cf));
-    //cf.cbSize = sizeof(cf);
-    //cf.dwMask = CFM_BACKCOLOR;
-    //cf.crBackColor = HIGHLIGHT_COLOR;
-    //SendMessageW(hRich, EM_SETCHARFORMAT, (WPARAM)SCF_SELECTION, (LPARAM)&cf);
 
     // keep caret visible on that selection
     SendMessageW(hRich, EM_SCROLLCARET, 0, 0);
@@ -209,7 +185,7 @@ static void AppendTextToRichWithColor(HWND hRich, const wchar_t* wtxt, COLORREF 
     cfDefault.dwMask = CFM_COLOR | CFM_BACKCOLOR;
     cfDefault.crTextColor = RGB(255, 255, 255);
     cfDefault.crBackColor = CONTROL_BKG_COLOR;
-    SendMessageW(hRich, EM_SETCHARFORMAT, (WPARAM)SCF_SELECTION, (LPARAM)&cfDefault);
+    SendMessageW(hRich ? g_hRichEdit : hRich, EM_SETCHARFORMAT, (WPARAM)SCF_SELECTION, (LPARAM)&cfDefault);
 
     // Append a single trailing space (will have default formatting)
     SendMessageW(hRich, EM_REPLACESEL, FALSE, (LPARAM)L" ");
@@ -230,19 +206,25 @@ struct AppendColorData {
     COLORREF color;
 };
 
-// ----- Window procedure & UI thread (unchanged except uses above helpers) -----
+// ----- Window procedure & UI thread (updated to include status bar) -----
 static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
     case WM_CREATE:
     {
+        // initialize common controls for status bar
+        INITCOMMONCONTROLSEX icex = {};
+        icex.dwSize = sizeof(icex);
+        icex.dwICC = ICC_BAR_CLASSES;
+        InitCommonControlsEx(&icex);
+
         // Load RichEdit (Msftedit) and create control
         LoadLibraryW(L"Msftedit.dll");
         RECT rc;
         GetClientRect(hwnd, &rc);
 
-        // create the rich edit control sized to client
+        // create the rich edit control sized to client (we will layout properly on WM_SIZE)
         g_hRichEdit = CreateWindowExW(0, MSFTEDIT_CLASS, L"",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL,
             0, 0, rc.right - rc.left, rc.bottom - rc.top, hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
@@ -282,13 +264,55 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             // Set class background brush so control repaints correctly
             SetClassLongPtrW(g_hRichEdit, GCLP_HBRBACKGROUND, (LONG_PTR)g_hBgBrush);
         }
+
+        // Create status bar (3 parts)
+        g_hStatus = CreateWindowExW(0, STATUSCLASSNAMEW, nullptr,
+            WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
+            0, 0, 0, 0, hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+
+        // initial empty texts
+        if (g_hStatus) {
+            // will set parts properly on WM_SIZE
+            SendMessageW(g_hStatus, SB_SETTEXTW, 0, (LPARAM)L"");
+            SendMessageW(g_hStatus, SB_SETTEXTW, 1, (LPARAM)L"");
+            SendMessageW(g_hStatus, SB_SETTEXTW, 2, (LPARAM)L"");
+        }
     }
     return 0;
     case WM_SIZE:
-        if (g_hRichEdit) {
-            MoveWindow(g_hRichEdit, 0, 0, LOWORD(lParam), HIWORD(lParam), TRUE);
+    {
+        int cx = LOWORD(lParam);
+        int cy = HIWORD(lParam);
+
+        // Resize status bar first so it can compute its height
+        if (g_hStatus) {
+            SendMessageW(g_hStatus, WM_SIZE, 0, 0);
+            // get status rect in screen coords then convert to client to get height
+            RECT srect;
+            GetWindowRect(g_hStatus, &srect);
+            // convert to client coords
+            POINT p = { srect.left, srect.top };
+            ScreenToClient(hwnd, &p);
+            int statusTop = p.y;
+            int statusHeight = srect.bottom - srect.top;
+            // Set parts equally (thirds)
+            int part1 = cx / 3;
+            int part2 = (cx * 2) / 3;
+            int parts[3] = { part1, part2, -1 };
+            SendMessageW(g_hStatus, SB_SETPARTS, 3, (LPARAM)parts);
+            // Move status to bottom
+            MoveWindow(g_hStatus, 0, cy - statusHeight, cx, statusHeight, TRUE);
+            // Move rich edit to occupy remaining area
+            if (g_hRichEdit) {
+                MoveWindow(g_hRichEdit, 0, 0, cx, cy - statusHeight, TRUE);
+            }
+        } else {
+            if (g_hRichEdit) {
+                MoveWindow(g_hRichEdit, 0, 0, cx, cy, TRUE);
+            }
         }
-        return 0;
+    }
+    return 0;
     case WM_APPEND_TEXT:
     {
         wchar_t* wtxt = reinterpret_cast<wchar_t*>(lParam);
@@ -327,6 +351,23 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         }
     }
     return 0;
+    case WM_SET_STATUS:
+    {
+        if (!g_hStatus) {
+            wchar_t* tmp = reinterpret_cast<wchar_t*>(lParam);
+            delete[] tmp;
+            return 0;
+        }
+        int idx = (int)wParam;
+        if (idx < 0) idx = 0;
+        if (idx > 2) idx = 2;
+        wchar_t* wtxt = reinterpret_cast<wchar_t*>(lParam);
+        if (!wtxt) return 0;
+        // SB_SETTEXT: wParam is (part index) for simple usage
+        SendMessageW(g_hStatus, SB_SETTEXTW, (WPARAM)idx, (LPARAM)wtxt);
+        delete[] wtxt;
+    }
+    return 0;
     case WM_CLOSE:
         DestroyWindow(hwnd);
         return 0;
@@ -343,6 +384,7 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             g_hBgBrush = nullptr;
         }
         g_hRichEdit = nullptr;
+        g_hStatus = nullptr;
         g_hWnd = nullptr;
         PostQuitMessage(0);
         return 0;
@@ -409,6 +451,34 @@ namespace CombatLog {
         if (cur) {
             SetWindowPos(cur, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
             SetForegroundWindow(cur);
+            if (text) AddText(text);
+            return;
+        }
+
+        wchar_t* wtitle = ToWideAlloc(title ? title : "SDG MAW Overlay");
+        wchar_t* wtext = ToWideAlloc(text);
+
+        wchar_t** parts = new wchar_t* [2];
+        parts[0] = wtitle;
+        parts[1] = wtext;
+
+        g_hThread = CreateThread(nullptr, 0, UiThreadProc, parts, 0, nullptr);
+        if (!g_hThread) {
+            delete[] parts[0];
+            delete[] parts[1];
+            delete[] parts;
+        }
+    }
+
+    void OpenMeAt(const char* text, const char* title, int x, int y)
+    {
+        HWND cur = g_hWnd.load();
+        if (cur) {
+            SetWindowPos(cur, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            SetForegroundWindow(cur);
+            if (x >= 0 && y >= 0) {
+                SetWindowPos(cur, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+            }
             if (text) AddText(text);
             return;
         }
@@ -512,9 +582,9 @@ namespace CombatLog {
                 unsigned int b8 = (b5 << 3) | (b5 >> 2); // 5->8
 				if (r8 < 32 && g8 < 32 && b8 < 32) {
                     // avoid too-dark colors: boost to minimum brightness
-                    r8 = 255;// += 32;
-                    g8 = 255;// += 32;
-                    b8 = 255;// += 32;
+                    r8 = 255;
+                    g8 = 255;
+                    b8 = 255;
                 }
 
                 currentColor = RGB(static_cast<BYTE>(r8), static_cast<BYTE>(g8), static_cast<BYTE>(b8));
@@ -577,6 +647,18 @@ namespace CombatLog {
         }
     }
 
+    void SetStatus(int index, const char* text)
+    {
+        HWND hwnd = g_hWnd.load();
+        if (!hwnd) return;
+        if (index < 0) index = 0;
+        if (index > 2) index = 2;
+        wchar_t* wtxt = ToWideAlloc(text ? text : "");
+        if (!wtxt) return;
+        // Post to UI thread; handler will delete wtxt
+        PostMessageW(hwnd, WM_SET_STATUS, (WPARAM)index, (LPARAM)wtxt);
+    }
+
     void Dispose()
     {
         HWND hwnd = g_hWnd.load();
@@ -590,4 +672,4 @@ namespace CombatLog {
         }
     }
 
-} // namespace myopen
+} // namespace CombatLog

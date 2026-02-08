@@ -7,11 +7,12 @@ function InitSDGOverlayLog()
         ----debug.Message(sdgMAWDLL)
         sdgMAWDLL.showmsg("Log started..", "SDG- MAW Overlay")
         sdgMAWDLL.showcharstats()
+        sdgMAWDLL.setstatustext("V to clear combat log",0)
         ShowCombatLog = false
         -- hide in game log when overlay log is used
         if (txtCombatLog) then
             for i = 0, iLastCombatLog - 1 do
-                txtCombatLog[i].Active = ShowCombatLog
+                txtCombatLog[i].Active = false
             end
 
             Game.Redraw = true
@@ -24,7 +25,18 @@ function InitSDGOverlayLog()
         --        --sdgMAWDLL.addtext("hello world")
     end
 end
+function events.ExitMapAction(t)
 
+  if(t.Action == const.ExitMapAction.MainMenu or t.Action == const.ExitMapAction.NewGame or t.Action == const.ExitMapAction.LoadGame) then
+   --load game or new game
+   if(sdgMAWDLL) then
+    sdgMAWDLL.addline("New Game or Load Game, refreshing char stats..")
+    sdgMAWDLL.newgame()
+    sdgMAWDLL.setstatustext("V to clear combat log",0)
+
+   end
+  end
+end
 function SDGAddToOverlayLog(msg)
     if (sdgMAWDLL) then
         sdgMAWDLL.addline(msg)

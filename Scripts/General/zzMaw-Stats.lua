@@ -1058,6 +1058,7 @@ function events.CalcDamageToPlayer(t)
         end
     end
     if (t.Result > 0) then
+	
         local monName = "??"
         if (data.Monster) then
             monName = Game.MonstersTxt[data.Monster.Id].Name

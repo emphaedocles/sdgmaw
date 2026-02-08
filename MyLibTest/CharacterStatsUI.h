@@ -8,6 +8,9 @@ class CharacterStatsUI
 	static void Show(const char* title);
 	// Update the character stats display.
 	static void UpdateStats(const CharacterDetails& details);
+	// Prepare for a new game: clear existing character details and UI slots.
+	static void NewGame();
+
 	// Close and destroy the window
 	static void Close();
 };

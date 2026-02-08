@@ -10,6 +10,10 @@ namespace CombatLog {
 	// Show the window (creates UI thread if needed). `text` and `title` are ANSI/UTF-8 C strings.
 	CombatLog_API void OpenMe(const char* text, const char* title);
 
+	// Show the window at a specified screen position (x,y in pixels).
+	// If x or y is negative the position will be chosen by the system (default behavior).
+	CombatLog_API void OpenMeAt(const char* text, const char* title, int x, int y);
+
 	// Append text to the RichEdit (ANSI/UTF-8)
 	CombatLog_API void AddText(const char* text);
 
@@ -27,6 +31,9 @@ namespace CombatLog {
 
 	// Set maximum lines to keep (older lines removed from the start). min = 1.
 	CombatLog_API void SetMaxLines(int maxLines);
+
+	// Set one of the 3 status panes (index 0..2) text (ANSI/UTF-8)
+	CombatLog_API void SetStatus(int index, const char* text);
 
 	// Close and destroy the window
 	CombatLog_API void Dispose();

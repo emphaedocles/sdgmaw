@@ -691,9 +691,9 @@ function events.AfterLoadMap()
 
         AddCombatLog(StrColor(32, 64, 255, "Doom Map Level set to ") .. StrColor(0, 255, 0, bolsterLevel))
 
-        AddCombatLog(string.format("Timestamp: %s-%s-%s %s:%s", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
 
     end
+        AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
 
 
 end
@@ -993,19 +993,21 @@ end
 
 function AddCombatLog(msg)
     SDGAddToOverlayLog(msg)
-    local iRow = iLastCombatLog
-    if (iRow >= iCombatLogRows) then
-        iRow = iCombatLogRows - 1
-        -- move all items up one level
-        for i = 0, iCombatLogRows - 2 do
-            txtCombatLog[i].Text = txtCombatLog[i + 1].Text
+    if (ShowCombatLog) then
+        local iRow = iLastCombatLog
+        if (iRow >= iCombatLogRows) then
+            iRow = iCombatLogRows - 1
+            -- move all items up one level
+            for i = 0, iCombatLogRows - 2 do
+                txtCombatLog[i].Text = txtCombatLog[i + 1].Text
+            end
         end
-    end
-    txtCombatLog[iRow].Text = msg
-    txtCombatLog[iRow].Active = ShowCombatLog
-    Game.Redraw = true
+        txtCombatLog[iRow].Text = msg
+        txtCombatLog[iRow].Active = ShowCombatLog
+        Game.Redraw = true
 
-    iLastCombatLog = iRow + 1
+        iLastCombatLog = iRow + 1
+    end
 end
 function ClearCombatLog()
     SDGClearLog()
