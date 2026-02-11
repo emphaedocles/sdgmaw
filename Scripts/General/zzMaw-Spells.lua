@@ -1149,7 +1149,9 @@ function processAutoTargetHeal(spellId, pl, skillType, soundId, removeConditionF
 	end
 
 	min_index = pickLowestPartyMember()
-	
+	-- combat log
+	  AddHealToLog("Heal", totHeal,gotCrit,min_index,pl)
+
 	-- Calculate overheal
 	local hpBefore = Party[min_index].HP
 	local maxHP = GetMaxHP(Party[min_index])

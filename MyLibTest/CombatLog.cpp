@@ -7,6 +7,7 @@
 #include <string>
 #include <atomic>
 #include <cctype> // isdigit
+#include <sstream>
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -23,7 +24,7 @@ static HFONT g_hFont = nullptr;
 static HBRUSH g_hBgBrush = nullptr;
 static HANDLE g_hThread = nullptr;
 static DWORD g_threadId = 0;
-static std::atomic<int> g_maxLines{ 100 }; // keep last N lines (default 100)
+static std::atomic<int> g_maxLines{ 200 }; // keep last N lines (default 100)
 
 // When true the implementation will try to re-attach input and force-focus the RichEdit
 // WARNING: this actively steals focus from other apps/windows. Keep false for polite behavior.
@@ -34,6 +35,7 @@ static const UINT WM_APPEND_TEXT_COLOR = WM_USER + 2;
 static const UINT WM_CLEAR_TEXT = WM_USER + 3;
 static const UINT WM_SCROLL_TO_END = WM_USER + 4;
 static const UINT WM_SET_STATUS = WM_USER + 5; // wParam = index (0..2), lParam = wchar_t* (owned by handler)
+static const UINT WM_SHOW_FONT = WM_USER + 6;  // request: UI thread will append current font info to the log
 
 // highlight colors (adjust as desired)
 static const COLORREF HIGHLIGHT_COLOR = RGB(64, 64, 64);   // highlight background for trailing space
@@ -237,7 +239,7 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             HDC hdc = GetDC(nullptr);
             int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
             ReleaseDC(nullptr, hdc);
-            int lfHeight = -MulDiv(12, dpiY, 72); // 14 pt
+            int lfHeight = -MulDiv(12, dpiY, 72); // 12 pt
             // Use Segoe UI if available, fall back to default GUI font family
             g_hFont = CreateFontW(lfHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
@@ -368,6 +370,29 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         delete[] wtxt;
     }
     return 0;
+    case WM_SHOW_FONT:
+    {
+        // Build a human-readable description of the current font and append to the log.
+        HFONT font = g_hFont ? g_hFont : (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        LOGFONTW lf;
+        std::wostringstream ss;
+        if (GetObjectW(font, sizeof(lf), &lf) == sizeof(lf)) {
+            HDC hdc = GetDC(hwnd);
+            int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
+            ReleaseDC(hwnd, hdc);
+            int pointSize = MulDiv(abs(lf.lfHeight), 72, dpiY);
+            ss << L"Current font: \"" << lf.lfFaceName << L"\" " << pointSize << L"pt";
+            if (lf.lfWeight >= FW_BOLD) ss << L" Bold";
+            if (lf.lfItalic) ss << L" Italic";
+            if (lf.lfUnderline) ss << L" Underline";
+            if (lf.lfStrikeOut) ss << L" Strikeout";
+        } else {
+            ss << L"Current font: (unknown)";
+        }
+        std::wstring out = ss.str();
+        AppendTextToRich(g_hRichEdit, out.c_str());
+    }
+    return 0;
     case WM_CLOSE:
         DestroyWindow(hwnd);
         return 0;
@@ -406,7 +431,7 @@ static DWORD WINAPI UiThreadProc(LPVOID lp)
     // width = 600, height = 600 (example); adjust in CreateWindowExW parameters as needed
     HWND hwnd = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, L"SDG MAW Overlay",
         WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 600, 600,
+        CW_USEDEFAULT, CW_USEDEFAULT, 700, 600,
         nullptr, nullptr, wc.hInstance, nullptr);
 
     if (!hwnd) return 0;
@@ -657,6 +682,13 @@ namespace CombatLog {
         if (!wtxt) return;
         // Post to UI thread; handler will delete wtxt
         PostMessageW(hwnd, WM_SET_STATUS, (WPARAM)index, (LPARAM)wtxt);
+    }
+
+    void ShowCurrentFont()
+    {
+        HWND hwnd = g_hWnd.load();
+        if (!hwnd) return;
+        PostMessageW(hwnd, WM_SHOW_FONT, 0, 0);
     }
 
     void Dispose()

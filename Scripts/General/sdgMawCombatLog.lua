@@ -209,6 +209,22 @@ function SetHealText(playerNdx, heal)
     end
 
 end
+function SetHealTextReset(playerNdx, heal)
+    -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
+
+    if (heal > 0) then
+        txtCharHealed = txtCharHealed or { }
+        local pidx = playerNdx
+        -- Party[i]:GetIndex()
+        txtCharHealed[pidx] = txtCharHealed[pidx] or { }
+
+        local txt = shortenNumber(heal, 4, true)
+        txtCharHealed[pidx]["tick"] = charHealTickStart
+        txtCharHealed[pidx]["heal"] = heal
+        txtCharHealed[pidx]["txt"].Text = txt
+    end
+
+end
 function SetLeechText(playerNdx, heal)
     -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
     if (heal > 0) then
@@ -480,7 +496,8 @@ function events.AfterLoadMap()
             --  end
         end
     end
- 
+        local name = Game.MapStats[Map.MapStatsIndex].Name
+        AddCombatLog("Entered Map : " .. name)
         AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
 
 end
@@ -794,5 +811,22 @@ function AddHealToLog(spellName, totHeal, gotCrit, targetId, player)
     end
     -- debug.Message("Adding heal to log %s", spellName)
     AddCombatLog("  <" .. spellName .. ">" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
+
+end
+function AddHealToLogX(spellName, totHeal, gotCrit, targetId)
+
+    -- combat log
+    local healTxt = StrColor(64, 255, 64, round(totHeal))
+    if (gotCrit) then
+        healTxt = healTxt .. StrColor(255, 215, 0, " (crit)")
+    end
+    
+
+    local targetTxt = "<???>"
+    if (targetId >= 0) then
+        targetTxt = StrColor(0, 255, 255, Party[targetId].Name)
+    end
+    -- debug.Message("Adding heal to log %s", spellName)
+    AddCombatLog("  <" .. spellName .. ">" .. " heals " .. targetTxt .. " for " .. healTxt)
 
 end

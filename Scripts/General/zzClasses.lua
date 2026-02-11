@@ -531,6 +531,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap=900
 			end
 			local speedDelay=0.015
 			if Party.High==0 then
@@ -558,6 +560,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
 			
@@ -594,6 +598,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900	
 			end
 			local speedDelay=0.015
 			if Party.High==0 then
@@ -624,6 +630,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900	
 			end
 			local speedDelay=0.015
 			if Party.High==0 then
@@ -648,6 +656,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
 			t.Result=t.Result+bonus
@@ -664,6 +674,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)
 			t.Result=t.Result+bonus
@@ -1338,7 +1350,7 @@ end
 DKSpellList={
 	[const.Skills.Water]={26, 27, 29, 32},
 	[const.Skills.Body]={68, 71, 76, 74},
-	[const.Skills.Dark]={91, 90, 96, 97},
+	[const.Skills.Dark]={91, 94, 96, 97},
 }
 
 function events.Action(t)

@@ -3,6 +3,8 @@
 #include "CombatLog.h"
 #include "CharacterStatsUI.h"
 #include "CharacterDetails.h"
+#include "CharacterDpsUI.h"
+#include "MobRadar.h"
 #include <string>
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -57,6 +59,8 @@ static int lua_ClearLog(lua_State* L)
 {
 	//SDGMawLogEx::ClearLog();
 	CombatLog::ClearText();
+	CombatLog::ShowCurrentFont();
+
 	return 0;
 }
 static int lua_InitLog(lua_State* L)
@@ -109,6 +113,10 @@ static int lua_SetCharDetails(lua_State* L)
 	details.RangedRating = luaL_optstring(L, 14, "");
 	details.SpellRating = luaL_optstring(L, 15, "");
 	details.Vitality = luaL_optstring(L, 16, "");
+	details.MapMeleeDamage = luaL_optstring(L, 17, "");
+	details.MapRangedDamage = luaL_optstring(L, 18, "");
+	details.MapHealing = luaL_optstring(L, 19, "");
+	details.MapTotalDamage = luaL_optstring(L, 20, "");
 
 	 CharacterStatsUI::UpdateStats(details);
 	return 0;
@@ -122,6 +130,13 @@ static int lua_ShowCharStats(lua_State* L)
 static int lua_NewGame(lua_State* L)
 {
 	CharacterStatsUI::NewGame();
+	CharacterDpsUI::NewGame();
+
+	return 0;
+}
+static int lua_showdps(lua_State* L)
+{
+	CharacterDpsUI::Show("SDG Maw DPS Meter");
 	return 0;
 }
 static int lua_setstatustext(lua_State* L)
@@ -131,7 +146,57 @@ static int lua_setstatustext(lua_State* L)
 	CombatLog::SetStatus(index, text); // Set status pane 0 (you can extend this to allow specifying index)
 	return 0;
 }
-
+static int lua_adddpsentry(lua_State* L)
+{
+	std::string name = luaL_optstring(L, 1, "Unknown");
+	float time = (float)luaL_optnumber(L, 2, 0);
+	float damage = (float)luaL_optnumber(L, 3, 0);
+	CharacterDpsUI::AddDpsEntry(name, damage, time);
+}
+static int lua_ShowRadar(lua_State* L)
+{
+	MobRadar::Show("SDG Maw Radar");
+	return 0;
+}
+static int lua_ClearRadar(lua_State* L)
+{
+	MobRadar::ClearEntities();
+	return 0;
+}
+static int lua_AddRadarEntity(lua_State* L)
+{
+	int id = (int)luaL_optinteger(L, 1, 0);
+	float x = (float)luaL_optnumber(L, 2, 0);
+	float y = (float)luaL_optnumber(L, 3, 0);
+	int tier = (int)luaL_optinteger(L, 4,1);
+	MobRadar::AddEntity(id, x, y, tier);
+	return 0;
+}
+static int lua_SetRadarRange(lua_State* L)
+{
+	float r = (float)luaL_optnumber(L, 1, 100);
+	MobRadar::SetMaxRange(r);
+	return 0;
+}
+static int lua_RemoveRadarEntity(lua_State* L)
+{
+	int id = (int)luaL_optinteger(L, 1, 0);
+	MobRadar::RemoveEntity(id);
+	return 0;
+}
+static int lua_RadarPartyFacing(lua_State* L)
+{
+	float x = (float)luaL_optnumber(L, 1, 0);
+	float y = (float)luaL_optnumber(L, 2, 0);
+	MobRadar::SetPartyFacing(x, y);
+	return 0;
+}
+static int lua_SetMapMu(lua_State* L)
+{
+	float mu = (float)luaL_optnumber(L, 1, 0);
+	MobRadar::SetMapCompletion(mu);
+	return 0;
+}
 // Register functions
 static const luaL_Reg sdgmawix_funcs[] = {
 	{"addtext",lua_AddText},
@@ -144,6 +209,15 @@ static const luaL_Reg sdgmawix_funcs[] = {
 	{"showcharstats",lua_ShowCharStats},
 	{"newgame",lua_NewGame},
 	{"setstatustext",lua_setstatustext},
+	{"showdps",lua_showdps},
+	{"adddpsentry",lua_adddpsentry},
+	{"showradar",lua_ShowRadar},
+	{"clearradar",lua_ClearRadar},
+	{ "addradarentity",lua_AddRadarEntity},
+	{"setradarrange",lua_SetRadarRange},
+	{"removeradarentity",lua_RemoveRadarEntity},
+	{"setpartydir",lua_RadarPartyFacing},
+	{"setmapmu",lua_SetMapMu},
 	{NULL, NULL}
 };
 // Entry point for Lua 5.1

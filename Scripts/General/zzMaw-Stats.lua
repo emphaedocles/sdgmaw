@@ -73,7 +73,7 @@ function getCritInfo(pl, dmgType, monLvl)
     local critDamageMultiplier = 1
 
     local cap = 1000
-    if vars.madnessMode  then
+    if vars.madnessMode or DoomMapMode()  then
         cap = 1500
     end
     local diminishingLevel = math.min(100 + monLvl * 1.4, cap)
@@ -1795,7 +1795,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	local baseScaling=3
 	local endScaling=9
 	local maxPromotionLevel=250
-	if vars.madnessMode  then
+	if vars.madnessMode or DoomMapMode() then
 		maxPromotionLevel=500
 	end
 	local scalingHP=math.min((endScaling-baseScaling)*lvl/maxPromotionLevel,endScaling-baseScaling)+baseScaling
@@ -1819,7 +1819,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	end
 	
 	local levelCap=700
-	if vars.madnessMode  then
+	if vars.madnessMode or DoomMapMode()  then
 		levelCap=1050
 	end
 	local levelMult=math.min(lvl/levelCap,1)
@@ -1836,6 +1836,8 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
+	elseif DoomMapMode() then
+		masterLearned = 16
 	end
 	local bbMasteryBonus=math.min(1+skill/masterLearned*2,3) --use master as a reference
 	local bbPercentBonus=bbMasteryBonus+1
@@ -1963,6 +1965,8 @@ function getPlayerEstimatedPower(lvl)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
+	elseif DoomMapMode() then
+		masterLearned = 16
 	end
 	local armsMasterDamage=math.min(0.5+skill/masterLearned,2) --use gm as a reference
 	
@@ -2139,6 +2143,8 @@ function getBodyHealing(lvl, spellId, mastery)
 		masteries={0,12,30,50}
 	elseif vars.insanityMode then
 		masteries={0,8,20,32}
+	elseif DoomMapMode() then
+		masteries = { 0, 6, 16, 24 }
 	end
 
 	if not mastery then
@@ -2280,6 +2286,8 @@ function masteryThresholds()
 	  return {0, 12, 30, 50}
 	elseif vars.insanityMode then
 	  return {0, 8, 20, 32}
+	elseif DoomMapMode() then
+		return { 0, 8, 16, 24 }
 	else
 	  return {0, 4, 7, 10}
 	end
@@ -2289,7 +2297,7 @@ function GetDifficulty()
 	local difficulty=3 --baseline
 	if vars.madnessMode then
 		difficulty=9
-	elseif vars.insanityMode then
+	elseif vars.insanityMode or DoomMapMode() then
 		difficulty=8
 	elseif vars.Mode==2 then
 		difficulty=7

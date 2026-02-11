@@ -1585,7 +1585,7 @@ function events.LoadMap()
 	end
 	for i=1,#trainingCenters[currentWorld] do
 		Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/20)*10
-		if vars.madnessMode  then
+		if vars.madnessMode or DoomMapMode()  then
 			Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/10)*10
 		end
 	end
@@ -1730,7 +1730,7 @@ local normalCosts={0,1000,4000,20000}
 local doomCosts={0,2000,10000,50000}
 local insanityCost={0,10000,50000,250000}
 local madnessCost={0,25000,500000,2000000}
-
+local doomMapReq = { 0, 8, 16, 24 }
 
 local function getReqAndCost(mastery, player)
 	local pl = Party[player or Game.CurrentPlayer]
@@ -1739,6 +1739,9 @@ local function getReqAndCost(mastery, player)
 	if vars.madnessMode then
 		baseCost = madnessCost[mastery]
 		requirements = madnessLearningRequirements[mastery]
+	elseif DoomMapMode() then
+		baseCost = doomCosts[mastery]
+		requirements = doomMapReq[mastery]
 	elseif vars.insanityMode then
 		baseCost = insanityCost[mastery]
 		requirements = insanityLearningRequirements[mastery]
@@ -1893,6 +1896,8 @@ function events.Action(t)
 						requirements={0,12,30,50}
 					elseif vars.insanityMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,8,20,32}
+					elseif DoomMapMode() and table.find(horizontalSkills, t.Param) then
+						requirements = { 0, 8, 16, 24 }	
 					elseif Game.freeProgression or not table.find(horizontalSkills, t.Param) then
 						requirements={0,4,7,10}
 					else
@@ -2724,6 +2729,8 @@ function GetArmsmasterSupremeRequirement()
 		requirement=70
 	elseif vars.insanityMode then
 		requirement=50
+	elseif DoomMapMode() then
+		requirement = 40
 	end
 	return requirement
 end

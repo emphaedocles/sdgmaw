@@ -249,6 +249,13 @@ function recalculateMawMonster()
                     else
                         partyLvl = oldTable.Level * 2
                     end
+                elseif DoomMapMpod() then
+                    if not madnessStartingMaps[name] and doomMapLevels[name] then
+                        partyLvl = doomMapLevels[name] +(mapLevels[name].High - mapLevels[name].Mid) * 2 - oldTable.Level
+                    else
+                        partyLvl = oldTable.Level * 2
+                    end
+
                 end
                 -- level increase
                 oldLevel = oldTable.Level
@@ -337,6 +344,10 @@ function events.Action(t)
             Game.BolsterAmount = 300
             recalculateMonsterTable()
             recalculateMawMonster()
+        elseif DoomMapMode()then
+            Game.BolsterAmount = 400
+            recalculateMonsterTable()
+            recalculateMawMonster()
         elseif vars.Mode == 2 then
             Game.BolsterAmount = 600
             recalculateMonsterTable()
@@ -362,6 +373,10 @@ function events.AfterLoadMap()
         recalculateMawMonster()
     elseif vars.trueNightmare and Game.BolsterAmount ~= 300 and vars.Mode ~= 2 then
         Game.BolsterAmount = 300
+        recalculateMonsterTable()
+        recalculateMawMonster()
+    elseif DoomMapMode()then
+        Game.BolsterAmount = 400
         recalculateMonsterTable()
         recalculateMawMonster()
     elseif vars.Mode == 2 then
@@ -573,6 +588,8 @@ function recalculateMonsterTable()
     local name = Game.MapStats[Map.MapStatsIndex].Name
     if vars.madnessMode and madnessMapLevels[name] then
         bolsterLevel = madnessMapLevels[name]
+    elseif DoomMapMode() and doomMapLevels[name] then
+        bolsterLevel = doomMapLevels[name]
     end
 
     bolsterLevel = bolsterLevel + bonus
@@ -696,6 +713,13 @@ function recalculateMonsterTable()
             local tierModifier =(base.Level - LevelB) * 2
             local level = baseLevel + withinMapDifference + tierModifier
 
+            totalLevel[i] = math.max(level, 5)
+            mon.Level = math.min(totalLevel[i], 255)
+        elseif DoomMapMode() and not madnessStartingMaps[name] and not mapvars.mapAffixes then
+            local baseLevel = doomMapLevels[name] or 0
+            local withinMapDifference =(baseMapLevel - mean) * 2
+            local tierModifier =(base.Level - LevelB) * 2
+            local level = baseLevel + withinMapDifference + tierModifier
             totalLevel[i] = math.max(level, 5)
             mon.Level = math.min(totalLevel[i], 255)
         end
@@ -2824,6 +2848,8 @@ function checkMapCompletition()
                 end
                 if vars.madnessMode then
                     bolster = madnessMapLevels[name] or 0
+                elseif DoomMapMode() then
+                    bolster = doomMapLevels[name] or 0
                 end
                 if mapvars.mapAffixes then
                     bolster = mapvars.mapAffixes.Power * 10
@@ -2848,11 +2874,14 @@ function checkMapCompletition()
                     else
                         experience = experience / 2
                     end
+                elseif DoomMapMode() then
+                    experience = math.ceil(totalMonster ^ 0.7 *(bolster * 20 + bolster ^ 1.8) / 3 / 1000) * 1000    
                 end
                 local gold = math.ceil(experience ^ 0.9 / 1000) * 1000
                 if vars.madnessMode  then
                     gold = round(experience / 3 / 1000) * 1000
-                
+                elseif DoomMapMode() then
+                    gold = round(experience / 2 / 1000) * 1000
                 end
                 evt.ForPlayer(0)
                 evt.Add { "Gold", Value = gold }

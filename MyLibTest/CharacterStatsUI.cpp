@@ -104,7 +104,7 @@ void CharacterStatsUI::Show(const char* title)
 		wc.lpszClassName,
 		wtitle.c_str(),
 		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		CW_USEDEFAULT, CW_USEDEFAULT, 600, 500,
+		CW_USEDEFAULT, CW_USEDEFAULT, 700, 700,
 		nullptr, nullptr, g_hInstance, nullptr);
 		
 	SetWindowPos(g_hWnd, HWND_TOPMOST, 10, 650, 0, 0,  SWP_NOSIZE | SWP_SHOWWINDOW);
@@ -116,7 +116,7 @@ void CharacterStatsUI::Show(const char* title)
 	int slotHeight = totalHeight / MAX_CHAR_SLOTS;
 	for (int i = 0; i < MAX_CHAR_SLOTS; ++i)
 	{
-		RECT rc = { 0, i * slotHeight, 500, (i + 1) * slotHeight }; // initial width/height; will be re-laid out on WM_SIZE
+		RECT rc = { 0, i * slotHeight, clientRc.right-clientRc.left, (i + 1) * slotHeight }; // initial width/height; will be re-laid out on WM_SIZE
 		g_renderers[i] = new CharacterStatsGdi();
 		g_renderers[i]->Create(g_hWnd, 2000 + i, rc);
 		// initialize empty details

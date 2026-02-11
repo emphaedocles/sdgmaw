@@ -318,6 +318,30 @@ void CharacterStatsGdi::OnPaint()
 		txtVR << L"VR:" << details_.Vitality.c_str();
 		memG.DrawString(txtVR.str().c_str(), -1, &sFont, rr, &sf, &sbVR);
 		
+		rr.X = rr.GetRight() + 3;
+		rr.Y = 3;
+		rr.Height = 30;
+		rr.Width = clientF.GetRight() - rr.X;
+		std::wostringstream txtMapDamage;
+		txtMapDamage << L"Map Melee: " << details_.MapMeleeDamage.c_str();
+		memG.DrawString(txtMapDamage.str().c_str(), -1, &sFont, rr, &sf, &sbMR);
+
+		rr.Y += rr.Height + 1.0f;
+		std::wostringstream txtMapRanged;
+		txtMapRanged << L"Map Ranged: " << details_.MapRangedDamage.c_str();
+		memG.DrawString(txtMapRanged.str().c_str(), -1, &sFont, rr, &sf, &sbRR);
+
+		rr.Y += rr.Height + 1.0f;
+		std::wostringstream txtMapTotalD;
+		txtMapTotalD << L"Map DamageT: " << details_.MapTotalDamage.c_str();
+		memG.DrawString(txtMapTotalD.str().c_str(), -1, &sFont, rr, &sf, &sbMR);
+
+		rr.Y += rr.Height + 1.0f;
+		std::wostringstream txtMapHealing;
+		txtMapHealing << L"Map Healing: " << details_.MapHealing.c_str();
+		memG.DrawString(txtMapHealing.str().c_str(), -1, &sFont, rr, &sf, &sbVR);
+		// Condition status at bottom
+
 		RectF conditionRect(clientF.X + margin, clientF.GetBottom() - margin - 35.0f, barWidth, 35.0f);
 		std::wostringstream conditionText;
 		conditionText << Utf8ToWide(details_.StatusFx);
@@ -334,6 +358,9 @@ void CharacterStatsGdi::OnPaint()
 		{
 			memG.DrawString(conditionText.str().c_str(), -1, &sFont, conditionRect, &sf, &conditionBrus);
 		}
+
+
+
 		// Blit the offscreen bitmap to the window HDC using a screen Graphics
 		Graphics screenG(hdc);
 		screenG.SetSmoothingMode(SmoothingModeHighQuality);
