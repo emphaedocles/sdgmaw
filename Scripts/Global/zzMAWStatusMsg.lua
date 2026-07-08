@@ -1,4 +1,4 @@
-﻿local REMOTE_OWNER_BIT=0x800
+local REMOTE_OWNER_BIT=0x800
 function events.CalcDamageToMonster(t)
 	local source = WhoHitMonster()
 	if source then
@@ -19,7 +19,6 @@ function events.CalcDamageToPlayer(t)
 			end
 		end
 	end
-	SetCharDamText(t)
 end
 --leech moved here, to make sure it takes all the damage modifiers
 function events.CalcDamageToMonster(t)
@@ -114,9 +113,11 @@ function events.CalcDamageToMonster(t)
 		if manaLeechLeg then
 			totalHeal=totalHeal/2
 			pl.SP=math.min(getMaxMana(pl),pl.SP+totalHeal)
-
+			totalHeal=totalHeal/fullHP --remove mana portion
+			fullHP=GetMaxHP(pl) 
+			totalHeal=fullHP*totalHeal --add life portion
 		end
-				overHeal=round(pl.HP+totalHeal-fullHP)
+		overHeal=round(pl.HP+totalHeal-fullHP)
 		pl.HP=math.min(fullHP,pl.HP+totalHeal)
 		if overHeal>0 and vars.legendaries and vars.legendaries[index] and table.find(vars.legendaries[index], 27) then
 			local id, lowestHealthPercentage=pickLowestPartyMember()
@@ -142,7 +143,6 @@ function events.CalcDamageToMonster(t)
 			mapvars.leechDone=mapvars.leechDone or {}
 			mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 			mapvars.leechDone[id]=mapvars.leechDone[id] + healing
-			SetLeechText(id,healing)
 		end
 	end
 end
@@ -183,11 +183,6 @@ function events.CalcDamageToMonster(t)
 		if ShowDamage then
 			ShowDamage(data.Player, damage, crit, data.Object, t.Monster)
 		end
-		if(g_allowStealth) then
-			AddDamageToMonTextBS(t.Monster,damage,crit,data.Player,backstabHit or false, backstabMX or 0)
-		else
-			AddDamageToMonText(t.Monster,damage,crit,data.Player)
-		end
 		
 	end
 	
@@ -210,17 +205,12 @@ function events.CalcDamageToMonster(t)
 		MSGdamage=MSGdamage or 0
 		MSGdamage=MSGdamage+math.ceil(t.Result*divide)
 		local msgTxt=MSGdamage
-		local instanceTxt = math.ceil(t.Result*divide)--for aoe want instance value
-		instanceTxt = shortenNumber(instanceTxt, 4, true)
 		msgTxt=shortenNumber(msgTxt, 4, true)
 		attackIsSpell=false
 		castedAoe=false
 		shoot="hits"
 		kill=""
 		critMessage= ""
-		local plName=t.Player.Name
-		local plDam=math.ceil(t.Result*divide)
-
 		if data.Object then 
 			if data.Object.SpellType>1 and data.Object.SpellType<133 then
 				name=Game.SpellsTxt[data.Object.SpellType].Name
@@ -258,41 +248,22 @@ function events.CalcDamageToMonster(t)
 			castedAoe=true
 		end
 		local id=t.MonsterIndex
-		function events.Tick()
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			if id<=Map.Monsters.High and MSGdamage>0 then
-				local clog
-				msgTxt = StrColor(255, 32, 32, msgTxt)
-				monName = StrColor(128, 255, 128, monName)
-		        if(not castedAoe) then
-					name = StrColor(255, 128, 255, name)		
-					instanceTxt = StrColor(255, 128, 255, msgTxt)
-				else
-					name = StrColor(255, 128, 128, name)		
-					instanceTxt = StrColor(255, 32, 32, instanceTxt)
-				end
-
 				if shoot=="shoots" then
-					msg=string.format("%s shoots %s for %s points!%s", name, monName, msgTxt, critMessage)
-					clog=msg
+				msg=string.format("%s shoots %s for %s points!%s", name, monName, msgTxt, critMessage)
 				else
 					msg=string.format("%s hits %s for %s points!%s", name, monName, msgTxt, critMessage)
-					clog=msg
 				end
 				if t.Monster.HP==0 then
 					msg=string.format("%s inflicts %s points killing %s!%s", name, msgTxt, monName, critMessage)
-					clog=msg
 				end
 				if castedAoe then
 					msg=string.format("%s hits for a total of %s points!%s", name, msgTxt, critMessage)
-					clog = string.format("%s hits %s for a total of %s points!%s", name, monName, instanceTxt .."(S" .. msgTxt ..")", critMessage)
 				end
-
 				Game.ShowStatusText(msg)
-
-				AddCombatLog(clog)
-				SDGAddDPSTracking(plName,plDam)
-
+				
+				
 				if calls>0 then
 					calls=calls-1
 					if t.Result==0 then
@@ -303,7 +274,7 @@ function events.CalcDamageToMonster(t)
 					MSGdamage=0
 				end
 			end
-		end
+		end)
 	end
 	--restore tooltips
 	local id=Game.CurrentPlayer
