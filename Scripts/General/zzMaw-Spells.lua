@@ -107,12 +107,10 @@ local hopList = {8, 9, 14, 15}
 --modify Spells
 function events.PlayerCastSpell(t)
 	--refresh everyone before and after casting
-
 	mawRefresh(t.PlayerIndex)
-	function events.Tick() 
-		events.Remove("Tick", 1)
+	RunNextTick(function()
 		mawRefresh("all")
-	end
+	end)
 	
 	local partyHP=0
 	for i=0,Party.High do
@@ -131,7 +129,6 @@ function events.PlayerCastSpell(t)
 	end
 	Game.CurrentPlayer=currentPl
 	
-	
 	if t.IsSpellScroll then -- disable for scrolls
 		return
 	end
@@ -144,11 +141,10 @@ function events.PlayerCastSpell(t)
 			return
 		end
 		if not t.RemoteData then
-			function events.Tick() 
-				events.Remove("Tick", 1)
+			RunNextTick(function()
 				invisCasted={true,t.Skill,t.Mastery}
 				mawBuffs()
-			end
+			end)
 			if t.MultiplayerData then
 				t.MultiplayerData[1]=invisCasted
 			end
@@ -173,12 +169,6 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
-
--- combat log
-  AddHealToLog("Cure Curse", totHeal,gotCrit,t.TargetId,t.Player)
-
-
-
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -202,10 +192,13 @@ function events.PlayerCastSpell(t)
 				Game.ShowStatusText(string.format(name .. " heals " .. Party[t.TargetId].Name .. " for " .. healData[1] .. " hit points"))
 			end
 		elseif t.TargetKind == 4 and not t.RemoteData then
-			Party[t.TargetId].HP=math.min(Party[t.TargetId].HP+round(totHeal),GetMaxHP(Party[t.TargetId]))
+			local maxHP = GetMaxHP(Party[t.TargetId])
+			local overheal = math.max(0, round(totHeal) - (maxHP - Party[t.TargetId].HP))
+			Party[t.TargetId].HP=math.min(Party[t.TargetId].HP+round(totHeal),maxHP)
 			if Party[t.TargetId].HP>0 then
 				Party[t.TargetId].Unconscious=0
 			end
+			processHealLegendaries(t.Player, 49, const.Skills.Spirit, round(totHeal), overheal, true)
 		end
 	end
 	
@@ -262,10 +255,6 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
-			-- combat log
-		  AddHealToLog("Resurrection", totHeal,gotCrit,t.TargetId,t.Player)
-
-
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -290,21 +279,22 @@ function events.PlayerCastSpell(t)
 				Game.ShowStatusText(string.format(name .. " heals " .. Party[t.TargetId].Name .. " for " .. healData[1] .. " hit points"))
 			end
 		elseif t.TargetKind == 4 and not t.RemoteData then
+			local maxHP = GetMaxHP(Party[t.TargetId])
+			local overheal = math.max(0, round(totHeal) - (maxHP - Party[t.TargetId].HP))
 			if Party[t.TargetId].Dead>0 or Party[t.TargetId].Eradicated>0 then
 				local hp=Party[t.TargetId].HP
-				function events.Tick() 
-					events.Remove("Tick", 1)
+				RunNextTick(function()
 					Party[t.TargetId].HP=math.max(hp+round(totHeal), round(totHeal))
-				end
+				end)
 			else
-				Party[t.TargetId].HP=math.min(Party[t.TargetId].HP+round(totHeal),GetMaxHP(Party[t.TargetId]))
+				Party[t.TargetId].HP=math.min(Party[t.TargetId].HP+round(totHeal),maxHP)
 				if Party[t.TargetId].HP>0 then
 					Party[t.TargetId].Unconscious=0
 				end
 			end
+			processHealLegendaries(t.Player, 55, const.Skills.Spirit, round(totHeal), overheal, true)
 		end
 	end
-	
 	
 	--lesser heal
 	if t.SpellId == 68 then
@@ -326,11 +316,6 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(tooltipHeal) .. " Hit points"))
 			end
-
-			-- combat log
-		  AddHealToLog("Heal", totHeal,gotCrit,t.TargetId,t.Player)
-
-
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 and t.MultiplayerData then
@@ -356,24 +341,26 @@ function events.PlayerCastSpell(t)
 				Game.ShowStatusText(string.format(name .. " heals " .. Party[t.TargetId].Name .. " for " .. healData[3] .. " hit points"))
 			end
 		elseif t.TargetKind == 4 and not t.RemoteData then
+			local maxHP = GetMaxHP(Party[t.TargetId])
+			local overheal = math.max(0, round(totHeal) - (maxHP - Party[t.TargetId].HP))
 			Party[t.TargetId].HP=Party[t.TargetId].HP+round(totHeal)
 			if Party[t.TargetId].HP>0 then
 				Party[t.TargetId].Unconscious=0
 			end
+			processHealLegendaries(t.Player, 68, const.Skills.Body, round(totHeal), overheal, true)
 		end
 	end
 	
 	--REGENERATION
 	if t.SpellId==71 and not vars.MAWSETTINGS.buffRework=="ON" then
 		if not t.RemoteData then
-			function events.Tick() 
-				events.Remove("Tick", 1)
+			RunNextTick(function()
 				regenerationCasted={true,t.Skill,t.Mastery}
 				for i=0, Party.High do
 					mem.call(0x4A6FCE, 1, mem.call(0x42D747, 1, mem.u4[0x75CE00]), const.Spells.Regeneration, i)
 				end
 				mawBuffs()
-			end
+			end)
 			if t.MultiplayerData then
 				t.MultiplayerData[1]=regenerationCasted
 			end
@@ -401,10 +388,6 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
-			-- combat log
-		  AddHealToLog("Greater Heal", totHeal,gotCrit,t.TargetId,t.Player)
-
-
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -429,10 +412,14 @@ function events.PlayerCastSpell(t)
 				Game.ShowStatusText(string.format(name .. " heals " .. Party[t.TargetId].Name .. " for " .. healData[1] .. " hit points"))
 			end
 		elseif t.TargetKind == 4 and not t.RemoteData then
-			Party[t.TargetId].HP=math.min(Party[t.TargetId].HP+round(totHeal),GetMaxHP(Party[t.TargetId]))
+			local maxHP = GetMaxHP(Party[t.TargetId])
+			local actualHeal = math.min(round(totHeal), maxHP - Party[t.TargetId].HP)
+			local overheal = round(totHeal) - actualHeal
+			Party[t.TargetId].HP = Party[t.TargetId].HP + actualHeal
 			if Party[t.TargetId].HP>0 then
 				Party[t.TargetId].Unconscious=0
 			end
+			processHealLegendaries(t.Player, 74, const.Skills.Body, round(totHeal), overheal, true)
 		end
 	end
 	
@@ -478,27 +465,25 @@ if t.SpellId == 77 then
     else
       Game.ShowStatusText("You heal the party for " .. tooltipHeal .. " hit points")
     end
--- combat log
-	  AddHealToLog("Power Cure", totHeal,gotCrit,t.TargetId,t.Player)
-
   end
 
   -- === application du soin ===
   if not t.RemoteData then
     local applyHeal = tonumber(totHeal) or 0
+    local totalOverheal = 0
     if applyHeal ~= 0 then
       for i = 0, Party.High do
-        -- Optionnel: clamp au max HP si dispo
-        local newHP = (Party[i].HP or 0) + applyHeal
-        Party[i].HP = newHP
-		  AddHealToLog("Power Cure", applyHeal,gotCrit,i,t.Player)
-
+        local maxHP = GetMaxHP(Party[i])
+        local overhealI = math.max(0, applyHeal - (maxHP - Party[i].HP))
+        totalOverheal = totalOverheal + overhealI
+        Party[i].HP = math.min(Party[i].HP + applyHeal, maxHP)
       end
     end
     local tgt = t.TargetId
     if tgt and Party[tgt] and (Party[tgt].HP or 0) > 0 then
       Party[tgt].Unconscious = 0
     end
+    processHealLegendaries(t.Player, 77, const.Skills.Body, applyHeal * (Party.High + 1), totalOverheal)
 
     if t.MultiplayerData then
       t.MultiplayerData[1] = round(applyHeal)       -- bonus heal appliqué
@@ -536,11 +521,10 @@ end
 	--Day of the Gods
 	if t.SpellId==83 then
 		if not t.RemoteData then
-			function events.Tick() 
-				events.Remove("Tick", 1)
+			RunNextTick(function()
 				DoGCasted={true,t.Skill,t.Mastery}
 				mawBuffs()
-			end
+			end)
 			if t.MultiplayerData then
 				t.MultiplayerData[1]=DoGCasted
 			end
@@ -558,12 +542,11 @@ end
 			t.Skill=1
 			local s,m = SplitSkill(t.Player:GetSkill(protectionSpells[t.SpellId][2]))
 			local power=s*math.min(m,3)
-			function events.Tick()
-				events.Remove("Tick", 1)
+			RunNextTick(function()
 				Party.SpellBuffs[buffId].Power = power
 				Party.SpellBuffs[buffId].Skill = t.Mastery
 				Party.SpellBuffs[buffId].ExpireTime = Game.Time+const.Hour*s
-			end
+			end)
 			if t.MultiplayerData then
 				t.MultiplayerData[1]=power
 				t.MultiplayerData[2]=Game.Time+const.Hour*s
@@ -578,11 +561,10 @@ end
 	--day of the gods
 	if t.SpellId==85 then
 		if not t.RemoteData then
-			function events.Tick() 
-				events.Remove("Tick", 1)
+			RunNextTick(function()
 				DoPCasted={true,t.Skill,t.Mastery}
 				mawBuffs()
-			end
+			end)
 			if t.MultiplayerData then
 				t.MultiplayerData[1]=DoPCasted
 			end
@@ -839,8 +821,6 @@ function doSharedLife(amount, spellQueueData)
 	else
 		Game.ShowStatusText(string.format("Shared Life heals for " .. round(totHeal) .. " Hit points"))
 	end
-	  AddHealToLog("Shared Life", totHeal,gotCrit,-1,pl)
-
 	--calculate total HP and determine which players can safely participate
 	local fullHPs = {}	
 	local sortedParty = {}
@@ -914,8 +894,7 @@ function doSharedLife(amount, spellQueueData)
 				if toGive > 0 then
 					entry.player.HP = entry.player.HP + toGive
 					distributed = distributed + toGive
-					  
-
+					
 					-- If player is now at full HP, any excess goes to others
 					if entry.player.HP >= maxHP then
 						entry.player.HP = maxHP
@@ -988,7 +967,7 @@ end)
 
 
 --removes fly when attacking, except in certain maps
-flyAllowedMaps={"elema.odm","elemf.odm","elemw.odm","out12.odm","outa1.odm","outa2.odm","outa3.odm","outb2.odm","outb3.odm","out05.odm"}
+flyAllowedMaps={"elema.odm","elemf.odm","elemw.odm","out12.odm","outa1.odm","outa2.odm","outa3.odm","outb2.odm","outb3.odm","out05.odm", "out07.odm"}
 function events.CalcDamageToMonster(t)
 	if Game.BolsterAmount>100 or vars.AusterityMode then
 		if table.find(flyAllowedMaps,Map.Name) then 
@@ -1132,6 +1111,39 @@ end
 
 masteryName={"Normal", "Expert", "Master", "GM",[0]="Normal"}
 
+function processHealLegendaries(pl, spellId, skillType, totHeal, overheal, tickDelay)
+	if totHeal <= 0 or overheal <= 0 then return end
+	local id = pl:GetIndex()
+	if not (vars.legendaries and vars.legendaries[id]) then return end
+	
+	local hasL34 = table.find(vars.legendaries[id], 34)
+	local hasL35 = table.find(vars.legendaries[id], 35)
+	if not hasL34 and not hasL35 then return end
+	
+	local s, m = SplitSkill(pl:GetSkill(skillType))
+	local cost = Game.Spells[spellId]["SpellPoints" .. masteryName[m]]
+	local overhealPercent = overheal / totHeal
+	
+	-- [34] Overhealing refunds mana
+	if hasL34 then
+		local manaRefund = math.floor(cost * overhealPercent)
+		pl.SP = pl.SP + manaRefund
+	end
+	
+	-- [35] Overhealing reduces recovery time equal to half overhealing amount
+	if hasL35 then
+		local delay = getSpellDelay(pl, spellId)
+		delay = math.floor(delay * (1 - (overhealPercent / 2)))
+		if tickDelay then
+			RunNextTick(function()
+				pl.RecoveryDelay = delay
+			end)
+			return
+		end
+		pl:SetRecoveryDelay(delay)
+	end
+end
+
 function processAutoTargetHeal(spellId, pl, skillType, soundId, removeConditionFunc)
 	local sp=healingSpells[spellId]
 	local s,m=SplitSkill(pl:GetSkill(skillType))
@@ -1149,9 +1161,7 @@ function processAutoTargetHeal(spellId, pl, skillType, soundId, removeConditionF
 	end
 
 	min_index = pickLowestPartyMember()
-	-- combat log
-	  AddHealToLog("Heal", totHeal,gotCrit,min_index,pl)
-
+	
 	-- Calculate overheal
 	local hpBefore = Party[min_index].HP
 	local maxHP = GetMaxHP(Party[min_index])
@@ -1291,19 +1301,19 @@ end
 --CC REWORK
 ----------------------------------------
 CCMAP={
-	[const.Spells.Stun]=	{["Duration"]=const.Minute*2,["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=10, ["CCName"]="Stunned"},
-	[const.Spells.Slow]=	{["Duration"]=const.Minute*6, ["ChanceMult"]=0.03, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Earth, ["DamageKind"]=const.Damage.Earth,["Debuff"]=const.MonsterBuff.Slow, ["CCName"]="Slowed"},
-	[60]=					{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=5, ["ScalingCost"]=4, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm, ["CCName"]="Charmed"},--Mind Charm, has no const value, due to dark elf one overwriting
-	[const.Spells.Charm]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=1, ["ScalingCost"]=4, ["School"]=const.Skills.DarkElfAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm, ["CCName"]="Charmed"},--dark elf one
-	[const.Spells.Berserk]=	{["Duration"]=const.Minute*4.5, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Berserk, ["CCName"]="Berserked"},
-	[const.Spells.MassFear]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.1, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Feared"},
-	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Feared"},
-	[const.Spells.Enslave]=	{["Duration"]=const.Minute*5, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Enslave, ["CCName"]="Enslaved"},
-	[const.Spells.Paralyze]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Light, ["DamageKind"]=const.Damage.Light,["Debuff"]=const.MonsterBuff.Paralyze, ["CCName"]="Paralyzed"},	
-[const.Spells.ShrinkingRay]={["Duration"]=const.Minute*6, ["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark,["Debuff"]=const.MonsterBuff.ShrinkingRay, ["CCName"]="Shrunk"},
-[const.Spells.DarkGrasp]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]={const.MonsterBuff.ArmorHalved, const.MonsterBuff.Slow, const.MonsterBuff.DamageHalved, const.MonsterBuff.MeleeOnly, ["CCName"]="Dark Grasped"}},																									
-	[const.Spells.TurnUndead]={["Duration"]=const.Minute*5, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Spirit, ["DamageKind"]=const.Damage.Spirit, ["Debuff"]=const.MonsterBuff.Fear, ["CCName"]="Turned"},	
-	[const.Spells.ControlUndead]={["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]=const.MonsterBuff.Enslave, ["CCName"]="Enslaved"},
+	[const.Spells.Stun]=	{["Duration"]=const.Minute*2,["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=10},
+	[const.Spells.Slow]=	{["Duration"]=const.Minute*6, ["ChanceMult"]=0.03, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Earth, ["DamageKind"]=const.Damage.Earth,["Debuff"]=const.MonsterBuff.Slow},
+	[60]=					{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=5, ["ScalingCost"]=4, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm},--Mind Charm, has no const value, due to dark elf one overwriting
+	[const.Spells.Charm]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=1, ["ScalingCost"]=4, ["School"]=const.Skills.DarkElfAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm},--dark elf one
+	[const.Spells.Berserk]=	{["Duration"]=const.Minute*4.5, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Berserk},
+	[const.Spells.MassFear]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.1, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
+	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
+	[const.Spells.Enslave]=	{["Duration"]=const.Minute*5, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Enslave},
+	[const.Spells.Paralyze]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Light, ["DamageKind"]=const.Damage.Light,["Debuff"]=const.MonsterBuff.Paralyze},	
+[const.Spells.ShrinkingRay]={["Duration"]=const.Minute*6, ["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark,["Debuff"]=const.MonsterBuff.ShrinkingRay},
+[const.Spells.DarkGrasp]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]={const.MonsterBuff.ArmorHalved, const.MonsterBuff.Slow, const.MonsterBuff.DamageHalved, const.MonsterBuff.MeleeOnly}},																									
+	[const.Spells.TurnUndead]={["Duration"]=const.Minute*5, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Spirit, ["DamageKind"]=const.Damage.Spirit, ["Debuff"]=const.MonsterBuff.Fear},	
+	[const.Spells.ControlUndead]={["Duration"]=const.Minute*10, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark, ["Debuff"]=const.MonsterBuff.Enslave},
 }
 --[[
 function events.PlayerCastSpell(t)
@@ -1401,8 +1411,7 @@ function events.PlayerCastSpell(t)
 			if wouldApply then
 				mon.Resistances[cc.DamageKind]=0
 				mon.Level=0
-
-
+				--Game.ShowStatusText("Hit" .. "  " .. hit)
 			else
 				mon.Resistances[cc.DamageKind]=65000
 				--Game.ShowStatusText("Miss" .. "  " .. hit)
@@ -1437,16 +1446,6 @@ function events.PlayerCastSpell(t)
 					currentExpireTime=mon.SpellBuffs[cc.Debuff].ExpireTime
 				end
 				if currentExpireTime > prevExpireTime[i] then
-				local monName= "??"
-				local cctxt=cc.CCName				
-				if(mon.NameId>0) then
-					monName = Game.PlaceMonTxt[mon.NameId]
-				else
-					monName = Game.MonstersTxt[mon.Id].Name
-				end
-				--Game.ShowStatusText("Hit" .. "  " .. hit)
-				AddCombatLog(StrColor(255, 148, 128, monName .. "--" .. cctxt))--add stunned notificatino to combatlog
-
 					-- Monster was affected, apply diminishing returns
 					local masteryMult = ({0.5, 0.65, 0.8, 1})[math.max(1,m)]
 					local duration=cc.Duration * masteryMult
@@ -1610,21 +1609,13 @@ function events.CalcDamageToMonster(t)
 		if hit>math.random() then
 			mon.Resistances[const.Damage.Earth]=0
 			mon.Level=0
-			local monName= "??"
-			if(mon.NameId>0) then
-				monName = Game.PlaceMonTxt[mon.NameId]
-			else
-				monName = Game.MonstersTxt[mon.Id].Name
-			end
-			AddCombatLog(StrColor(255, 148, 128, monName .. "  Stunned!!"))--add stunned notificatino to combatlog
 		else
 			mon.Resistances[const.Damage.Earth]=65000
 		end
-		function events.Tick() 
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			mon.Level=lvl
 			mon.Resistances[const.Skills.Earth]=res
-		end
+		end)
 	end
 end
 
@@ -1921,10 +1912,9 @@ function events.GameInitialized2()
 end
 --adjust mana cost and tooltips	
 function events.Action(t)
-	function events.Tick() 
-		events.Remove("Tick", 1)
+	RunNextTick(function()
 		ascension()
-	end
+	end)
 --[[	if t.Action==25 then
 		ascension()
 		local id=Game.CurrentPlayer
@@ -1991,28 +1981,33 @@ function AscendCCSpells(pl,s,m,personalityReduction)
 	local lvl=pl.LevelBase
 	
 	for key, value in pairs(CCMAP) do
-		if key~=122 then
-			for i=1,4 do
-				local baseCost = spellCost[key][masteryName[i]]*(1+s*0.125)*1.04^(s)*(1-0.125*m)
-				local finalCost=math.min(math.ceil(baseCost * personalityReduction), 65000)
-				Game.Spells[key]["SpellPoints" .. masteryName[i]]=finalCost
-			end
-			
-			local baseDuration=value.Duration/const.Minute*2
-			local school=math.ceil(key/11)+11
-			local spellS, spellM = SplitSkill(pl.Skills[school])
-			local masteryMult = ({0.5, 0.65, 0.8, 1})[math.max(1,spellM)]
-			local ascendedDuration=baseDuration * masteryMult * 1.015^(s) / (lvl/200)
-			
-			-- Update N/E/M/GM descriptions with duration at each mastery
-			local durN = baseDuration * ({0.5, 0.65, 0.8, 1})[1] * 1.015^(s) / (lvl/200)
-			local durE = baseDuration * ({0.5, 0.65, 0.8, 1})[2] * 1.015^(s) / (lvl/200)
-			local durM = baseDuration * ({0.5, 0.65, 0.8, 1})[3] * 1.015^(s) / (lvl/200)
-			local durGM = baseDuration * ({0.5, 0.65, 0.8, 1})[4] * 1.015^(s) / (lvl/200)
-			Game.SpellsTxt[key].Normal = string.format("Duration: %.1f seconds", durN)
-			Game.SpellsTxt[key].Expert = string.format("Duration: %.1f seconds", durE)
-			Game.SpellsTxt[key].Master = string.format("Duration: %.1f seconds", durM)
-			Game.SpellsTxt[key].GM = string.format("Duration: %.1f seconds", durGM)
+		for i=1,4 do
+			local baseCost = spellCost[key][masteryName[i]]*(1+s*0.125)*1.04^(s)*(1-0.125*m)
+			local finalCost=math.min(math.ceil(baseCost * personalityReduction), 65000)
+			Game.Spells[key]["SpellPoints" .. masteryName[i]]=finalCost
+		end
+		
+		local baseDuration=value.Duration/const.Minute*2
+		local school=math.ceil(key/11)+11
+		local spellS, spellM = SplitSkill(pl.Skills[school])
+		local masteryMult = ({0.5, 0.65, 0.8, 1})[math.max(1,spellM)]
+		local ascendedDuration=baseDuration * masteryMult * 1.015^(s) / (lvl/200)
+		
+		-- Update N/E/M/GM descriptions with duration at each mastery
+		local durN = baseDuration * ({0.5, 0.65, 0.8, 1})[1] * 1.015^(s) / (lvl/200)
+		local durE = baseDuration * ({0.5, 0.65, 0.8, 1})[2] * 1.015^(s) / (lvl/200)
+		local durM = baseDuration * ({0.5, 0.65, 0.8, 1})[3] * 1.015^(s) / (lvl/200)
+		local durGM = baseDuration * ({0.5, 0.65, 0.8, 1})[4] * 1.015^(s) / (lvl/200)
+		Game.SpellsTxt[key].Normal = string.format("Duration: %.1f seconds", durN)
+		Game.SpellsTxt[key].Expert = string.format("Duration: %.1f seconds", durE)
+		Game.SpellsTxt[key].Master = string.format("Duration: %.1f seconds", durM)
+		Game.SpellsTxt[key].GM = string.format("Duration: %.1f seconds", durGM)
+	
+		if key==122 then
+			Game.Spells[key]["SpellPointsNormal"]=15
+			Game.Spells[key]["SpellPointsExpert"]=15
+			Game.Spells[key]["SpellPointsMaster"]=25
+			Game.Spells[key]["SpellPointsGM"]=30
 		end
 	end
 end
@@ -2054,7 +2049,6 @@ function ascension(customIndex)
 			vars.eleStacks[id]=vars.eleStacks[id] or 0
 		end
 		if table.find(shamanClass, pl.Class) then
-			elementalist=true
 			s=0
 			m=4
 			for i=12,18 do
@@ -2559,10 +2553,9 @@ function events.PlayerCastSpell(t)
 					exmap[t.SpellId] = Game.Time + __special_ttl_for(vars.mawbuff[t.SpellId])
 				end
 			end
-			function events.Tick()
-				events.Remove("Tick",1)
+			RunNextTick(function()
 				mawBuffApply()
-			end
+			end)
 		else
 			t.Handled=true
 			mawBuffCast(t.Player, t.PlayerIndex, t.SpellId)
@@ -2663,21 +2656,19 @@ function mawBuffCast(pl, index, spellId)
 			pl:SetRecoveryDelay(delay)
 		end
 
-		function events.Tick()
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			mawBuffApply()
-		end
+		end)
 	else
 		-- === DEBUFF local : pose un override OFF de 90s pour ignorer les retours distants
 		vars.mawbuff[spellId]=false
 		__clear_special_expire(spellId)
 		vars._maw_local_off[spellId] = Game.Time + const.Minute + const.Second*30
 
-		function events.Tick()
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			mawBuffApply()
 			Game.ShowStatusText("Buff Disabled")
-		end
+		end)
 	end
 end
 
@@ -3145,6 +3136,7 @@ end
 
 --store older Tooltips, need to be after any tooltip change
 function events.GameInitialized2()
+	adjustSpellTooltips()
 	oldSpellTooltips={}
 	for i=1,132 do
 		oldSpellTooltips[i]=Game.SpellsTxt[i].Description
@@ -3156,8 +3148,7 @@ function events.PlayerCastSpell(t)
 		local nMon=Map.Monsters.High
 		local s,m=SplitSkill(t.Player:GetSkill(const.Skills.Light))
 		local maxSpawns=m*2-3
-		function events.Tick()
-			events.Remove("Tick",1)
+		RunNextTick(function()
 			if nMon==Map.Monsters.High then
 				local currentSummoned=0
 				for i=0, Map.Monsters.High do
@@ -3170,7 +3161,7 @@ function events.PlayerCastSpell(t)
 					pseudoSpawnpoint{monster = 97,  x = Party.X, y = Party.Y, z = Party.Z, count = 1, powerChances = {0, 0, 100}, radius = 256, group = 9999,transform = function(mon) mon.ShowOnMap = true mon.Hostile = false mon.Velocity=350 mon.Ally=9999 end}
 				end
 			end
-		end
+		end)
 	end
 end
 
@@ -3479,10 +3470,9 @@ end
 function events.CanCastTownPortal(t)
 	if vars.madnessMode and (Party.EnemyDetectorYellow or Party.EnemyDetectorRed) then
 		t.CanCast=false
-		function events.Tick() 
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			Game.ShowStatusText("Madness is not a place for cowards")
-		end
+		end)
 	end
 end
 
@@ -3492,8 +3482,7 @@ function events.PlayerCastSpell(t)
 	BeginGrabObjects()
 	local targetSpell=t.SpellId
 	if Mouse:GetTarget().Kind==3 then return end --monster in the mouse
-	function events.Tick()
-		events.Remove("Tick",1)
+	RunNextTick(function()
 		local obj=GrabObjects()
 		if not obj then 
 			--debug.Message("No Object")
@@ -3527,7 +3516,7 @@ function events.PlayerCastSpell(t)
 		if changeTarget then
 			obj.Target=3+target*8
 		end
-	end		
+	end)
 end
 
 
@@ -3548,8 +3537,7 @@ function events.PartyDies(t)
 	t.Handled=true
 	local gold=Party.Gold
 	local continentId=TownPortalControls.MapOfContinent(Map.MapStatsIndex)
-	function events.Tick()
-		events.Remove("Tick",1)
+	RunNextTick(function()
 		local lvl1=vars.MMLVL[1]
 		local lvl2=vars.MMLVL[2]
 		local lvl3=vars.MMLVL[3]
@@ -3570,7 +3558,7 @@ function events.PartyDies(t)
 		vars.MMLVL[2]=lvl2
 		vars.MMLVL[3]=lvl3
 		vars.MMLVL[4]=lvl4
-	end
+	end)
 end
 
 -- player's death

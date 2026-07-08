@@ -164,8 +164,7 @@ function events.EvtMap(evtId)
 	if evtId>=20000 then
 		previousStats=previousStats or {}
 		local event=evtId
-		function events.Tick()
-			events.Remove("Tick", 1)
+		RunNextTick(function()
 			k=0
 			found=false
 			for i=0, Party.High do
@@ -182,7 +181,7 @@ function events.EvtMap(evtId)
 				vars.usedBarrels[Map.Name]=vars.usedBarrels[Map.Name] or {}
 				table.insert(vars.usedBarrels[Map.Name], event)
 			end
-		end
+		end)
 	end
 end
 function events.AfterLoadMap()
@@ -1717,7 +1716,7 @@ function events.MonsterKilled(mon)
 	mapvars.mapsDropped=mapvars.mapsDropped or 0
 	vars.mapDropFailures=vars.mapDropFailures or 0
 	local chances=0.001
-	if vars.madnessMode or DoomMapMode() then
+	if vars.madnessMode then
 		chances=chances*2
 		if mapvars.mapAffixes then
 			local map=mapLevels[Game.MapStats[Map.MapStatsIndex].Name]
@@ -2197,7 +2196,7 @@ function events.LeaveMap()
 end
 ]]
 function events.Action(t)
-	if t.Action==14 and (vars.madnessMode or DoomMapMode()) then
+	if t.Action==14 and vars.madnessMode then
 		BeginGrabObjects()
 		checkForMapDropped=true
 		function events.Tick()
@@ -2224,7 +2223,7 @@ end
 
 
 function events.Action(t)
-	if (t.Action==23 or t.Action==25) and (vars.madnessMode or DoomMapMode()) then
+	if (t.Action==23 or t.Action==25) and vars.madnessMode then
 		checkForMapDropped=false
 	end
 end

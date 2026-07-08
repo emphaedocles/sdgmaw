@@ -189,21 +189,19 @@ function events.Action(t)
 				if txt.EquipStat==1 and txt.Skill==1 then
 					txt.EquipStat=0
 					pl.Skills[const.Skills.Sword]=JoinSkill(s,1)
-					function events.Tick()
-						events.Remove("Tick",1)
+					RunNextTick(function()
 						pl.Skills[const.Skills.Sword]=JoinSkill(s,m)
 						txt.EquipStat=1
-					end
+					end)
 				elseif txt.EquipStat==4 and txt.Skill==8 then
 					local weapon=pl:GetActiveItem(1,true)
 					if weapon then
 						local txt=weapon:T()
 						if txt.EquipStat==1 and txt.Skill==1 then
 							txt.EquipStat=0
-							function events.Tick()
-								events.Remove("Tick",1)
+							RunNextTick(function()
 								txt.EquipStat=1
-							end
+							end)
 						end
 					end
 				end
@@ -214,10 +212,9 @@ function events.Action(t)
 				local txt=weapon:T()
 				if txt.EquipStat==1 and txt.Skill==1 then
 					txt.EquipStat=0
-					function events.Tick()
-						events.Remove("Tick",1)
+					RunNextTick(function()
 						txt.EquipStat=1
-					end
+					end)
 				end
 			end
 		end
@@ -255,7 +252,6 @@ function pickLowestPartyMember()
 	return min_index, min_value
 end
 
-
 function events.CalcDamageToMonster(t)
 	if t.Result==0 then return end
 	local data = WhoHitMonster()
@@ -279,20 +275,9 @@ function events.CalcDamageToMonster(t)
 		healValue=round(healValue*(1+personality/1000))
 
 		local healTarget, lowestHealthPercentage=pickLowestPartyMember()
-
-		--add to combatlog
-
-		local healTxt = StrColor(64, 255, 64, healValue)
-		local healerTxt=StrColor(255,128,255,pl.Name)
-		local targetTxt = StrColor(0, 255, 255, Party[healTarget].Name)
-		 AddHealToLog("Seraph-Strike", healValue,false,healTarget,pl, 4, false)
-
-
-		--add to floating text
-		SetHealText(healTarget,healValue)
 		
 		local percent, partyId, playerId=OnlineLowestHealthPercentage()
-
+		
 		if lowestHealthPercentage>0.25 and percent<lowestHealthPercentage then
 			SendHeal(partyId, playerId, healValue, pl.Name)
 			
@@ -302,7 +287,6 @@ function events.CalcDamageToMonster(t)
 			local healing=math.min(healValue, fhp-hp)
 			
 			local id=t.PlayerIndex
-
 			vars.healingDone=vars.healingDone or {}
 			vars.healingDone[id]=vars.healingDone[id] or 0
 			vars.healingDone[id]=vars.healingDone[id] + healing
@@ -326,8 +310,7 @@ function events.CalcDamageToMonster(t)
 		end
 		if partyHP2>partyHP and (Party.EnemyDetectorRed or Party.EnemyDetectorYellow) then	
 			local healing=partyHP2-partyHP
-			local id=t.PlayerIndex			
-
+			local id=t.PlayerIndex
 			vars.healingDone=vars.healingDone or {}
 			vars.healingDone[id]=vars.healingDone[id] or 0
 			vars.healingDone[id]=vars.healingDone[id] + healing
@@ -418,7 +401,6 @@ local function seraphSkills(isSeraph, id)
 		local txt = baseSchoolsTxtSERAPH[16] .. "\n\nSeraph Spirit strengthens the Seraph's resolve, shrugging off light hits and softening heavy blows\n" .. "Damage reduction: " .. StrColor(0,255,0,spiritReduction) .. " (applied after resistances)\n"
 		Skillz.setDesc(16,1,txt)
 		
-		--local bodyHeal=round(bodyS^1.3*bodyM*damageMultiplier[pl:GetIndex()]["Melee"]*healMult*2)
 		local bodyHeal=0
 		if damageMultiplier[pl:GetIndex()] then
 			bodyHeal=round(bodyS^1.3*bodyM*damageMultiplier[pl:GetIndex()]["Melee"]*healMult*2)
@@ -531,13 +513,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap=900
 			end
 			local speedDelay=0.015
-			if Party.High==0 then
-				speedDelay=0.015
-			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30) 
 			t.Result=round((bonus*(1+might/1000)+(mightEffect*might/1000))*0.75*(1+s*speedDelay))
 			
@@ -558,17 +535,12 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode  then
+			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap = 900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
 			
 			local speedDelay=0.015
-			if Party.High==0 then
-				speedDelay=0.015
-			end
 			t.Result=round((bonus*(1+might/1000)+(mightEffect*might/1000))*1.25*(1+s*speedDelay))
 			
 		elseif t.Stat==25 then --attack
@@ -596,15 +568,10 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode  then
+			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap = 900	
 			end
 			local speedDelay=0.015
-			if Party.High==0 then
-				speedDelay=0.015
-			end
 			local baseDamage=(1 + dragonBreath.Damage[m] * s / 100) * (20 + 2 * math.min(lvl,cap)) + mightEffect
 			local damage=round(baseDamage*(1+might/1000)*0.75*(1+s*speedDelay))
 			
@@ -628,15 +595,10 @@ function events.GameInitialized2()
 			end
 			
 			local cap=600
-			if vars.madnessMode  then
+			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap = 900	
 			end
 			local speedDelay=0.015
-			if Party.High==0 then
-				speedDelay=0.015
-			end
 			local baseDamage=(1 + dragonBreath.Damage[m] * s / 100) * (20 + 2 * math.min(lvl,cap)) + mightEffect
 			local damage=round(baseDamage*(1+might/1000)*1.25*(1+s*speedDelay))
 			
@@ -654,10 +616,8 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode  then
+			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap = 900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
 			t.Result=t.Result+bonus
@@ -672,10 +632,8 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode  then
+			if vars.madnessMode then
 				cap=900
-			elseif DoomMapMode() then
-				cap = 900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)
 			t.Result=t.Result+bonus
@@ -1033,7 +991,6 @@ function events.GameInitialized2()
 				mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 				mapvars.leechDone[id]=mapvars.leechDone[id] + healing
 			end
-			SetLeechText(id,healing)
 			data.Player.HP=math.min(data.Player.HP+leech, data.Player:GetFullHP())
 		end
 	end
@@ -1100,7 +1057,7 @@ local function shamanSkills(isShaman, id)
 		local FHP=pl:GetFullHP()
 		local leech=math.max(round(FHP^0.5* m7^1.5/70 * (1+bodyMastery/2)),m7)
 		txt=baseSchoolsTxt[18] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nMelee attacks restore " .. leech .. " Hit Points\n"
-Skillz.setDesc(18,1,txt)
+		Skillz.setDesc(18,1,txt)
 	else
 		for i=12,18 do
 			Skillz.setDesc(i,1,baseSchoolsTxt[i])
@@ -1249,14 +1206,13 @@ function events.GameInitialized2()
 					mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 					mapvars.leechDone[id]=mapvars.leechDone[id] + healing
 				end
-				SetLeechText(id,healing)
-
+				
 				pl.HP=math.min(pl:GetFullHP(), pl.HP+heal+leech)
 				
 				--dark grasp
 				if vars.dkActiveAttackSpell and vars.dkActiveAttackSpell[id]==96 then
 					pl.SP=pl.SP-15
-										local darkGraspCC = {Debuff = const.MonsterBuff.DamageHalved}
+					local darkGraspCC = {Debuff = const.MonsterBuff.DamageHalved}
 					local graspDuration = calcDebuffDuration(t.Monster, darkGraspCC, const.Minute)
 					if graspDuration > 0 then
 						t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.DamageHalved].ExpireTime, Game.Time+graspDuration)
@@ -1291,7 +1247,7 @@ function events.GameInitialized2()
 					end
 				elseif data.Object.Spell==76 then
 					local paraCC = {Debuff = const.MonsterBuff.Paralyze}
-					local paraDuration = calcDebuffDuration(t.Monster, paraCC, const.Minute*1.5)
+					local paraDuration = calcDebuffDuration(t.Monster, paraCC, const.Minute*2)
 					if paraDuration > 0 then
 						t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime=math.max(t.Monster.SpellBuffs[const.MonsterBuff.Paralyze].ExpireTime, Game.Time+paraDuration)
 					end
@@ -1350,7 +1306,7 @@ end
 DKSpellList={
 	[const.Skills.Water]={26, 27, 29, 32},
 	[const.Skills.Body]={68, 71, 76, 74},
-	[const.Skills.Dark]={91, 94, 96, 97},
+	[const.Skills.Dark]={91, 90, 96, 97},
 }
 
 function events.Action(t)
@@ -1462,7 +1418,7 @@ function dkSkills(isDK, id)
 		-- Spell 76: Asphyxiate (no entry in DKDamageMult, but description mentions 110% and 140%)
 		local mult76= DKDamageMult[76]
 		Game.SpellsTxt[76].Name="Asphyxiate"
-		Game.SpellsTxt[76].Description="Asphyxiate the target deal damage equal to " .. (mult76[3]*100) .. "% and making him unable to act for 3 seconds"
+		Game.SpellsTxt[76].Description="Asphyxiate the target deal damage equal to " .. (mult76[3]*100) .. "% and making him unable to act for 4 seconds"
 		Game.SpellsTxt[76].Master="No additional effects"
 		Game.SpellsTxt[76].GM="Damage increased to " .. (mult76[4]*100) .. "%"
 		
@@ -1893,8 +1849,7 @@ end
 function events.PlayerCastSpell(t)
 	if t.SpellId==2 then
 		BeginGrabObjects()
-		function events.Tick()
-			events.Remove("Tick",1)
+		RunNextTick(function()
 			obj1=GrabObjects()
 			
 			--calculate velocity
@@ -1974,7 +1929,7 @@ function events.PlayerCastSpell(t)
 				obj2.Y=obj1.Y
 				obj2.Z=obj1.Z
 			end
-		end
+		end)
 	end
 end
 --getDistance(obj1.X,obj1.Y,obj1.Z,obj2.X,obj2.Y,obj2.Z,)
@@ -2082,15 +2037,14 @@ function assassinationDamage(pl,mon,obj)
 	if restoreChance>math.random() then
 		pl.SP=math.min(pl:GetFullSP(),pl.SP+15)
 	end
-	function events.Tick()
-		events.Remove("Tick", 1)
+	RunNextTick(function()
 		if mon.HP<=0 then
 			s,m=SplitSkill(pl:GetSkill(const.Skills.Air))
 			local fullSP=pl:GetFullSP()
 			pl.SP=math.min(fullSP, pl.SP+(1+m)*5)
 			vars.assassinStacks[id]=math.min(vars.assassinStacks[id]+1,5)
 		end
-	end
+	end)
 	if pl.SP>=manaCost and mon.ShowAsHostile then
 		if obj and obj.Spell>100 then
 			vars.assassinStacks[id]=math.min(vars.assassinStacks[id]+0.5,5)--arrow nerf
@@ -2259,6 +2213,7 @@ assassinSpellList={
 
 function events.Action(t)
 	if t.Action==105 and Game.CurrentPlayer>=0 and Game.CurrentPlayer<=Party.High then
+		
 		pl=Party[Game.CurrentPlayer]
 		if table.find(assassinClass, pl.Class) then
 			for i=1,99 do
@@ -2299,7 +2254,6 @@ function events.GameInitialized2()
 			X = 5+i*96, Y = 387
 		}
 	end
-
 end
 
 function events.Tick()

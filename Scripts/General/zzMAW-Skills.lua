@@ -1,937 +1,929 @@
 local function UncapSkills(char)
-    for _, skill in pairs(const.Skills) do
-        local value = char.Skills[skill]
-
-        if value > 0x100 then
-            char.Skills[skill] = value - 0x100 + 0x1000
-        elseif value > 0x80 then
-            char.Skills[skill] = value - 0x80 + 0x800
-        elseif value > 0x40 then
-            char.Skills[skill] = value - 0x40 + 0x400
-        end
-    end
+	for _,skill in pairs(const.Skills) do
+		local value = char.Skills[skill]
+		
+		if value > 0x100 then
+			char.Skills[skill] = value - 0x100 + 0x1000
+		elseif value > 0x80 then
+			char.Skills[skill] = value - 0x80 + 0x800
+		elseif value > 0x40 then
+			char.Skills[skill] = value - 0x40 + 0x400
+		end
+	end
 end
 
 function events.LoadMap(wasInGame)
-    if not vars.UncappedSkills then
-        vars.UncappedSkills = 1
-        for i = 0, Party.PlayersArray.High do
-            UncapSkills(Party.PlayersArray[i])
-        end
-    end
+	if not vars.UncappedSkills then
+		vars.UncappedSkills = 1
+		for i=0,Party.PlayersArray.High do
+			UncapSkills(Party.PlayersArray[i])
+		end
+	end
 end
 
 -- weapon base recovery bonuses
 baseRecovery =
 {
-    [const.Skills.Bow] = 100,
-    [const.Skills.Blaster] = 40,
-    [const.Skills.Staff] = 120,
-    [const.Skills.Axe] = 140,
-    [const.Skills.Sword] = 80,
-    [const.Skills.Spear] = 120,
-    [const.Skills.Mace] = 100,
-    [const.Skills.Dagger] = 60,
+	[const.Skills.Bow] = 100,
+	[const.Skills.Blaster] = 40,
+	[const.Skills.Staff] = 120,
+	[const.Skills.Axe] = 140,
+	[const.Skills.Sword] = 80,
+	[const.Skills.Spear] = 120,
+	[const.Skills.Mace] = 100,
+	[const.Skills.Dagger] = 60,
 }
 
 weaponImpair =
 {
-    [const.Skills.Leather] = { [0] = 10, 10, 0, 0, 0, },
-    [const.Skills.Chain] = { [0] = 20, 20, 10, 0, 0, },
-    [const.Skills.Plate] = { [0] = 20, 20, 10, 10, 0, },
-    [const.Skills.Shield] = { [0] = 10, 10, 0, 0, 0, },
+	[const.Skills.Leather]	= {[0]=10, 10, 0, 0, 0,},
+	[const.Skills.Chain]	= {[0]=20, 20, 10, 0, 0,},
+	[const.Skills.Plate]	= {[0]=20, 20, 10, 10, 0,},
+	[const.Skills.Shield]	= {[0]=10, 10, 0, 0, 0,},
 }
 
 
 skillAttack =
 {
-    [const.Skills.Staff] = { [0] = 0, 1, 2, 2, 2, },
-    [const.Skills.Sword] = { [0] = 0, 1, 2, 2, 2, },
-    [const.Skills.Dagger] = { [0] = 0, 1, 2, 2, 2, },
-    [const.Skills.Axe] = { [0] = 0, 1, 2, 2, 2, },
-    [const.Skills.Spear] = { [0] = 0, 1, 2, 2, 3, },
-    [const.Skills.Bow] = { [0] = 0, 3, 3, 3, 3, },
-    [const.Skills.Mace] = { [0] = 0, 1, 2, 2, 2, },
-    [const.Skills.Blaster] = { [0] = 0, 1, 2, 3, 5, },
-    [const.Skills.Unarmed] = { [0] = 0, 2, 2, 3, 3, },
+	[const.Skills.Staff]	= {[0]=0, 1, 2, 2, 2,},
+	[const.Skills.Sword]	= {[0]=0, 1, 2, 2, 2,},
+	[const.Skills.Dagger]	= {[0]=0, 1, 2, 2, 2,},
+	[const.Skills.Axe]		= {[0]=0, 1, 2, 2, 2,},
+	[const.Skills.Spear]	= {[0]=0, 1, 2, 2, 3,},
+	[const.Skills.Bow]		= {[0]=0, 3, 3, 3, 3,},
+	[const.Skills.Mace]		= {[0]=0, 1, 2, 2, 2,},
+	[const.Skills.Blaster]	= {[0]=0, 1, 2, 3, 5,},
+	[const.Skills.Unarmed]	= {[0]=0, 2, 2, 3, 3,},
 }
 -- weapon skill recovery bonuses (by rank)
 
 skillRecovery =
 {
-    [const.Skills.Staff] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Sword] = { [0] = 0, 0, 2, 3, 3, },
-    [const.Skills.Dagger] = { [0] = 0, 1, 1, 1, 2, },
-    [const.Skills.Axe] = { [0] = 0, 0, 1, 2, 2, },
-    [const.Skills.Spear] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Bow] = { [0] = 0, 1, 2, 3, 5, },
-    [const.Skills.Mace] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Blaster] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Unarmed] = { [0] = 0, 0, 1, 2, 2, },
+	[const.Skills.Staff]	= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Sword]	= {[0]=0, 0, 2, 3, 3,},
+	[const.Skills.Dagger]	= {[0]=0, 1, 1, 1, 2,},
+	[const.Skills.Axe]		= {[0]=0, 0, 1, 2, 2,},
+	[const.Skills.Spear]	= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Bow]		= {[0]=0, 1, 2, 3, 5,},
+	[const.Skills.Mace]		= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Blaster]	= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Unarmed]	= {[0]=0, 0, 1, 2, 2,},
 }
 
 skillDamage =
 {
-    [const.Skills.Staff] = { [0] = 0, 2, 3, 3, 4, },
-    [const.Skills.Sword] = { [0] = 0, 2, 3, 3, 4, },
-    [const.Skills.Dagger] = { [0] = 0, 2, 3, 3, 4, },
-    [const.Skills.Axe] = { [0] = 0, 2, 3, 4, 4, },
-    [const.Skills.Spear] = { [0] = 0, 1, 2, 3, 3, },
-    [const.Skills.Bow] = { [0] = 0, 2, 4, 6, 8, },
-    [const.Skills.Mace] = { [0] = 0, 2, 3, 3, 4, },
-    [const.Skills.Blaster] = { [0] = 0, 2, 4, 6, 8, },
-    [const.Skills.Unarmed] = { [0] = 0, 3, 4, 5, 6, },
+	[const.Skills.Staff]	= {[0]=0, 2, 3, 3, 4,},
+	[const.Skills.Sword]	= {[0]=0, 2, 3, 3, 4,},
+	[const.Skills.Dagger]	= {[0]=0, 2, 3, 3, 4,},
+	[const.Skills.Axe]		= {[0]=0, 2, 3, 4, 4,},
+	[const.Skills.Spear]	= {[0]=0, 1, 2, 3, 3,},
+	[const.Skills.Bow]		= {[0]=0, 2, 4, 6, 8,},
+	[const.Skills.Mace]		= {[0]=0, 2, 3, 3, 4,},
+	[const.Skills.Blaster]	= {[0]=0, 2, 4, 6, 8,},
+	[const.Skills.Unarmed]	= {[0]=0, 3, 4, 5, 6,},
 }
 -- weapon skill AC bonuses (by rank)
 
 skillAC =
 {
-    [const.Skills.Staff] = { [0] = 0, 0, 2, 3, 4, },
-    [const.Skills.Sword] = { [0] = 0, 0, 0, 1, 2, },
-    [const.Skills.Dagger] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Axe] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Spear] = { [0] = 0, 0, 4, 6, 8, },
-    [const.Skills.Bow] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Mace] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Blaster] = { [0] = 0, 0, 0, 0, 0, },
-    [const.Skills.Unarmed] = { [0] = 0, 0, 0, 0, 0, },
-
-    -- [const.Skills.Shield]	= {[0]=0, 1, 2, 2, 3,},
-    -- [const.Skills.Leather]	= {[0]=0, 1, 1, 2, 2,},
-    -- [const.Skills.Chain]	= {[0]=0, 1, 2, 3, 3,},
-    -- [const.Skills.Plate]	= {[0]=0, 2, 2, 3, 4,},
-    [const.Skills.Dodging] = { [0] = 0, 4, 5, 6, 6, },
+	[const.Skills.Staff]	= {[0]=0, 0, 2, 3, 4,},
+	[const.Skills.Sword]	= {[0]=0, 0, 0, 1, 2,},
+	[const.Skills.Dagger]	= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Axe]		= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Spear]	= {[0]=0, 0, 4, 6, 8,},
+	[const.Skills.Bow]		= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Mace]		= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Blaster]	= {[0]=0, 0, 0, 0, 0,},
+	[const.Skills.Unarmed]	= {[0]=0, 0, 0, 0, 0,},
+	
+	--[const.Skills.Shield]	= {[0]=0, 1, 2, 2, 3,},
+	--[const.Skills.Leather]	= {[0]=0, 1, 1, 2, 2,},
+	--[const.Skills.Chain]	= {[0]=0, 1, 2, 3, 3,},
+	--[const.Skills.Plate]	= {[0]=0, 2, 2, 3, 4,},
+	[const.Skills.Dodging]	= {[0]=0, 4, 5, 6, 6,},
 }
 skillResistance =
 {
-    [const.Skills.Staff] = { [0] = 0, 0, 2, 3, 4 },
-    [const.Skills.Sword] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Dagger] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Axe] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Spear] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Bow] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Mace] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Blaster] = { [0] = 0, 0, 0, 0, 0 },
-    [const.Skills.Unarmed] = { [0] = 0, 0, 0, 0, 0, },
-
-    -- [const.Skills.Leather]	= {[0]=0, 1, 2, 3, 4,},
-    -- [const.Skills.Chain]	= {[0]=0, 1, 2, 2, 3,},
-    -- [const.Skills.Plate]	= {[0]=0, 1, 1, 2, 2,},
-    -- [const.Skills.Shield]	= {[0]=0, 1, 2, 3, 4,},
-    [const.Skills.Dodging] = { [0] = 0, 0, 0, 0, 0, },
+	[const.Skills.Staff]	= {[0]=0, 0, 2, 3, 4},
+	[const.Skills.Sword]	= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Dagger]	= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Axe]		= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Spear]	= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Bow]		= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Mace]		= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Blaster]	= {[0]=0, 0, 0, 0, 0},
+	[const.Skills.Unarmed]	= {[0]=0, 0, 0, 0, 0,},
+	
+	--[const.Skills.Leather]	= {[0]=0, 1, 2, 3, 4,},
+	--[const.Skills.Chain]	= {[0]=0, 1, 2, 2, 3,},
+	--[const.Skills.Plate]	= {[0]=0, 1, 1, 2, 2,},
+	--[const.Skills.Shield]	= {[0]=0, 1, 2, 3, 4,},
+	[const.Skills.Dodging]	= {[0]=0, 0, 0, 0, 0,},
 }
-skillItemAC = {
-    [const.Skills.Leather] = { [0] = 0, 3, 4, 5, 6, },
-    [const.Skills.Chain] = { [0] = 0, 3, 4, 5, 6, },
-    [const.Skills.Plate] = { [0] = 0, 3, 4, 5, 6, },
-    [const.Skills.Shield] = { [0] = 0, 4, 6, 8, 10, },
-    [const.Skills.Dodging] = { [0] = 0, 5, 5, 10, 10, },
+skillItemAC={
+	[const.Skills.Leather]	= {[0]=0, 3, 4, 5, 6,},
+	[const.Skills.Chain]	= {[0]=0, 3, 4, 5, 6,},
+	[const.Skills.Plate]	= {[0]=0, 3, 4, 5, 6,},
+	[const.Skills.Shield]	= {[0]=0, 4, 6, 8, 10,},
+	[const.Skills.Dodging]	= {[0]=0, 5, 5, 10, 10,},
 }
-skillItemRes = {
-    [const.Skills.Leather] = { [0] = 0, 2, 3, 4, 5, },
-    [const.Skills.Chain] = { [0] = 0, 1, 2, 3, 4, },
-    [const.Skills.Plate] = { [0] = 0, 0, 1, 2, 3, },
-    [const.Skills.Shield] = { [0] = 0, 4, 6, 8, 10, },
-    [const.Skills.Dodging] = { [0] = 0, 0, 5, 5, 10, },
+skillItemRes={
+	[const.Skills.Leather]	= {[0]=0, 2, 3, 4, 5,},
+	[const.Skills.Chain]	= {[0]=0, 1, 2, 3, 4,},
+	[const.Skills.Plate]	= {[0]=0, 0, 1, 2, 3,},
+	[const.Skills.Shield]	= {[0]=0, 4, 6, 8, 10,},
+	[const.Skills.Dodging]	= {[0]=0, 0, 5, 5, 10,},
 }
-
+	
 
 twoHandedWeaponDamageBonusByMastery = {
-    [0] = 0,
-    [const.Novice] = 1,
-    [const.Expert] = 2,
-    [const.Master] = 3,
-    [const.GM] = 4
+	[0]=0, 
+	[const.Novice] = 1, 
+	[const.Expert] = 2, 
+	[const.Master] = 3, 
+	[const.GM] = 4 
 }
 
-armsmasterSkill = {
-    ["Damage"] = { 0.5, 1, 1.5, 2, 3, [0] = 0 },
-    ["Speed"] = { 0, 1, 2, 2, 2, [0] = 0 },
-    ["Attack"] = { 1, 1, 2, 3, 3, [0] = 0 },
+armsmasterSkill={
+	["Damage"]={0.5,1,1.5,2,3,[0]=0},
+	["Speed"]={0,1,2,2,2,[0]=0},
+	["Attack"]={1,1,2,3,3,[0]=0},
 }
 
--- all stats bonus are calculated in Maw Items, as this function only changes hp,sp,ac,attack and damage
+--all stats bonus are calculated in Maw Items, as this function only changes hp,sp,ac,attack and damage
 function events.CalcStatBonusBySkills(t)
-    t.Result = 0
+	t.Result=0
 end
 
 function getItemRecovery(it, playerLevel)
-    local skill = it:T().Skill
-    if table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number) then
-        skill = 3
-    end
-    local baseSpeed = 100
-    if table.find(artWeap1h, it.Number) or table.find(artWeap2h, it.Number) then
-        itemLevel = playerLevel
-        baseSpeed = baseRecovery[skill] *(0.75 + playerLevel / 250)
-        baseSpeed = round(baseSpeed / 10) * 10
-    elseif baseRecovery[skill] then
-        local tot = 0
-        local lvl = 0
-        for i = 1, 6 do
-            tot = tot + it:T().ChanceByLevel[i]
-            lvl = lvl + it:T().ChanceByLevel[i] * i
-        end
-        itemLevel = round(lvl / tot * 18 - 17) + it.MaxCharges * 5
-        baseSpeed = baseRecovery[skill] *(0.75 + itemLevel / 250)
-        baseSpeed = round(baseSpeed / 10) * 10
-    end
-    return baseSpeed
+	local skill=it:T().Skill
+	if table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number) then
+		skill=3
+	end
+	local baseSpeed=100
+	if table.find(artWeap1h,it.Number) or table.find(artWeap2h,it.Number) then 
+		itemLevel=playerLevel
+		baseSpeed=baseRecovery[skill] * (0.75+playerLevel/250)
+		baseSpeed=round(baseSpeed/10)*10
+	elseif baseRecovery[skill] then
+		local tot=0
+		local lvl=0
+		for i=1, 6 do
+			tot=tot+it:T().ChanceByLevel[i]
+			lvl=lvl+it:T().ChanceByLevel[i]*i
+		end
+		itemLevel=round(lvl/tot*18-17)+it.MaxCharges*5
+		baseSpeed=baseRecovery[skill] * (0.75+itemLevel/250)
+		baseSpeed=round(baseSpeed/10)*10
+	end
+	if it:T().EquipStat==1 then
+		baseSpeed=round(baseSpeed*1.25/10)*10
+	end
+	return baseSpeed
 end
 
 function events.GetAttackDelay(t)
-    t.Result = 100
-    baseSpeed = 0
-    bonusSpeed = 0
-    count = 0
-    currentSpeed = 0
-    local swiftnessMultiplier = 1
-    damageMultiplier = damageMultiplier or { }
-    damageMultiplier[t.PlayerIndex] = damageMultiplier[t.PlayerIndex] or { }
-
-    if t.Ranged then
-        local it = t.Player:GetActiveItem(2)
-        if it then
-            local skill = it:T().Skill
-            if baseRecovery[skill] then
-                baseSpeed = getItemRecovery(it, t.Player.LevelBase)
-            end
-            local s, m = SplitSkill(t.Player:GetSkill(skill))
-            if skillRecovery[skill] and skillRecovery[skill][m] then
-                bonusSpeed = skillRecovery[skill][m] * s
-            end
-            if it.Bonus2 == 41 or it.Bonus2 == 59 then
-                swiftnessMultiplier = swiftnessMultiplier + 0.3
-            end
-        end
-    else
-        local speed = { }
-        for i = 0, 1 do
-            local it = t.Player:GetActiveItem(i)
-            if it then
-                local skill = it:T().Skill
-                if skill == 7 then
-                    t.Result = 40
-                    damageMultiplier[t.PlayerIndex]["Melee"] = 0.4
-                    return
-                end
-                if skill < 8 then
-                    speed[i] = getItemRecovery(it, t.Player.LevelBase)
-                    if table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number) then
-                        skill = 3
-                    end
-                    local s, m = SplitSkill(t.Player:GetSkill(skill))
-                    if skillRecovery[skill] and skillRecovery[skill][m] then
-                        if not table.find(twoHandedAxes, it.Number) or i ~= 0 then
-                            bonusSpeed = bonusSpeed + skillRecovery[skill][m] * s
-                        end
-                    end
-                    if it.Bonus2 == 41 or it.Bonus2 == 59 then
-                        local equipStat = GetItemEquipStat(it)
-                        if equipStat == 1 then
-                            swiftnessMultiplier = swiftnessMultiplier + 0.3
-                        else
-                            swiftnessMultiplier = swiftnessMultiplier + 0.15
-                        end
-                    end
-
-                    -- unarmed working with staff GM
-                    if skill == 0 and m == 4 then
-                        local s, m = SplitSkill(t.Player:GetSkill(const.Skills.Unarmed))
-                        bonusSpeed = bonusSpeed + skillRecovery[const.Skills.Unarmed][m] * s
-                    end
-                end
-            elseif i == 1 and Game.CharacterPortraits[pl.Face].Race ~= const.Race.Dragon then
-                local s, m = SplitSkill(t.Player:GetSkill(const.Skills.Unarmed))
-                bonusSpeed = bonusSpeed + skillRecovery[const.Skills.Unarmed][m] * s
-            end
-        end
-        local count = 0
-        for i = 0, 1 do
-            if speed[i] then
-                baseSpeed = baseSpeed + speed[i]
-                count = count + 1
-            end
-        end
-        if count == 2 then
-            baseSpeed = baseSpeed / 2
-        end
-
-        local s, m = SplitSkill(t.Player:GetSkill(const.Skills.Armsmaster))
-        bonusSpeed = bonusSpeed + s * armsmasterSkill.Speed[m]
-    end
-    if table.find(dkClass, t.Player.Class) then
-        local s, m = SplitSkill(t.Player.Skills[const.Skills.Water])
-        bonusSpeed = bonusSpeed + s * 2
-    end
-    if table.find(seraphClass, t.Player.Class) then
-        local s, m = SplitSkill(t.Player.Skills[const.Skills.Light])
-        bonusSpeed = bonusSpeed + s * m
-    end
-    if table.find(assassinClass, t.Player.Class) then
-        local id = t.Player:GetIndex()
-        if vars.AttackSpeedStackDecay and vars.AttackSpeedStackDecay[id] then
-            if vars.AttackSpeedStackDecay[id] >= Game.Time then
-                local s, m = SplitSkill(t.Player.Skills[const.Skills.Air])
-                bonusSpeed = bonusSpeed + s * vars.AttackSpeedStack[id]
-            else
-                vars.AttackSpeedStack[id] = 0
-            end
-        end
-    end
-
-    if baseSpeed == 0 then
-        baseSpeed = 100
-    end
-    local speed = t.Player:GetSpeed()
-    if speed <= 21 then
-        speedEffect =(speed - 13) / 4
-    else
-        speedEffect = math.floor(speed / 10)
-    end
-    bonusSpeed = bonusSpeed + speedEffect
-    if not vars.MAWSETTINGS.buffRework == "ON" and(t.Player.SpellBuffs[const.PlayerBuff.Haste].ExpireTime > Game.Time or Party.SpellBuffs[const.PartyBuff.Haste].ExpireTime > Game.Time) then
-        bonusSpeed = bonusSpeed + 20
-    end
-
-    if t.Ranged and disableBow then
-        -- mostly for tooltip
-        baseSpeed = 100
-        bonusSpeed = 0
-    end
-
-    bonusSpeedMult =(100 + bonusSpeed) / 100
-    local totalSpeed = 1 / bonusSpeedMult / swiftnessMultiplier
-
-    -- slow depending on item
-    delay = 0
-    local it = t.Player:GetActiveItem(0)
-    if it then
-        local skill = it:T().Skill
-        if weaponImpair[skill] then
-            local s, m = SplitSkill(t.Player:GetSkill(skill))
-            delay = delay + weaponImpair[skill][m]
-        end
-    end
-    local it = t.Player:GetActiveItem(3)
-    if it then
-        local skill = it:T().Skill
-        if weaponImpair[skill] then
-            local s, m = SplitSkill(t.Player:GetSkill(skill))
-            delay = delay + weaponImpair[skill][m]
-        end
-    end
-    delayMult = 1 + delay / 100
-    totalSpeed = totalSpeed * delayMult
-
-    if vars.MAWSETTINGS.buffRework == "ON" then
-        local hasteMult = 1
-        if Party.SpellBuffs[8].ExpireTime >= Game.Time or pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime > Game.Time then
-            local s, m = getBuffSkill(5)
-            local s2, m2 = getBuffSkill(86)
-            local s3 = 0
-            local m3 = 0
-            if t.Player.SpellBuffs[const.PlayerBuff.Haste].ExpireTime > Game.Time then
-                s3 = 25
-                m3 = 3
-            end
-            s = math.max(s, s2 / 1.5, s3)
-            m = math.max(m, m2, m3)
-            hasteMult = math.max(1 + buffPower[5].Base[m] / 100 + buffPower[5].Scaling[m] * s / 1000, hasteMult)
-        end
-        totalSpeed = totalSpeed / hasteMult
-    end
-
-    local speedBefore = round(100 * totalSpeed)
-    local totalSpeed = round(baseSpeed * totalSpeed)
-    t.Result = totalSpeed
-
-    if t.Ranged then
-        damageMultiplier[t.PlayerIndex]["Ranged"] = totalSpeed / speedBefore
-        damageMultiplier[t.PlayerIndex]["bonusSpeedRanged"] = bonusSpeed
-        damageMultiplier[t.PlayerIndex]["baseSpeedRanged"] = baseSpeed
-    else
-        damageMultiplier[t.PlayerIndex]["Melee"] = totalSpeed / speedBefore
-        damageMultiplier[t.PlayerIndex]["bonusSpeedMelee"] = bonusSpeed
-        damageMultiplier[t.PlayerIndex]["baseSpeedMelee"] = baseSpeed
-    end
-
-    if t.Ranged and disableBow then
-        -- makes melee attack delay instead of bow
-        t.Result = t.Player:GetAttackDelay()
-    end
+	t.Result=100
+	baseSpeed=0
+	bonusSpeed=0
+	count=0
+	currentSpeed=0
+	local swiftnessMultiplier=1
+	damageMultiplier=damageMultiplier or {}
+	damageMultiplier[t.PlayerIndex]=damageMultiplier[t.PlayerIndex] or {}
+	
+	if t.Ranged then
+		local it=t.Player:GetActiveItem(2)
+		if it then
+			local skill=it:T().Skill
+			if baseRecovery[skill] then
+				baseSpeed=getItemRecovery(it, t.Player.LevelBase)
+			end
+			local s,m = SplitSkill(t.Player:GetSkill(skill))
+			if skillRecovery[skill] and skillRecovery[skill][m] then
+				bonusSpeed=skillRecovery[skill][m]*s
+			end
+			if it.Bonus2==41 or it.Bonus2==59 then
+				swiftnessMultiplier=swiftnessMultiplier+0.3
+			end
+		end
+	else
+		local speed={}
+		for i=0,1 do
+			local it=t.Player:GetActiveItem(i)
+			if it then
+				local skill=it:T().Skill
+				if skill==7 then
+					t.Result=40
+					damageMultiplier[t.PlayerIndex]["Melee"]=0.4
+					return
+				end
+				if skill<8 then
+					speed[i]=getItemRecovery(it, t.Player.LevelBase)
+					if table.find(twoHandedAxes, it.Number) or table.find(oneHandedAxes, it.Number) then
+						skill=3
+					end
+					local s,m = SplitSkill(t.Player:GetSkill(skill))
+					if skillRecovery[skill] and skillRecovery[skill][m] then
+						if not table.find(twoHandedAxes, it.Number) or i~=0 then
+							bonusSpeed=bonusSpeed+skillRecovery[skill][m]*s
+						end
+					end	
+					if it.Bonus2==41 or it.Bonus2==59 then
+						local equipStat=GetItemEquipStat(it)
+						if equipStat==1 then
+							swiftnessMultiplier=swiftnessMultiplier+0.3
+						else
+							swiftnessMultiplier=swiftnessMultiplier+0.15
+						end
+					end
+					
+					--unarmed working with staff GM
+					if skill==0 and m==4 then
+						local s,m=SplitSkill(t.Player:GetSkill(const.Skills.Unarmed))
+						bonusSpeed=bonusSpeed+skillRecovery[const.Skills.Unarmed][m]*s
+					end
+				end
+			elseif i==1 and Game.CharacterPortraits[pl.Face].Race~=const.Race.Dragon then
+				local s,m=SplitSkill(t.Player:GetSkill(const.Skills.Unarmed))
+				bonusSpeed=bonusSpeed+skillRecovery[const.Skills.Unarmed][m]*s
+			end
+		end
+		local count=0
+		for i=0,1 do
+			if speed[i] then
+				baseSpeed=baseSpeed+speed[i]
+				count=count+1
+			end
+		end
+		if count==2 then
+			baseSpeed=baseSpeed/2
+		end
+		
+		local s,m = SplitSkill(t.Player:GetSkill(const.Skills.Armsmaster))
+		bonusSpeed=bonusSpeed+s*armsmasterSkill.Speed[m]
+	end
+	if table.find(dkClass, t.Player.Class) then
+		local s, m=SplitSkill(t.Player.Skills[const.Skills.Water])
+		bonusSpeed=bonusSpeed+s*2
+	end
+	if table.find(seraphClass, t.Player.Class) then
+		local s, m=SplitSkill(t.Player.Skills[const.Skills.Light])
+		bonusSpeed=bonusSpeed+s*m
+	end
+	if table.find(assassinClass, t.Player.Class) then
+		local id=t.Player:GetIndex()
+		if vars.AttackSpeedStackDecay and vars.AttackSpeedStackDecay[id] then
+			if vars.AttackSpeedStackDecay[id]>=Game.Time then
+				local s, m=SplitSkill(t.Player.Skills[const.Skills.Air])
+				bonusSpeed=bonusSpeed+s*vars.AttackSpeedStack[id]
+			else
+				vars.AttackSpeedStack[id]=0
+			end
+		end
+	end
+	
+	if baseSpeed==0 then
+		baseSpeed=100
+	end
+	local speed=t.Player:GetSpeed()
+	if speed<=21 then
+		speedEffect=(speed-13)/4
+	else
+		speedEffect=math.floor(speed/10)
+	end
+	bonusSpeed=bonusSpeed+speedEffect
+	if not vars.MAWSETTINGS.buffRework=="ON" and (t.Player.SpellBuffs[const.PlayerBuff.Haste].ExpireTime>Game.Time or Party.SpellBuffs[const.PartyBuff.Haste].ExpireTime>Game.Time) then
+		bonusSpeed=bonusSpeed+20
+	end
+	
+	if t.Ranged and disableBow then --mostly for tooltip
+		baseSpeed=100
+		bonusSpeed=0
+	end
+	
+	bonusSpeedMult=(100+bonusSpeed)/100
+	local totalSpeed=1/bonusSpeedMult/swiftnessMultiplier
+	
+	--slow depending on item
+	delay=0
+	local it=t.Player:GetActiveItem(0)
+	if it then
+		local skill=it:T().Skill
+		if weaponImpair[skill] then
+			local s,m=SplitSkill(t.Player:GetSkill(skill))
+			delay=delay+weaponImpair[skill][m]
+		end
+	end
+	local it=t.Player:GetActiveItem(3)
+	if it then
+		local skill=it:T().Skill
+		if weaponImpair[skill] then
+			local s,m=SplitSkill(t.Player:GetSkill(skill))
+			delay=delay+weaponImpair[skill][m]
+		end
+	end
+	delayMult=1+delay/100
+	totalSpeed=totalSpeed*delayMult
+	
+	if vars.MAWSETTINGS.buffRework=="ON" then
+		local hasteMult=1
+		if Party.SpellBuffs[8].ExpireTime>=Game.Time or pl.SpellBuffs[const.PlayerBuff.Haste].ExpireTime>Game.Time then
+			local s, m=getBuffSkill(5)
+			local s2,m2=getBuffSkill(86)
+			local s3=0
+			local m3=0
+			if t.Player.SpellBuffs[const.PlayerBuff.Haste].ExpireTime>Game.Time then
+				s3=25
+				m3=3
+			end
+			s=math.max(s,s2/1.5,s3)
+			m=math.max(m,m2,m3)
+			hasteMult=math.max(1+buffPower[5].Base[m]/100+buffPower[5].Scaling[m]*s/1000, hasteMult)
+		end
+		totalSpeed=totalSpeed/hasteMult
+	end
+	
+	local speedBefore=round(100*totalSpeed)
+	local totalSpeed=round(baseSpeed*totalSpeed)
+	t.Result=totalSpeed
+	
+	if t.Ranged then
+		damageMultiplier[t.PlayerIndex]["Ranged"]=totalSpeed/speedBefore
+		damageMultiplier[t.PlayerIndex]["bonusSpeedRanged"]=bonusSpeed
+		damageMultiplier[t.PlayerIndex]["baseSpeedRanged"]=baseSpeed
+	else
+		damageMultiplier[t.PlayerIndex]["Melee"]=totalSpeed/speedBefore
+		damageMultiplier[t.PlayerIndex]["bonusSpeedMelee"]=bonusSpeed
+		damageMultiplier[t.PlayerIndex]["baseSpeedMelee"]=baseSpeed
+	end
+	
+	if t.Ranged and disableBow then --makes melee attack delay instead of bow
+		t.Result=t.Player:GetAttackDelay()
+	end
 end
 
 function calculateAngle(vector1, vector2)
     local dotProduct = vector1.x * vector2.x + vector1.y * vector2.y + vector1.z * vector2.z
-    local magnitude1 = math.sqrt(vector1.x ^ 2 + vector1.y ^ 2 + vector1.z ^ 2)
-    local magnitude2 = math.sqrt(vector2.x ^ 2 + vector2.y ^ 2 + vector2.z ^ 2)
-
-    local cosineTheta = dotProduct /(magnitude1 * magnitude2)
+    local magnitude1 = math.sqrt(vector1.x^2 + vector1.y^2 + vector1.z^2)
+    local magnitude2 = math.sqrt(vector2.x^2 + vector2.y^2 + vector2.z^2)
+    
+    local cosineTheta = dotProduct / (magnitude1 * magnitude2)
     local angleRadians = math.acos(cosineTheta)
     local angleDegrees = math.deg(angleRadians)
-
+    
     return angleDegrees
 end
 
 local function navigateMissile(object)
 
-    -- exclude some special non targeting spells
-    if
-        -- Meteor Shower
-        object.SpellType == 9
-        or
-        -- Sparks
-        object.SpellType == 15
-        or
-        -- Starburst
-        object.SpellType == 22
-        or
-        -- Poison Spray
-        object.SpellType == 24
-        or
-        -- Ice Blast
-        object.SpellType == 32
-        or
-        -- Shrapmetal
-        object.SpellType == 93
-    then
-        return
-    end
-    -- object parameters
-    local ownerKind = bit.band(object.Owner, 7)
-    local targetKind = bit.band(object.Target, 7)
-    local targetIndex = bit.rshift(object.Target, 3)
-
-    if targetIndex > Map.Monsters.high then
-        return
-    end
-
-    -- current position
-    local currentPosition = { ["X"] = object.X, ["Y"] = object.Y, ["Z"] = object.Z, }
-
-    -- process only missiles between party and monster
-    -- target position
-    local homingDegree = 0.5
-    local targetPosition
-    if ownerKind == const.ObjectRefKind.Party and targetKind == const.ObjectRefKind.Monster then
-        local mapMonster = Map.Monsters[targetIndex]
-        -- target only alive monster
-        if mapMonster.HitPoints > 0 then
-            targetPosition = { ["X"] = mapMonster.X, ["Y"] = mapMonster.Y, ["Z"] = mapMonster.Z + mapMonster.BodyHeight * 0.75, }
-        else
-            return
-        end
-        -- assume all objects not owned by party and without target are targetting party
-        -- this creates issues with cosmetic projectiles like CI Obelisk Arena Paralyze and Gharik/Baa lava fireballs
-    elseif ownerKind == const.ObjectRefKind.Monster or ownerKind == 2 then
-        local delta_x = Party.X - object.X
-        local delta_y = Party.Y - object.Y
-        local delta_z = Party.Z - object.Z
-        angleDegrees = calculateAngle( { x = delta_x, y = delta_y, z = 0 }, { x = object.VelocityX, y = object.VelocityY, z = 0 })
-        if angleDegrees < homingDegree then
-            targetPosition = { ["X"] = Party.X, ["Y"] = Party.Y, ["Z"] = Party.Z + 120, }
-        else
-            return
-        end
-    else
-        -- ignore other missiles targetting
-        return
-    end
-
-    -- speed
-    local speed = math.sqrt(object.VelocityX * object.VelocityX + object.VelocityY * object.VelocityY + object.VelocityZ * object.VelocityZ)
-
-    -- process only objects with non zero speed
-    if speed == 0 then
-        return
-    end
-
-    -- direction
-    local direction = { ["X"] = targetPosition.X - currentPosition.X, ["Y"] = targetPosition.Y - currentPosition.Y, ["Z"] = targetPosition.Z - currentPosition.Z, }
-    -- directionLength
-    local directionLength = math.sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z)
-
-    -- normalization koefficient
-    local koefficient = speed / directionLength
-
-    -- new velocity
-    local newVelocity = { ["X"] = koefficient * direction.X, ["Y"] = koefficient * direction.Y, ["Z"] = koefficient * direction.Z, }
-
-    -- set new velocity
-    object.VelocityX = newVelocity.X
-    object.VelocityY = newVelocity.Y
-    object.VelocityZ = newVelocity.Z
-
+	-- exclude some special non targeting spells
+	if
+		-- Meteor Shower
+		object.SpellType == 9
+		or
+		-- Sparks
+		object.SpellType == 15
+		or
+		-- Starburst
+		object.SpellType == 22
+		or
+		-- Poison Spray
+		object.SpellType == 24
+		or
+		-- Ice Blast
+		object.SpellType == 32
+		or
+		-- Shrapmetal
+		object.SpellType == 93
+	then
+		return
+	end
+	-- object parameters
+	local ownerKind = bit.band(object.Owner, 7)
+	local targetKind = bit.band(object.Target, 7)
+	local targetIndex = bit.rshift(object.Target, 3)
+	
+	if targetIndex > Map.Monsters.high then
+		return
+	end
+	
+	-- current position
+	local currentPosition = {["X"] = object.X, ["Y"] = object.Y, ["Z"] = object.Z, }
+	
+	-- process only missiles between party and monster
+	-- target position
+	local homingDegree=0.5
+	local targetPosition
+	if ownerKind == const.ObjectRefKind.Party and targetKind == const.ObjectRefKind.Monster then
+		local mapMonster = Map.Monsters[targetIndex]
+		-- target only alive monster
+		if mapMonster.HitPoints > 0 then
+			targetPosition = {["X"] = mapMonster.X, ["Y"] = mapMonster.Y, ["Z"] = mapMonster.Z + mapMonster.BodyHeight * 0.75, }
+		else
+			return
+		end
+	-- assume all objects not owned by party and without target are targetting party
+	-- this creates issues with cosmetic projectiles like CI Obelisk Arena Paralyze and Gharik/Baa lava fireballs
+	elseif ownerKind == const.ObjectRefKind.Monster or ownerKind == 2 then
+		local delta_x = Party.X - object.X
+		local delta_y = Party.Y - object.Y
+		local delta_z = Party.Z - object.Z
+		angleDegrees = calculateAngle({ x = delta_x, y = delta_y, z = 0 }, { x = object.VelocityX, y = object.VelocityY, z = 0 })
+		if angleDegrees<homingDegree then
+			targetPosition = {["X"] = Party.X, ["Y"] = Party.Y, ["Z"] = Party.Z + 120, }
+		else
+			return
+		end
+	else
+		-- ignore other missiles targetting
+		return
+	end
+	
+	-- speed
+	local speed = math.sqrt(object.VelocityX * object.VelocityX + object.VelocityY * object.VelocityY + object.VelocityZ * object.VelocityZ)
+	
+	-- process only objects with non zero speed
+	if speed == 0 then
+		return
+	end
+	
+	-- direction
+	local direction = {["X"] = targetPosition.X - currentPosition.X, ["Y"] = targetPosition.Y - currentPosition.Y, ["Z"] = targetPosition.Z - currentPosition.Z, }
+	-- directionLength
+	local directionLength = math.sqrt(direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z)
+	
+	-- normalization koefficient
+	local koefficient = speed / directionLength
+	
+	-- new velocity
+	local newVelocity = {["X"] = koefficient * direction.X, ["Y"] = koefficient * direction.Y, ["Z"] = koefficient * direction.Z, }
+	
+	-- set new velocity
+	object.VelocityX = newVelocity.X
+	object.VelocityY = newVelocity.Y
+	object.VelocityZ = newVelocity.Z
+	
 end
 
 -- game tick related functionality
 function events.Tick()
-    -- navigateMissiles
-    if vars.MAWSETTINGS.homingProjectiles == "ON" then
-        for objectIndex = 0, Map.Objects.high do
-            local object = Map.Objects[objectIndex]
-            navigateMissile(object)
-        end
-    end
+	-- navigateMissiles
+	if vars.MAWSETTINGS.homingProjectiles == "ON" then
+		for objectIndex = 0,Map.Objects.high do
+			local object =  Map.Objects[objectIndex]
+			navigateMissile(object)
+		end
+	end
 end
 
 ------------------------
--- AUTO GENERATING TOOLTIPS
+--AUTO GENERATING TOOLTIPS
 ------------------------
 function events.GameInitialized2()
-    Skillz.setDesc(6, 1, Skillz.getDesc(6, 1) .. "\nThe paralyze effect lasts for 5 seconds on regular monsters and 2 seconds on bosses. The stun effect lasts for half the duration of the paralyze effect. The chances of successfully applying these effects depend on the skill level and the monster's level.\n")
-    Skillz.setDesc(0, 1, Skillz.getDesc(0, 1) .. "\nThis skill increases the damage gained from weapon by a percentage when equipping a staff.\nAt Grandmaster can combine staff and unarmed skill, increasing its damage with staff skill at half effect.\n\nYour full Staff Attack boosts AC and all Resistances by X% per skill point, counting an extra +10 points of skill. Resistances apply to the entire party.\n")
-    Skillz.setDesc(1, 1, Skillz.getDesc(1, 1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a sword.\n\nYour full Sword Attack boosts AC by X% per skill point, counting an extra +10 points of skill.\n")
-    Skillz.setDesc(2, 1, Skillz.getDesc(2, 1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a dagger.\nCrit chance will get lower as monsters grow stronger, up to level 600.")
-    Skillz.setDesc(3, 1, Skillz.getDesc(3, 1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping an axe.\n")
-    Skillz.setDesc(4, 1, Skillz.getDesc(4, 1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a spear.\n\nSpear skill raises AC by X% per skill point, counting an extra +10 effective skill.\n")
-    Skillz.setDesc(5, 1, Skillz.getDesc(5, 1) .. "\nThis skill increases the damage gained from weapon +1 per skill point in the bow skill, by a percentage when equipping a bow.\n")
-    Skillz.setDesc(6, 1, Skillz.getDesc(6, 1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a mace.\n")
-    for i = 0, 33 do
-        if i <= 7 or i == 33 then
-            attack = false
-            recovery = false
-            damage = false
-            ac = false
-            res = false
-            baseString = string.format("%s\n------------------------------------------------------------\n", Skillz.getDesc(i, 1))
-            for v = 1, 4 do
-                if skillAttack[i][v] ~= 0 then
-                    attack = true
-                end
-                if skillRecovery[i][v] ~= 0 then
-                    recovery = true
-                end
-                if skillDamage[i][v] ~= 0 then
-                    damage = true
-                end
-                if skillAC[i][v] ~= 0 then
-                    ac = true
-                end
-                if skillResistance[i][v] ~= 0 then
-                    res = true
-                end
-            end
-
-            -- Novice
-            normal = ""
-            expert = ""
-            master = ""
-            gm = ""
-            local tab = 0
-            if attack then
-                tab = tab + 73
-                baseString = string.format("%s\t0" .. tab .. "Attack|", baseString)
-                normal = string.format("%s\t" .. tab + 32 .. "%s|", normal, skillAttack[i][1])
-                expert = string.format("%s\t" .. tab + 32 .. "%s|", expert, skillAttack[i][2])
-                master = string.format("%s\t" .. tab + 32 .. "%s|", master, skillAttack[i][3])
-                gm = string.format("%s\t" .. tab + 32 .. "%s|", gm, skillAttack[i][4])
-            end
-            if recovery then
-                tab = tab + 55
-                baseString = string.format("%s\t" .. tab .. "Speed|", baseString)
-                normal = string.format("%s\t" .. tab + 33 .. "%s|", normal, skillRecovery[i][1])
-                expert = string.format("%s\t" .. tab + 33 .. "%s|", expert, skillRecovery[i][2])
-                master = string.format("%s\t" .. tab + 33 .. "%s|", master, skillRecovery[i][3])
-                gm = string.format("%s\t" .. tab + 33 .. "%s|", gm, skillRecovery[i][4])
-            end
-            if damage and i ~= 33 then
-                tab = tab + 55
-                baseString = string.format("%s\t" .. tab .. "Dmg%%|", baseString)
-                normal = string.format("%s\t" .. tab + 22 .. "%s%%|", normal, skillDamage[i][1])
-                expert = string.format("%s\t" .. tab + 22 .. "%s%%|", expert, skillDamage[i][2])
-                master = string.format("%s\t" .. tab + 22 .. "%s%%|", master, skillDamage[i][3])
-                gm = string.format("%s\t" .. tab + 22 .. "%s%%|", gm, skillDamage[i][4])
-            else
-                -- unarmed
-                tab = tab + 55
-                baseString = string.format("%s\t" .. tab .. "Dmg|", baseString)
-                normal = string.format("%s\t" .. tab + 22 .. "%s|", normal, skillDamage[i][1])
-                expert = string.format("%s\t" .. tab + 22 .. "%s|", expert, skillDamage[i][2])
-                master = string.format("%s\t" .. tab + 22 .. "%s|", master, skillDamage[i][3])
-                gm = string.format("%s\t" .. tab + 22 .. "%s|", gm, skillDamage[i][4])
-            end
-            if ac then
-                tab = tab + 55
-                baseString = string.format("%s\t" .. tab .. "AC|", baseString)
-                normal = string.format("%s\t" .. tab + 9 .. "%s|", normal, skillAC[i][1])
-                expert = string.format("%s\t" .. tab + 9 .. "%s|", expert, skillAC[i][2])
-                master = string.format("%s\t" .. tab + 9 .. "%s|", master, skillAC[i][3])
-                gm = string.format("%s\t" .. tab + 9 .. "%s|", gm, skillAC[i][4])
-            end
-            if res then
-                baseString = string.format("%sRes", baseString)
-                normal = string.format("%s\t" .. tab + 30 .. "%s", normal, skillResistance[i][1])
-                expert = string.format("%s\t" .. tab + 30 .. "%s", expert, skillResistance[i][2])
-                master = string.format("%s\t" .. tab + 30 .. "%s", master, skillResistance[i][3])
-                gm = string.format("%s\t" .. tab + 30 .. "%s", gm, skillResistance[i][4])
-            end
-            baseString = baseString .. "\t000"
-            Game.SkillDesNormal[i] = normal
-            Game.SkillDesExpert[i] = expert
-            Game.SkillDesMaster[i] = master
-            Game.SkillDesGM[i] = gm
-            Skillz.setDesc(i, 1, baseString)
-        end
-    end
+	Skillz.setDesc(6,1,Skillz.getDesc(6,1) .. "\nThe paralyze effect lasts for 5 seconds on regular monsters and 2 seconds on bosses. The stun effect lasts for half the duration of the paralyze effect. The chances of successfully applying these effects depend on the skill level and the monster's level.\n")
+	Skillz.setDesc(0,1,Skillz.getDesc(0,1) .. "\nThis skill increases the damage gained from weapon by a percentage when equipping a staff.\nAt Grandmaster can combine staff and unarmed skill, increasing its damage with staff skill at half effect.\n\nYour full Staff Attack boosts AC and all Resistances by X% per skill point, counting an extra +10 points of skill. Resistances apply to the entire party.\n")
+	Skillz.setDesc(1,1,Skillz.getDesc(1,1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a sword.\n\nYour full Sword Attack boosts AC by X% per skill point, counting an extra +10 points of skill.\n")
+	Skillz.setDesc(2,1,Skillz.getDesc(2,1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a dagger.\nCrit chance will get lower as monsters grow stronger, up to level 600.")
+	Skillz.setDesc(3,1,Skillz.getDesc(3,1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping an axe.\n")
+	Skillz.setDesc(4,1,Skillz.getDesc(4,1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a spear.\n\nSpear skill raises AC by X% per skill point, counting an extra +10 effective skill.\n")
+	Skillz.setDesc(5,1,Skillz.getDesc(5,1) .. "\nThis skill increases the damage gained from weapon +1 per skill point in the bow skill, by a percentage when equipping a bow.\n")
+	Skillz.setDesc(6,1,Skillz.getDesc(6,1) .. "\nThis skill increases the damage gained from weapon, armsmaster, and special abilities by a percentage when equipping a mace.\n")
+	for i=0,33 do
+		if i<=7 or i==33 then
+			attack=false
+			recovery=false
+			damage=false
+			ac=false
+			res=false
+			baseString=string.format("%s\n------------------------------------------------------------\n",	Skillz.getDesc(i,1))
+			for v=1,4 do
+				if skillAttack[i][v]~=0 then
+					attack=true     
+				end
+				if skillRecovery[i][v]~=0 then
+					recovery=true
+				end
+				if skillDamage[i][v]~=0 then
+					damage=true
+				end
+				if skillAC[i][v]~=0 then
+					ac=true
+				end
+				if skillResistance[i][v]~=0 then
+					res=true
+				end
+			end
+			
+			--Novice
+			normal=""
+			expert=""
+			master=""
+			gm=""
+			local tab=0
+			if attack then
+				tab=tab+73
+				baseString=string.format("%s\t0" .. tab .. "Attack|",baseString)
+				normal=string.format("%s\t" .. tab+32 .. "%s|",normal,skillAttack[i][1])
+				expert=string.format("%s\t" .. tab+32 .. "%s|",expert,skillAttack[i][2])
+				master=string.format("%s\t" .. tab+32 .. "%s|",master,skillAttack[i][3])
+				gm=string.format("%s\t" .. tab+32 .. "%s|",gm,skillAttack[i][4])
+			end
+			if recovery then
+				tab=tab+55
+				baseString=string.format("%s\t" .. tab .. "Speed|",baseString)
+				normal=string.format("%s\t" .. tab+33 .. "%s|",normal,skillRecovery[i][1])
+				expert=string.format("%s\t" .. tab+33 .. "%s|",expert,skillRecovery[i][2])
+				master=string.format("%s\t" .. tab+33 .. "%s|",master,skillRecovery[i][3])
+				gm=string.format("%s\t" .. tab+33 .. "%s|",gm,skillRecovery[i][4])
+			end
+			if damage and i~=33 then
+				tab=tab+55
+				baseString=string.format("%s\t" .. tab .. "Dmg%%|",baseString)
+				normal=string.format("%s\t" .. tab+22 .. "%s%%|",normal,skillDamage[i][1])
+				expert=string.format("%s\t" .. tab+22 .. "%s%%|",expert,skillDamage[i][2])
+				master=string.format("%s\t" .. tab+22 .. "%s%%|",master,skillDamage[i][3])
+				gm=string.format("%s\t" .. tab+22 .. "%s%%|",gm,skillDamage[i][4])
+			else --unarmed
+				tab=tab+55
+				baseString=string.format("%s\t" .. tab .. "Dmg|",baseString)
+				normal=string.format("%s\t" .. tab+22 .. "%s|",normal,skillDamage[i][1])
+				expert=string.format("%s\t" .. tab+22 .. "%s|",expert,skillDamage[i][2])
+				master=string.format("%s\t" .. tab+22 .. "%s|",master,skillDamage[i][3])
+				gm=string.format("%s\t" .. tab+22 .. "%s|",gm,skillDamage[i][4])
+			end
+			if ac then
+				tab=tab+55
+				baseString=string.format("%s\t" .. tab .. "AC|",baseString)
+				normal=string.format("%s\t" .. tab+9 .. "%s|",normal,skillAC[i][1])
+				expert=string.format("%s\t" .. tab+9 .. "%s|",expert,skillAC[i][2])
+				master=string.format("%s\t" .. tab+9 .. "%s|",master,skillAC[i][3])
+				gm=string.format("%s\t" .. tab+9 .. "%s|",gm,skillAC[i][4])
+			end
+			if res then
+				baseString=string.format("%sRes",baseString)
+				normal=string.format("%s\t" .. tab+30 .. "%s",normal,skillResistance[i][1])
+				expert=string.format("%s\t" .. tab+30 .. "%s",expert,skillResistance[i][2])
+				master=string.format("%s\t" .. tab+30 .. "%s",master,skillResistance[i][3])
+				gm=string.format("%s\t" .. tab+30 .. "%s",gm,skillResistance[i][4])
+			end
+			baseString=baseString .. "\t000"
+			Game.SkillDesNormal[i]=normal
+			Game.SkillDesExpert[i]=expert
+			Game.SkillDesMaster[i]=master
+			Game.SkillDesGM[i]=gm
+			Skillz.setDesc(i,1,baseString)
+		end
+	end
 end
 
--- now do same for armors
+--now do same for armors
 function events.Action(t)
-    function events.Tick()
-        events.Remove("Tick", 1)
-        if Game.CurrentCharScreen == 101 and Game.CurrentScreen == 7 then
-            local i = Game.CurrentPlayer
-            if i < 0 or i > Party.High then return end
-            local pl = Party[i]
-            local index = pl:GetIndex()
-            itemStats(index)
-            -- base descriptions
-            Skillz.setDesc(8, 1, "Shield skill provides great defense against both physical and magical attacks.\n\nShield Skill boosts the AC and Resistances gained from your Shield  by a percent amount.")
-            Skillz.setDesc(9, 1, "Leather armor is the lightest armor a character can wear.  While leather provides less protection than chain or plate armor, it also slows your character down the least.\n\nLeather Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Leather Armor by a percent amount.")
-            Skillz.setDesc(10, 1, "Chain armor is the medium armor type.  It provides more protection than leather and less than plate, but it also slows your character down more than leather.\n\nChain Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Chain Armor by a percent amount.")
-            Skillz.setDesc(11, 1, "Plate armor is the heaviest armor type.  It provides the most protection, but it slows your character down more than leather or chain.\n\nPlate Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Plate Armor by a percent amount.")
-            local it = pl:GetActiveItem(3)
-            if it then
-                local skill = it:T().Skill
-                Skillz.setDesc(skill, 1, string.format(Skillz.getDesc(skill, 1) .. "\n\nCurrent AC from items: " .. StrColor(255, 255, 100, armorAC) .. "\n"))
-                Skillz.setDesc(skill, 1, string.format(Skillz.getDesc(skill, 1) .. "Bonus AC: " .. StrColor(255, 255, 100, itemArmorClassBonus1) .. "\n"))
-                Skillz.setDesc(skill, 1, string.format(Skillz.getDesc(skill, 1) .. "Bonus Resistances: " .. StrColor(255, 255, 100, itemResistanceBonus1) .. "\n"))
-            end
-            local it = pl:GetActiveItem(0)
-            if it then
-                local skill = it:T().Skill
-                if skill == 8 then
-                    Skillz.setDesc(skill, 1, string.format(Skillz.getDesc(skill, 1) .. "\n\nBonus AC: " .. StrColor(255, 255, 100, itemArmorClassBonus2) .. "\n"))
-                    Skillz.setDesc(skill, 1, string.format(Skillz.getDesc(skill, 1) .. "Bonus Resistances: " .. StrColor(255, 255, 100, itemResistanceBonus2) .. "\n"))
-                end
-            end
-
-            baseString = "\n------------------------------------------------------------\n         "
-            baseString = string.format("%s\t075AC|", baseString)
-            baseString = string.format("%s Res\t000", baseString)
-            for i = 8, 11 do
-                Skillz.setDesc(i, 1, string.format(Skillz.getDesc(i, 1) .. baseString))
-            end
-        end
-    end
+	RunNextTick(function()
+		if Game.CurrentCharScreen==101 and Game.CurrentScreen==7 then
+			local i=Game.CurrentPlayer
+			if i<0 or i>Party.High then return end
+			local pl=Party[i]
+			local index=pl:GetIndex()
+			itemStats(index)
+			--base descriptions
+			Skillz.setDesc(8,1,"Shield skill provides great defense against both physical and magical attacks.\n\nShield Skill boosts the AC and Resistances gained from your Shield  by a percent amount.")
+			Skillz.setDesc(9,1,"Leather armor is the lightest armor a character can wear.  While leather provides less protection than chain or plate armor, it also slows your character down the least.\n\nLeather Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Leather Armor by a percent amount.")
+			Skillz.setDesc(10,1,"Chain armor is the medium armor type.  It provides more protection than leather and less than plate, but it also slows your character down more than leather.\n\nChain Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Chain Armor by a percent amount.")
+			Skillz.setDesc(11,1,"Plate armor is the heaviest armor type.  It provides the most protection, but it slows your character down more than leather or chain.\n\nPlate Armor Skill boosts the AC and Resistances gained by ALL armors when equipping a Plate Armor by a percent amount.")
+			local it=pl:GetActiveItem(3)
+			if it then
+				local skill=it:T().Skill
+				Skillz.setDesc(skill,1,string.format(Skillz.getDesc(skill,1) .. "\n\nCurrent AC from items: " .. StrColor(255,255,100,armorAC) .. "\n"))
+				Skillz.setDesc(skill,1,string.format(Skillz.getDesc(skill,1) .. "Bonus AC: " .. StrColor(255,255,100,itemArmorClassBonus1) .. "\n"))
+				Skillz.setDesc(skill,1,string.format(Skillz.getDesc(skill,1) .. "Bonus Resistances: " .. StrColor(255,255,100,itemResistanceBonus1) .. "\n"))
+			end
+			local it=pl:GetActiveItem(0)
+			if it then
+				local skill=it:T().Skill
+				if skill==8 then
+					Skillz.setDesc(skill,1,string.format(Skillz.getDesc(skill,1) .. "\n\nBonus AC: " .. StrColor(255,255,100,itemArmorClassBonus2) .. "\n"))
+					Skillz.setDesc(skill,1,string.format(Skillz.getDesc(skill,1) .. "Bonus Resistances: " .. StrColor(255,255,100,itemResistanceBonus2) .. "\n"))
+				end	
+			end
+			
+			baseString="\n------------------------------------------------------------\n         "
+			baseString=string.format("%s\t075AC|",baseString)
+			baseString=string.format("%s Res\t000",baseString)
+			for i=8,11 do
+				Skillz.setDesc(i,1,string.format(Skillz.getDesc(i,1) .. baseString))
+			end
+		end
+	end)
 end
 		
 	
 function events.GameInitialized2()
-    for i = 8, 32 do
-        if i < 12 or i == 32 then
-            recoveryPen = false
-            ac = false
-            res = false
-            baseString = string.format("%s\n------------------------------------------------------------\n         ", Skillz.getDesc(i, 1))
-            for v = 1, 4 do
-                if skillItemAC[i][v] ~= 0 then
-                    ac = true
-                end
-                if skillItemRes[i][v] ~= 0 then
-                    res = true
-                end
-            end
-
-            -- Novice
-            normal = ""
-            expert = ""
-            master = ""
-            gm = ""
-
-            local ac = skillItemAC[i]
-            local res = skillItemRes[i]
-            if i == 32 then
-                ac = skillAC[i]
-                res = skillResistance[i]
-            end
-            if ac then
-                baseString = string.format("%s\t075AC|", baseString)
-                normal = string.format("%s  %s|", normal, ac[1])
-                expert = string.format("%s  %s|", expert, ac[2])
-                master = string.format("%s  %s|", master, ac[3])
-                gm = string.format("%s  %s|", gm, ac[4])
-            end
-            if res then
-                baseString = string.format("%s Res\t000", baseString)
-                normal = string.format("%s    %s", normal, res[1])
-                expert = string.format("%s    %s", expert, res[2])
-                master = string.format("%s    %s", master, res[3])
-                gm = string.format("%s    %s", gm, res[4])
-            end
-            baseString = baseString
-            Game.SkillDesNormal[i] = normal
-            Game.SkillDesExpert[i] = expert
-            Game.SkillDesMaster[i] = master
-            Game.SkillDesGM[i] = gm
-            Skillz.setDesc(i, 1, baseString)
-        end
-    end
-
-    -- adjust tooltips with special effects
-    Game.SkillDesGM[const.Skills.Axe] = string.format("%s 1%% to halve AC and increases critical strike damage by 5%% per skill point, reduced up to 1%% as monsters get stronger", Game.SkillDesGM[const.Skills.Axe])
-    Game.SkillDesMaster[const.Skills.Bow] = string.format("%s 2 arrows", Game.SkillDesMaster[const.Skills.Bow])
-    Game.SkillDesGM[const.Skills.Bow] = string.format("%s shoots fire arrows, dealing highest between fire and physical damage", Game.SkillDesGM[const.Skills.Bow])
-    Game.SkillDesExpert[const.Skills.Dagger] = string.format("%s can dual wield", Game.SkillDesExpert[const.Skills.Dagger])
-    Game.SkillDesMaster[const.Skills.Dagger] = string.format("%s 5+1 crit%%/skill", Game.SkillDesMaster[const.Skills.Dagger])
-    Game.SkillDesMaster[const.Skills.Mace] = string.format("%s chance to stun", Game.SkillDesMaster[const.Skills.Mace])
-    Game.SkillDesGM[const.Skills.Mace] = string.format("%s chance to paralyze", Game.SkillDesGM[const.Skills.Mace])
-    Game.SkillDesMaster[const.Skills.Spear] = string.format("%s can hold with 1 hand", Game.SkillDesMaster[const.Skills.Spear])
-    Game.SkillDesMaster[const.Skills.Staff] = string.format("%s 1%% to stun", Game.SkillDesMaster[const.Skills.Staff])
-    Game.SkillDesGM[const.Skills.Staff] = string.format("%s usable with Unarm.", Game.SkillDesGM[const.Skills.Staff])
-    Game.SkillDesMaster[const.Skills.Sword] = string.format("%s can dual wield", Game.SkillDesMaster[const.Skills.Sword])
-    Game.SkillDesExpert[const.Skills.Leather] = string.format("%s recovery penalty eliminated", Game.SkillDesExpert[const.Skills.Leather])
-    Game.SkillDesExpert[const.Skills.Chain] = string.format("%s recovery penalty halved", Game.SkillDesExpert[const.Skills.Chain])
-    Game.SkillDesMaster[const.Skills.Chain] = string.format("%s recovery penalty eliminated", Game.SkillDesMaster[const.Skills.Chain])
-    Game.SkillDesExpert[const.Skills.Plate] = string.format("%s rec. pen. halved", Game.SkillDesExpert[const.Skills.Plate])
-    Game.SkillDesGM[const.Skills.Plate] = string.format("%s rec. pen. elim.", Game.SkillDesGM[const.Skills.Plate])
-    Game.SkillDesExpert[const.Skills.Shield] = string.format("%s recovery penalty eliminated", Game.SkillDesExpert[const.Skills.Shield])
-    Game.SkillDesGM[const.Skills.Shield] = string.format("%s 15%% Damage reduction", Game.SkillDesGM[const.Skills.Shield])
-    Game.SkillDesNormal[const.Skills.Armsmaster] = string.format("Skills adds " .. armsmasterSkill.Damage[1] .. " dmg and " .. armsmasterSkill.Attack[1] .. " atk")
-    Game.SkillDesExpert[const.Skills.Armsmaster] = string.format("Skills adds " .. armsmasterSkill.Damage[2] .. " dmg, " .. armsmasterSkill.Attack[2] .. " atk, " .. armsmasterSkill.Speed[2] .. "%% speed")
-    Game.SkillDesMaster[const.Skills.Armsmaster] = string.format("Skills adds " .. armsmasterSkill.Damage[3] .. " dmg, " .. armsmasterSkill.Attack[3] .. " atk, " .. armsmasterSkill.Speed[3] .. "%% speed")
-    Game.SkillDesGM[const.Skills.Armsmaster] = string.format("Skills adds " .. armsmasterSkill.Damage[4] .. " dmg, " .. armsmasterSkill.Attack[4] .. " atk, " .. armsmasterSkill.Speed[4] .. "%% speed")
-    Game.SkillDesMaster[const.Skills.Dodging] = string.format("%s usable with Leather Armor", Game.SkillDesGM[const.Skills.Dodging])
-    Game.SkillDesGM[const.Skills.Dodging] = string.format("%s 0.5%% dodge chance", Game.SkillDesGM[const.Skills.Dodging])
-    -- Game.SkillDesGM[const.Skills.Unarmed]=string.format("%s 0.5%% dodge chance",Game.SkillDesGM[const.Skills.Unarmed])	
-    Skillz.setDesc(35, 1, "Armsmaster skill represents the warrior's tricks of the trade, enhancing your proficiency with all weapons-except staves.\nThis skill allows you to strike faster, execute smoother attacks, and deal more powerful blows.\n\nDamage added by armsmaster skill scales with your weapon skill, amplifying its impact as you grow more adept.\n")
-    baseSpearTooltip = Game.SkillDesGM[const.Skills.Spear]
-    maceGMtxt = Game.SkillDesGM[6]
-    -- used for mace tooltip
+	for i=8,32 do
+		if i<12 or i==32 then
+			recoveryPen=false
+			ac=false
+			res=false
+			baseString=string.format("%s\n------------------------------------------------------------\n         ",	Skillz.getDesc(i,1))
+			for v=1,4 do
+				if skillItemAC[i][v]~=0 then
+					ac=true
+				end
+				if skillItemRes[i][v]~=0 then
+					res=true
+				end
+			end
+			
+			--Novice
+			normal=""
+			expert=""
+			master=""
+			gm=""
+			
+			local ac=skillItemAC[i]
+			local res=skillItemRes[i]
+			if i==32 then
+				ac=skillAC[i]
+				res=skillResistance[i]
+			end
+			if ac then
+				baseString=string.format("%s\t075AC|",baseString)
+				normal=string.format("%s  %s|",normal,ac[1])
+				expert=string.format("%s  %s|",expert,ac[2])
+				master=string.format("%s  %s|",master,ac[3])
+				gm=string.format("%s  %s|",gm,ac[4])
+			end
+			if res then
+				baseString=string.format("%s Res\t000",baseString)
+				normal=string.format("%s    %s",normal,res[1])
+				expert=string.format("%s    %s",expert,res[2])
+				master=string.format("%s    %s",master,res[3])
+				gm=string.format("%s    %s",gm,res[4])
+			end
+			baseString=baseString
+			Game.SkillDesNormal[i]=normal
+			Game.SkillDesExpert[i]=expert
+			Game.SkillDesMaster[i]=master
+			Game.SkillDesGM[i]=gm
+			Skillz.setDesc(i,1,baseString)
+		end
+	end
+	
+	--adjust tooltips with special effects
+	Game.SkillDesGM[const.Skills.Axe]=string.format("%s 1%% to halve AC and increases critical strike damage by 5%% per skill point, reduced up to 1%% as monsters get stronger",Game.SkillDesGM[const.Skills.Axe])
+	Game.SkillDesMaster[const.Skills.Bow]=string.format("%s 2 arrows",Game.SkillDesMaster[const.Skills.Bow])
+	Game.SkillDesGM[const.Skills.Bow]=string.format("%s shoots fire arrows, dealing highest between fire and physical damage",Game.SkillDesGM[const.Skills.Bow])
+	Game.SkillDesExpert[const.Skills.Dagger]=string.format("%s can dual wield",Game.SkillDesExpert[const.Skills.Dagger])
+	Game.SkillDesMaster[const.Skills.Dagger]=string.format("%s 5+1 crit%%/skill",Game.SkillDesMaster[const.Skills.Dagger])
+	Game.SkillDesMaster[const.Skills.Mace]=string.format("%s chance to stun",Game.SkillDesMaster[const.Skills.Mace])
+	Game.SkillDesGM[const.Skills.Mace]=string.format("%s chance to paralyze",Game.SkillDesGM[const.Skills.Mace])
+	Game.SkillDesMaster[const.Skills.Spear]=string.format("%s can hold with 1 hand",Game.SkillDesMaster[const.Skills.Spear])
+	Game.SkillDesMaster[const.Skills.Staff]=string.format("%s 1%% to stun",Game.SkillDesMaster[const.Skills.Staff])
+	Game.SkillDesGM[const.Skills.Staff]=string.format("%s usable with Unarm.",Game.SkillDesGM[const.Skills.Staff])
+	Game.SkillDesMaster[const.Skills.Sword]=string.format("%s can dual wield",Game.SkillDesMaster[const.Skills.Sword])
+	Game.SkillDesExpert[const.Skills.Leather]=string.format("%s recovery penalty eliminated",Game.SkillDesExpert[const.Skills.Leather])
+	Game.SkillDesExpert[const.Skills.Chain]=string.format("%s recovery penalty halved",Game.SkillDesExpert[const.Skills.Chain])
+	Game.SkillDesMaster[const.Skills.Chain]=string.format("%s recovery penalty eliminated",Game.SkillDesMaster[const.Skills.Chain])
+	Game.SkillDesExpert[const.Skills.Plate]=string.format("%s rec. pen. halved",Game.SkillDesExpert[const.Skills.Plate])
+	Game.SkillDesGM[const.Skills.Plate]=string.format("%s rec. pen. elim.",Game.SkillDesGM[const.Skills.Plate])
+	Game.SkillDesExpert[const.Skills.Shield]=string.format("%s recovery penalty eliminated",Game.SkillDesExpert[const.Skills.Shield])
+	Game.SkillDesGM[const.Skills.Shield]=string.format("%s 15%% Damage reduction",Game.SkillDesGM[const.Skills.Shield])
+	Game.SkillDesNormal[const.Skills.Armsmaster]=string.format("Skills adds " .. armsmasterSkill.Damage[1] .. " dmg and " .. armsmasterSkill.Attack[1] .. " atk")
+	Game.SkillDesExpert[const.Skills.Armsmaster]=string.format("Skills adds " .. armsmasterSkill.Damage[2] .. " dmg, " .. armsmasterSkill.Attack[2] .. " atk, " .. armsmasterSkill.Speed[2] .. "%% speed")
+	Game.SkillDesMaster[const.Skills.Armsmaster]=string.format("Skills adds " .. armsmasterSkill.Damage[3] .. " dmg, " .. armsmasterSkill.Attack[3] .. " atk, " .. armsmasterSkill.Speed[3] .. "%% speed")
+	Game.SkillDesGM[const.Skills.Armsmaster]=string.format("Skills adds " .. armsmasterSkill.Damage[4] .. " dmg, " .. armsmasterSkill.Attack[4] .. " atk, " .. armsmasterSkill.Speed[4] .. "%% speed")
+	Game.SkillDesMaster[const.Skills.Dodging]=string.format("%s usable with Leather Armor",Game.SkillDesGM[const.Skills.Dodging])
+	Game.SkillDesGM[const.Skills.Dodging]=string.format("%s 0.5%% dodge chance",Game.SkillDesGM[const.Skills.Dodging])
+	--Game.SkillDesGM[const.Skills.Unarmed]=string.format("%s 0.5%% dodge chance",Game.SkillDesGM[const.Skills.Unarmed])	
+	Skillz.setDesc(35,1,"Armsmaster skill represents the warrior's tricks of the trade, enhancing your proficiency with all weapons-except staves.\nThis skill allows you to strike faster, execute smoother attacks, and deal more powerful blows.\n\nDamage added by armsmaster skill scales with your weapon skill, amplifying its impact as you grow more adept.\n")
+	baseSpearTooltip=Game.SkillDesGM[const.Skills.Spear]
+	maceGMtxt=Game.SkillDesGM[6] --used for mace tooltip
 end
 
 ---------------------------------------
 -- MMMERGE ONLINE SOLO PLAYER SKILLS --
 ---------------------------------------
 
--- get distance function
-function getDistance(x, y, z)
-    distance =((Party.X - x) ^ 2 +(Party.Y - y) ^ 2 +(Party.Z - z) ^ 2) ^ 0.5
-    return distance
+--get distance function
+function getDistance(x,y,z)
+	distance=((Party.X-x)^2+(Party.Y-y)^2+(Party.Z-z)^2)^0.5
+	return distance
 end
 -------------------------------------------------
--- charge skill (usable only in single player)
+--charge skill (usable only in single player)
 -------------------------------------------------
 function events.KeyDown(t)
-    if Party.High ~= 0 then return end
-    -- only in single player
-    if Game.CurrentScreen == 21 then return end
-    if t.Key == chargeKey then
-        local class = Party[0].Class
-        if class >= 16 and class <= 19 then
-            if vars.chargeCooldown == 0 then
-                if Mouse:GetTarget().Kind == 3 then
-                    index = Mouse:GetTarget().Index
-                    local mon = Map.Monsters[index]
-                    local chargeX = mon.X
-                    local chargeY = mon.Y
-                    local chargeZ = mon.Z
-                    local dist = getDistance(chargeX, chargeY, chargeZ)
-                    if dist < 3000 and dist > 500 then
-                        charge = true
-                        ticks = 20
-                        -- get distance to cover
-                        distanceX = Party.X - chargeX
-                        distanceY = Party.Y - chargeY
-                        distanceZ = Party.Z - chargeZ
-                        vars.chargeCooldown = 25
-                        evt.FaceExpression { Player = "All", Frame = 46 }
-                        Game.ShowStatusText(string.format("%s casts Charge stunning the enemy", Party[0].Name))
-                        mon.SpellBuffs[6].Skill = 4
-                        local chargeCC = { Debuff = const.MonsterBuff.Paralyze }
-                        if class == 16 then
-                            duration = const.Minute * 1.5
-                        elseif class == 17 then
-                            duration = const.Minute * 2
-                        else
-                            duration = const.Minute * 2.5
-                        end
-                        duration = calcDebuffDuration(mon, chargeCC, duration)
-                        if duration > 0 then
-
-                            mon.SpellBuffs[6].ExpireTime = Game.Time + duration
-                        end
-                        local vel = mon.Velocity
-                        mon.Velocity = 0
-                        mon.Active = false
-                        Sleep(duration)
-                        mon.Velocity = vel
-                    else
-                        Game.ShowStatusText("Out of range")
-                    end
-                end
-            else
-                Game.ShowStatusText(string.format("Charge has %s seconds of cooldown", vars.chargeCooldown))
-            end
-        end
-    end
+	if Party.High~=0 then return end --only in single player
+	if Game.CurrentScreen==21 then return end
+	if t.Key == chargeKey then
+		local class=Party[0].Class
+		if class>=16 and class<=19 then
+			if vars.chargeCooldown==0 then
+				if Mouse:GetTarget().Kind==3 then
+					index=Mouse:GetTarget().Index
+					local mon=Map.Monsters[index]
+					local chargeX=mon.X
+					local chargeY=mon.Y
+					local chargeZ=mon.Z
+					local dist=getDistance(chargeX,chargeY,chargeZ)
+					if dist<3000 and dist>500 then
+						charge=true
+						ticks=20
+						--get distance to cover
+						distanceX=Party.X-chargeX
+						distanceY=Party.Y-chargeY
+						distanceZ=Party.Z-chargeZ
+						vars.chargeCooldown=25
+						evt.FaceExpression{Player = "All", Frame = 46}
+						Game.ShowStatusText(string.format("%s casts Charge stunning the enemy",Party[0].Name))
+						mon.SpellBuffs[6].Skill=4
+						local chargeCC = {Debuff = const.MonsterBuff.Paralyze}
+						if class==16 then
+							duration=const.Minute*1.5
+						elseif class==17 then
+							duration=const.Minute*2
+						else
+							duration=const.Minute*2.5
+						end
+						duration = calcDebuffDuration(mon, chargeCC, duration)
+						if duration > 0 then
+							mon.SpellBuffs[6].ExpireTime=Game.Time+duration
+						end
+						local vel=mon.Velocity
+						mon.Velocity=0
+						mon.Active = false
+						Sleep(duration)
+						mon.Velocity=vel
+					else
+						Game.ShowStatusText("Out of range")
+					end
+				end
+			else
+				Game.ShowStatusText(string.format("Charge has %s seconds of cooldown",vars.chargeCooldown))
+			end
+		end
+	end
 end
 
 --
 function events.LoadMap(wasInGame)
-    checkCharge = 180
-    vars.chargeCooldown = vars.chargeCooldown or 25
-    lastCharge = vars.chargeCooldown
-    charge = false
+	checkCharge=180
+	vars.chargeCooldown=vars.chargeCooldown or 25
+	lastCharge=vars.chargeCooldown
+	charge=false
 end
-function chargeTimer()
-    if vars.chargeCooldown > 0 then
-        vars.chargeCooldown = vars.chargeCooldown - 1
-    end
+function chargeTimer() 
+	if vars.chargeCooldown>0 then
+		vars.chargeCooldown=vars.chargeCooldown-1
+	end
 end
--- movement
+--movement
 function events.Tick()
-    if Multiplayer and Multiplayer.client_monsters()[0] and checkCharge and checkCharge >= 0 then
-        -- check for charge working
-        checkCharge = checkCharge - 1
-    end
-    if checkCharge == 0 and lastCharge == vars.chargeCooldown then
-        Timer(chargeTimer, const.Minute / 2)
-    end
-    if charge ~= true then return end
-    -- return if charge event is off
-    -- get closer to Monster
-    Party.X = Party.X - distanceX / 22
-    Party.Y = Party.Y - distanceY / 22
-    Party.Z = Party.Z - distanceZ / 22
-    ticks = ticks - 1
-    if ticks == 0 then
-        charge = false
-    end
+	if Multiplayer and Multiplayer.client_monsters()[0] and checkCharge and checkCharge>=0 then
+		--check for charge working
+		checkCharge=checkCharge-1
+	end
+	if checkCharge==0 and lastCharge==vars.chargeCooldown then
+		Timer(chargeTimer, const.Minute/2) 
+	end
+	if charge~=true then return end --return if charge event is off
+	--get closer to Monster
+	Party.X=Party.X-distanceX/22
+	Party.Y=Party.Y-distanceY/22
+	Party.Z=Party.Z-distanceZ/22
+	ticks=ticks-1
+	if ticks==0 then
+		charge=false
+	end
 end
 
 --------------------------------------
--- HEALTH potion drink hotkey only in SOLO
+--HEALTH potion drink hotkey only in SOLO
 --------------------------------------
 function events.KeyDown(t)
-    if Party.High ~= 0 then return end
-    -- only in single player
-    if Game.CurrentScreen == 21 then return end
-    if t.Key == healthPotionKey then
-        if vars.healthPotionCooldown == 0 then
-            local heal = false
-            local bonus = 0
-            for i = 1, Party[0].Items.High do
-                if Party[0].Items[i].Number == 222 and Party[0].Items[i].Bonus >= bonus then
-                    heal = true
-                    index = i
-                    bonus = Party[0].Items[i].Bonus
-                end
-            end
-            if heal then
-                Party[0].Items[index].Number = 0
-                local healAmount = round(bonus ^ 1.4) + 10
-                evt.Add("HP", healAmount)
-                if Party[0].HP >= 0 then
-                    Party[0].Unconscious = 0
-                end
-                vars.healthPotionCooldown = 15
-                Game.ShowStatusText(string.format("Health Potion heals for %s hit points", healAmount))
-            end
-        else
-            Game.ShowStatusText(string.format("Health Potion has %s seconds of cooldown remaining", vars.healthPotionCooldown))
-        end
-    end
+	if Party.High~=0 then return end --only in single player
+	if Game.CurrentScreen==21 then return end
+	if t.Key == healthPotionKey then
+		if vars.healthPotionCooldown==0 then
+			local heal=false
+			local bonus=0
+			for i=1, Party[0].Items.High do
+				if Party[0].Items[i].Number==222 and Party[0].Items[i].Bonus>=bonus then
+					heal=true
+					index=i
+					bonus=Party[0].Items[i].Bonus
+				end
+			end
+			if heal then
+				Party[0].Items[index].Number=0
+				local healAmount=round(bonus^1.4)+10
+				evt.Add("HP",healAmount)
+				if Party[0].HP>=0 then
+					Party[0].Unconscious=0
+				end
+				vars.healthPotionCooldown=15
+				Game.ShowStatusText(string.format("Health Potion heals for %s hit points",healAmount))
+			end
+		else
+			Game.ShowStatusText(string.format("Health Potion has %s seconds of cooldown remaining",vars.healthPotionCooldown))
+		end
+	end
 end
 
 function events.LoadMap(wasInGame)
-    vars.healthPotionCooldown = vars.healthPotionCooldown or 15
-    charge = false
-    local function chargeTimer()
-        if vars.healthPotionCooldown > 0 then
-            vars.healthPotionCooldown = vars.healthPotionCooldown - 1
-        end
-    end
-    Timer(chargeTimer, const.Minute / 2)
+	vars.healthPotionCooldown=vars.healthPotionCooldown or 15
+	charge=false
+	local function chargeTimer() 
+		if vars.healthPotionCooldown>0 then
+			vars.healthPotionCooldown=vars.healthPotionCooldown-1
+		end
+	end
+	Timer(chargeTimer, const.Minute/2) 
 end
 
 
 --------------------------------------
--- MANA potion drink hotkey only in SOLO
+--MANA potion drink hotkey only in SOLO
 --------------------------------------
 function events.KeyDown(t)
-    if Party.High ~= 0 then return end
-    -- only in single player
-    if Game.CurrentScreen == 21 then return end
-    if t.Key == manaPotionKey then
-        if vars.manaPotionCooldown == 0 then
-            local heal = false
-            local bonus = 0
-            for i = 1, Party[0].Items.High do
-                if Party[0].Items[i].Number == 223 and Party[0].Items[i].Bonus >= bonus then
-                    heal = true
-                    index = i
-                    bonus = Party[0].Items[i].Bonus
-                end
-            end
-            if heal then
-                Party[0].Items[index].Number = 0
-                local spAmount = round(bonus ^ 1.4 * 2 / 3) + 10
-                evt.Add("SP", 20 + bonus * 2)
-                vars.manaPotionCooldown = 15
-                Game.ShowStatusText(string.format("Mana Potion restores %s mana", spAmount))
-            end
-        else
-            Game.ShowStatusText(string.format("Mana Potion has %s seconds of cooldown remaining", vars.manaPotionCooldown))
-        end
-    end
+	if Party.High~=0 then return end --only in single player
+	if Game.CurrentScreen==21 then return end
+	if t.Key == manaPotionKey then
+		if vars.manaPotionCooldown==0 then
+			local heal=false
+			local bonus=0
+			for i=1, Party[0].Items.High do
+				if Party[0].Items[i].Number==223 and Party[0].Items[i].Bonus>=bonus then
+					heal=true
+					index=i
+					bonus=Party[0].Items[i].Bonus
+				end
+			end
+			if heal then
+				Party[0].Items[index].Number=0
+				local spAmount=round(bonus^1.4*2/3)+10
+				evt.Add("SP",20+bonus*2)
+				vars.manaPotionCooldown=15
+				Game.ShowStatusText(string.format("Mana Potion restores %s mana",spAmount))
+			end
+		else
+			Game.ShowStatusText(string.format("Mana Potion has %s seconds of cooldown remaining",vars.manaPotionCooldown))
+		end
+	end
 end
 
 function events.LoadMap(wasInGame)
-    vars.manaPotionCooldown = vars.manaPotionCooldown or 15
-    charge = false
-    local function chargeTimer()
-        if vars.manaPotionCooldown > 0 then
-            vars.manaPotionCooldown = vars.manaPotionCooldown - 1
-        end
-    end
-    Timer(chargeTimer, const.Minute / 2)
+	vars.manaPotionCooldown=vars.manaPotionCooldown or 15
+	charge=false
+	local function chargeTimer() 
+		if vars.manaPotionCooldown>0 then
+			vars.manaPotionCooldown=vars.manaPotionCooldown-1
+		end
+	end
+	Timer(chargeTimer, const.Minute/2) 
 end
 
 
--- function that checks for enchant that increases skill 
+--function that checks for enchant that increases skill 
 function checkbonus(enchantNumber, playerIndex)
-    local skillBonus = 0
-    for it in Party[playerIndex]:EnumActiveItems() do
-        if it.Bonus == enchantNumber and it.BonusStrength > skillBonus then
-            skillBonus = it.BonusStrength
-        end
-    end
-    return skillBonus
+	local skillBonus=0
+	for it in Party[playerIndex]:EnumActiveItems() do
+		if it.Bonus==enchantNumber and it.BonusStrength>skillBonus then
+			skillBonus=it.BonusStrength
+		end
+	end
+	return skillBonus
 end
 
-sharedSkills = { 0, 1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 }
+sharedSkills={0,1,2,3,4,5,6,7,12,13,14,15,16,17,18,19,20,21,22}
 function events.Action(t)
-    if t.Action == 121 then
-        vars.checkSoloMastery = true
-        -- makes skills to be automatically learned if solo
-        local shared = sharedSkills
-        if table.find(shamanClass, pl.Class) or table.find(seraphClass, pl.Class) or table.find(dkClass, pl.Class) or table.find(assassinClass, pl.Class) then
-            shared = { 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 }
-        end
-        if table.find(shared, t.Param) then
-            t.Handled = false
-            pl = Party[Game.CurrentPlayer]
-            local currentCost = SplitSkill(pl.Skills[t.Param]) + 1
-            if currentCost > 1000 then
-                return
-            end
-            -- calculate actual cost
-            local n = 1
-            for i = 1, #shared do
-                local s, m = SplitSkill(Party[Game.CurrentPlayer].Skills[shared[i]])
-                if s >= currentCost then
-                    n = n + 1
-                end
-            end
-            local actualCost = math.ceil(currentCost / n)
-            if pl.SkillPoints >= actualCost then
-                pl.SkillPoints = pl.SkillPoints + currentCost - actualCost
-            end
-        end
-        --[[  skill share system, disabled, fix at the bottom
+	if t.Action==121 then
+		vars.checkSoloMastery=true --makes skills to be automatically learned if solo
+		local shared=sharedSkills
+		if table.find(shamanClass, pl.Class) or table.find(seraphClass, pl.Class) or table.find(dkClass, pl.Class) or table.find(assassinClass, pl.Class) then
+			shared={12,13,14,15,16,17,18,19,20,21,22}
+		end
+		if table.find(shared, t.Param) then
+			t.Handled=false
+			pl=Party[Game.CurrentPlayer]
+			local currentCost=SplitSkill(pl.Skills[t.Param])+1
+			if currentCost>1000 then
+				return
+			end
+			--calculate actual cost
+			local n=1
+			for i=1,#shared do
+				local s,m=SplitSkill(Party[Game.CurrentPlayer].Skills[shared[i]])
+				if s>=currentCost then
+					n=n+1
+				end
+			end
+			local actualCost=math.ceil(currentCost/n)
+			if pl.SkillPoints>=actualCost then
+				pl.SkillPoints=pl.SkillPoints+currentCost-actualCost
+			end
+		end
+		--[[  skill share system, disabled, fix at the bottom
 		if table.find(partySharedSkills,t.Param) then
 			maxS=0
 			maxM=0
@@ -965,7 +957,7 @@ function events.Action(t)
 			end
 		end
 		]]
-    end
+	end
 end
 function events.LoadMap()
 	if not vars.weaponSkillRefunded then
@@ -1097,8 +1089,6 @@ function events.PlayerAttacked(t)
 				cover[i]=false
 			end
 		end
-
-
 		--roll once per player with player and pick the one with max hp
 		coverPlayerIndex=-1
 		lastMaxHp=0
@@ -1115,24 +1105,8 @@ function events.PlayerAttacked(t)
 		end
 		if covered then
 			mem.call(0x4A6FCE, 1, mem.call(0x42D747, 1, mem.u4[0x75CE00]), const.Spells.Shield, t.PlayerSlot)
-			local target = t.PlayerSlot
-			 local idxC =Party[coverPlayerIndex]:GetIndex()
-			 local idxT = Party[target]:GetIndex()
-			local plTarget = Party[target]
-			AddCombatLog(StrColor(0,255,255, Party[coverPlayerIndex].Name .. " covered " .. Party[target].Name ))
 			Party[coverPlayerIndex]:ShowFaceAnimation(14)
 			--Game.ShowStatusText(Party[coverPlayerIndex].Name .. " cover " .. Party[t.PlayerSlot].Name)
-			vars.coveredTrack = vars.coveredTrack or { }
-			vars.coveredTargetTrack = vars.coveredTargetTrack or { }
-			mapvars.coveredTrack = mapvars.coveredTrack or { }
-			mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
-
-			vars.coveredTrack[idxC] =(vars.coveredTrack[idxC] or 0) + 1
-			vars.coveredTargetTrack[idxT] =(vars.coveredTargetTrack[idxT] or 0) + 1
-
-			mapvars.coveredTrack[idxC] =(mapvars.coveredTrack[idxC] or 0) + 1
-			mapvars.coveredTargetTrack[idxT] =(mapvars.coveredTargetTrack[idxT] or 0) + 1
-
 			t.PlayerSlot=coverPlayerIndex
 			local pl=Party[t.PlayerSlot]
 			local id=pl:GetIndex()
@@ -1152,11 +1126,7 @@ function events.PlayerAttacked(t)
 					cap=3
 				end
 				vars.retaliation[id]["Stacks"]=math.min(vars.retaliation[id]["Stacks"],cap)
-			end
-
-		if(g_allowStealth) then
-            AddBackstabStack(plTarget)
-        end
+			end	
 		end
 	end
 end
@@ -1558,8 +1528,7 @@ end
 
 function events.Action(t)
 	if vars.insanityMode then
-		function events.Tick()
-			events.Remove("Tick",1)
+		RunNextTick(function()
 			if Game:GetCurrentHouse() then
 				local house=Game.Houses[Game:GetCurrentHouse()]
 				if house.Type==30 then
@@ -1570,7 +1539,7 @@ function events.Action(t)
 					end
 				end
 			end
-		end
+		end)
 	end
 end
 
@@ -1585,7 +1554,7 @@ function events.LoadMap()
 	end
 	for i=1,#trainingCenters[currentWorld] do
 		Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/20)*10
-		if vars.madnessMode or DoomMapMode()  then
+		if vars.madnessMode then
 			Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/10)*10
 		end
 	end
@@ -1609,10 +1578,9 @@ function events.Action(t)
 						pl.Skills[const.Skills.Dagger]=JoinSkill(s,2)
 					end
 					txt.Skill=2
-					function events.Tick() 
-						events.Remove("Tick", 1)
+					RunNextTick(function()
 						txt.Skill=3
-					end
+					end)
 				elseif txt.EquipStat==1 and m>=3 then
 					local s,m = SplitSkill(pl.Skills[const.Skills.Dagger])
 					if m<2 then
@@ -1620,11 +1588,10 @@ function events.Action(t)
 					end
 					txt.Skill=2
 					txt.EquipStat=0
-					function events.Tick() 
-						events.Remove("Tick", 1)
+					RunNextTick(function()
 						txt.Skill=3
 						txt.EquipStat=1
-					end
+					end)
 				end
 			end
 		end
@@ -1730,7 +1697,6 @@ local normalCosts={0,1000,4000,20000}
 local doomCosts={0,2000,10000,50000}
 local insanityCost={0,10000,50000,250000}
 local madnessCost={0,25000,500000,2000000}
-local doomMapReq = { 0, 8, 16, 24 }
 
 local function getReqAndCost(mastery, player)
 	local pl = Party[player or Game.CurrentPlayer]
@@ -1739,13 +1705,10 @@ local function getReqAndCost(mastery, player)
 	if vars.madnessMode then
 		baseCost = madnessCost[mastery]
 		requirements = madnessLearningRequirements[mastery]
-	elseif DoomMapMode() then
-		baseCost = doomCosts[mastery]
-		requirements = doomMapReq[mastery]
 	elseif vars.insanityMode then
 		baseCost = insanityCost[mastery]
 		requirements = insanityLearningRequirements[mastery]
-	elseif  vars.Mode==2 then
+	elseif vars.Mode==2 then
 		baseCost = doomCosts[mastery]
 		requirements = learningRequirements[mastery]
 	elseif not Game.freeProgression then
@@ -1766,7 +1729,6 @@ local function getReqAndCost(mastery, player)
 			cost = cost + baseCost
 		end
 	end
-	
 	
 	return requirements, cost
 end
@@ -1896,8 +1858,6 @@ function events.Action(t)
 						requirements={0,12,30,50}
 					elseif vars.insanityMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,8,20,32}
-					elseif DoomMapMode() and table.find(horizontalSkills, t.Param) then
-						requirements = { 0, 8, 16, 24 }	
 					elseif Game.freeProgression or not table.find(horizontalSkills, t.Param) then
 						requirements={0,4,7,10}
 					else
@@ -2442,11 +2402,10 @@ function events.CalcDamageToMonster(t)
 					if m==3 then
 						duration=duration/2
 					end
-										-- Apply diminishing returns
+					-- Apply diminishing returns
 					duration = calcDebuffDuration(mon, maceStunCC, duration)
 				end
-				function events.Tick()
-					events.Remove("Tick",1)
+				RunNextTick(function()
 					if applyParalyze[id] and duration > 0 then
 						if mon.HP~=0 then
 							mon.SpellBuffs[6].ExpireTime=Game.Time+duration
@@ -2455,7 +2414,7 @@ function events.CalcDamageToMonster(t)
 					else
 						mon.SpellBuffs[6].ExpireTime=previousDuration
 					end
-				end
+				end)
 			end
 		end
 	end
@@ -2464,17 +2423,15 @@ end
 --remove stun if monster is Dead
 function events.CalcDamageToMonster(t)
 	local mon=t.Monster
-	function events.Tick()
-		events.Remove("Tick",1)
+	RunNextTick(function()
 		if mon.HP==0 then
 			mon.SpellBuffs[6].ExpireTime=0
 		end
-	end
+	end)
 end
 
 function events.Action(t)
-	function events.Tick()
-		events.Remove("Tick", 1)
+	RunNextTick(function()
 		if Game.CurrentCharScreen==101 and Game.CurrentScreen==7 then
 			local i=Game.CurrentPlayer
 			if i<0 or i>Party.High then return end
@@ -2494,7 +2451,7 @@ function events.Action(t)
 			end
 			Skillz.setDesc(6,5,maceGMtxt .. StrColor(0,0,0,txt))
 		end
-	end
+	end)
 end
 
 --mana shield
@@ -2728,8 +2685,6 @@ function GetArmsmasterSupremeRequirement()
 		requirement=70
 	elseif vars.insanityMode then
 		requirement=50
-	elseif DoomMapMode() then
-		requirement = 40
 	end
 	return requirement
 end
@@ -2823,16 +2778,14 @@ function events.Action(t)
 				if table.find(oneHandedAxes, it.Number) then
 					if m2>=2 then
 						pl.Skills[const.Skills.Dagger]=JoinSkill(2,2)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					else
 						pl.Skills[const.Skills.Dagger]=JoinSkill(1,1)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					end
 				end
 			end
@@ -2845,30 +2798,26 @@ function events.Action(t)
 				if table.find(oneHandedAxes, it.Number) then
 					if m2>=2 then
 						pl.Skills[const.Skills.Dagger]=JoinSkill(2,2)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					else
 						pl.Skills[const.Skills.Dagger]=JoinSkill(1,1)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					end
 				elseif table.find(twoHandedAxes,it.Number) then
 					if m2>=3 then
 						pl.Skills[const.Skills.Dagger]=JoinSkill(2,2)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					else
 						pl.Skills[const.Skills.Dagger]=JoinSkill(1,1)
-						function events.Tick()
-							events.Remove("Tick",1)
+						RunNextTick(function()
 							pl.Skills[const.Skills.Dagger]=JoinSkill(s,m)
-						end
+						end)
 					end
 				end
 			end
