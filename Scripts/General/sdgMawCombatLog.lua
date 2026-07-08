@@ -1,87 +1,14 @@
 
-local MMPatch_UI = Game.PatchOptions.UILayoutActive()
 
-local function InitSDGSettings()
-    -- debug.Message("Init")
-
-    SDGMAWSETTINGS = SDGMAWSETTINGS or { }
-
-    SDGMAWSETTINGS.ftDamageToMonsters = true
-    SDGMAWSETTINGS.ftDamageToPlayers = true
-    SDGMAWSETTINGS.ftMonsterNameMinor = false
-    SDGMAWSETTINGS.ftMonsterNameBoss = true
-    SDGMAWSETTINGS.ftMonstrHealtherMinor = true
-    SDGMAWSETTINGS.ftMonsterHealthBoss = true
-    SDGMAWSETTINGS.ftPlayerHealing = true
-    SDGMAWSETTINGS.ftAbbreviateNames = true
-    SDGMAWSETTINGS.drgAdj = true
-    -- debug.Message(SDGMAWSETTINGS)
-end
-
--- new stealth skill
 function events.GameInitialized2()
 
-    InitSDGSettings()
-
-    local stealthSkill = 54
-    Skillz.new_armor(stealthSkill)
-    Skillz.setName(stealthSkill, "Stealth")
-    Skillz.setDesc(stealthSkill, 1, "Stealth/Finesse. Increase the chance for this character to be successfully Covered.  Has a chance to gain a Backstab stack when succsfully covered.\nBackstab stacks are used to enhance next attack \n Masteries learnt at 8-16-32")
-    Skillz.setDesc(stealthSkill, 2, "Normal Cover bonus")
-    Skillz.setDesc(stealthSkill, 3, "Double Cover bonus, chance to backstab per skill point. Backstab damage multiplier 1.5x")
-    Skillz.setDesc(stealthSkill, 4, "Double Cover bonus, chance to backstab per skill point x2 Backstab damage multiplier 2x")
-    Skillz.setDesc(stealthSkill, 5, "Triple Cover bonus, chance to backstab per skill point x3, Backstab damage multiplier 3x")
-    Skillz.learn_at(stealthSkill, 30)
-
     InitCombatLog()
-
 end
 
--- Stealth skill, points add
-function events.Action(t)
-    if t.Action == 121 then
-        if t.Param == 54 then
-            local stealthRequirements = { 8, 16, 32 }
-            local pl = Party[Game.CurrentPlayer]
-            local s, m = SplitSkill(Skillz.get(pl, 54))
-            if s == 32 then
-                t.Handled = true
-                Game.ShowStatusText("This skill has reached its limit")
-            elseif s > 32 then
-                t.Handled = true
-                while s > 32 do
-                    pl.SkillPoints = pl.SkillPoints + s
-                    s = s - 1
-                end
-                Skillz.set(pl, 54, JoinSkill(s, m))
-            end
-            if pl.SkillPoints > s and stealthRequirements[m] and s + 1 >= stealthRequirements[m] and Skillz.MasteryLimit(pl, 54) > m then
-                Skillz.set(pl, 54, JoinSkill(s, m + 1))
-            elseif stealthRequirements[m] and s >= stealthRequirements[m] and Skillz.MasteryLimit(pl, 54) > m then
-                Skillz.set(pl, 54, JoinSkill(s, m + 1))
-            end
-        end
-    end
-end
 
 -- combat text stuff
 function events.GameInitialized2()
-
-    backstabStacks = { }
-    for i = 0, 4 do
-        backstabStacks[i] = CustomUI.CreateText {
-            Text = "",
-            Layer = 1,
-            Screen = 0,
-            X = 5 + i * 105,
-            Y = 390,
-            ColorStd = RGB(255,0,0),
-            Width = 50,
-            Height = 20,
-            Font = Game.Smallnum_fnt,
-        }
-    end
-
+--show retaliation stacks on character portrait
     retalStacks = { }
     for i = 0, 4 do
         retalStacks[i] = CustomUI.CreateText {
@@ -97,36 +24,10 @@ function events.GameInitialized2()
         }
     end
 
-    bsBaseY = 400
-    bsDamTicksStart = 100
-    backstabDamageDone = { }
-    for i = 0, 4 do
-        backstabDamageDone[i] = CustomUI.CreateText {
-            Text = "",
-            Layer = 1,
-            Screen = 0,
-            X = 5 + i * 105,
-            -- 5+i*96, Y = 410
-            Y = bsBaseY,
-            ColorStd = RGB(255,255,0),
-            Width = 250,
-            Height = 20,
-            Font = Game.Smallnum_fnt,
-        }
-
-
-    end
-    bsDamTick = { }
-    for i = 0, 4 do
-        bsDamTick[i] = 0
-    end
-    bsDamTickClear = { }
-    for i = 0, 4 do
-        bsDamTickClear[i] = false
-    end
-
+    --floating combat text
     charDamTickStart = 25
     charHealTickStart = 100
+    bsBaseY=400
 
     txtCharDam = { }
     for i = 0, 4 do
@@ -308,6 +209,22 @@ function SetHealText(playerNdx, heal)
     end
 
 end
+function SetHealTextReset(playerNdx, heal)
+    -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
+
+    if (heal > 0) then
+        txtCharHealed = txtCharHealed or { }
+        local pidx = playerNdx
+        -- Party[i]:GetIndex()
+        txtCharHealed[pidx] = txtCharHealed[pidx] or { }
+
+        local txt = shortenNumber(heal, 4, true)
+        txtCharHealed[pidx]["tick"] = charHealTickStart
+        txtCharHealed[pidx]["heal"] = heal
+        txtCharHealed[pidx]["txt"].Text = txt
+    end
+
+end
 function SetLeechText(playerNdx, heal)
     -- if (not SDGMAWSETTINGS.ftPlayerHealing) then return end
     if (heal > 0) then
@@ -349,9 +266,7 @@ end
 
 
 function events.Tick()
-    -- SDGMAWSETTINGS=SDGMAWSETTINGS or {}
 
-    -- if (SDGMAWSETTINGS.ftPLayerHealing) then
     txtCharDam = txtCharDam or { }
     for i = 0, Party.High do
         local pl = Party[i]
@@ -374,7 +289,6 @@ function events.Tick()
         end
         -- end
 
-        --        if (SDGMAWSETTINGS.ftDamageToPlayers) then
         -- char damaged text
         txtCharDam[i] = txtCharDam[i] or { }
         txtCharDam[i]["tick"] = txtCharDam[i]["tick"] or 0
@@ -393,7 +307,7 @@ function events.Tick()
         end
         -- end
 
-        -- if (SDGMAWSETTINGS.ftDamageToMonsters) then
+        
         -- mon damaged text
         txtMonDam[i] = txtMonDam[i] or { }
         txtMonDam[i]["tick"] = txtMonDam[i]["tick"] or 0
@@ -424,50 +338,6 @@ function events.Tick()
                 monDamCritClear[i] = false
                 Game.NeedRedraw = true
             end
-        end
-        -- end
-
-        -- char backstab stacks
-        local s, m = SplitSkill(Skillz.get(pl, 54))
-        if s > 0 and m > 1 then
-            vars.backstab = vars.backstab or { }
-            if (vars.backstab[id]) then
-                vars.backstab[id]["Stacks"] = vars.backstab[id]["Stacks"] or 0
-                vars.backstab[id]["Damage"] = vars.backstab[id]["Damage"] or 0
-                vars.backstab[id].Time = vars.backstab[id].Time or 0
-
-                if (vars.backstab[id]["Stacks"] > 0) then
-                    local strStacks = ""
-                    for j = 1, vars.backstab[id]["Stacks"] do
-                        strStacks = strStacks .. "+"
-                    end
-                    backstabStacks[i].Text = StrColor(255, 0, 0, strStacks)
-                else
-                    backstabStacks[i].Text = ""
-                end
-                bsDamTick = bsDamTick or { }
-                bsDamTick[id] = bsDamTick[id] or 0
-                bsDamTickClear = bsDamTickClear or { }
-                bsDamTickClear[id] = bsDamTickClear[id] or false
-
-                if (bsDamTick[id] > 0 and vars.backstab[id]["Damage"] > 0) then
-                    local strDamage = string.format(math.floor(vars.backstab[id]["Damage"]))
-                    backstabDamageDone[i].Text = strDamage
-                    backstabDamageDone[i].Y = bsBaseY -(bsDamTicksStart - bsDamTick[id]);
-                    Game.NeedRedraw = true
-                    bsDamTick[id] = bsDamTick[id] -1
-                    bsDamTickClear[id] = true
-                else
-                    backstabDamageDone[i].Text = ""
-                    if bsDamTickClear[id] then
-                        Game.NeedRedraw = true
-                        bsDamTickClear[id] = false
-                    end
-
-                end
-            end
-        else
-            backstabStacks[i].Text = ""
         end
 
         vars.retaliation = vars.retaliation or { }
@@ -529,7 +399,7 @@ local function ProjectToScreen(x, y, z, height)
     return screenX, screenY
 end
 
-function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
+function AddDamageToMonText(mon, dam, critx, player)
     --  if (not SDGMAWSETTINGS.ftDamageToMonsters) then return end
 
     local height = Game.MonListBin[mon.Id].Height / 2
@@ -552,10 +422,8 @@ function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
         elseif (critx) then
             txt = damTxt .. "(!)"
         end
-        if (backstabx) then
-            txt = string.format("%s %s%s)", txt, "(X", backstabmult)
-            AddCombatLog(StrColor(255, 255, 0, string.format("%s hits %s for %s damage with Backstab x%s!", player.Name, Game.PlaceMonTxt[mon.NameId], damTxt, backstabmult)))
-        end
+
+
         txtMonDam = txtMonDam or { }
 
         local idx = pl:GetIndex()
@@ -564,26 +432,13 @@ function AddDamageToMonText(mon, dam, critx, player, backstabx, backstabmult)
             if (pidx == idx) then
 
                 local txtM = txt
-                if (not critx and not backstabx) then
                     txtMonDam[i] = txtMonDam[i] or { }
                     txtMonDam[i]["tick"] = 25
                     txtMonDam[i]["dam"] = dam
                     txtMonDam[i]["txt"].Text = txtM
                     txtMonDam[i]["txt"].X = screenX
                     txtMonDam[i]["txt"].Y = screenY
-                else
-                    txtMonDamCrit[i] = txtMonDamCrit[i] or { }
-                    txtMonDamCrit[i]["tick"] = 25
-                    txtMonDamCrit[i]["dam"] = dam
-                    txtMonDamCrit[i]["txt"].X = screenX
-                    txtMonDamCrit[i]["txt"].Y = screenY
-                    if (backstabx) then
-                        txtMonDamCrit[i]["txt"].Text = StrColor(255, 128, 192, txtM)
-                    else
-                        txtMonDamCrit[i]["txt"].Text = txtM
-                    end
 
-                end
             end
         end
     end
@@ -602,7 +457,6 @@ function events.LoadMap()
 
 end
 function events.AfterLoadMap()
-    -- SDGMAWSETTINGS= SDGMAWSETTINGS or {}
 
     if not Map or not Map.Monsters or type(Map.Monsters.High) ~= "number" then return end
 
@@ -642,73 +496,21 @@ function events.AfterLoadMap()
             --  end
         end
     end
-    -- AddCombatLog("Monsters on map " .. Map.Monsters.High)
-
-
-    --    if(not txtMonOnMap) then
-    --      txtMonOnMap=CustomUI.CreateText {
-    --                        Text = name,
-    --                        Layer = 2,
-    --                        Screen = 0,
-    --                        X = 540,
-    --                        -- 5+i*96, Y = 410
-    --                        Y = 0,
-    --                        ColorStd = RGB(64,192,192),
-    --                        Width = 100,
-    --                        Height = 100,
-    --                        AlignLeft = true,
-    --                        Font = Game.Smallnum_fnt,
-    --                        Active = true
-    --                    }
-    --    end
-    --    txtMonOnMap.Text="Mobs " .. Map.Monsters.High
-    -- vars.UseDoomMapLevels = vars.UseDoomMapLevels or false
-
-    -- debug.Message("Doom Map Levels active %s" , vars.UseDoomMapLevels)
-
-    if (vars.UseDoomMapLevels) then
-        AddCombatLog(StrColor(255, 0, 0, "Mad-Doom Map Levels active"))
-        -- calculate party experience
-        bolsterLevel = getPartyLevel() -4
-        -- slight nerf at the start
-        bolsterLevel = math.max(bolsterLevel, 0)
-
-        -- add a bonus in case dungeon is resetted
-        vars.mapResetCount = vars.mapResetCount or { }
-        vars.mapResetCount[Map.Name] = vars.mapResetCount[Map.Name] or 0
-        local bonus = vars.mapResetCount[Map.Name] * 20
-
-        -- madness, used to calculate gold
         local name = Game.MapStats[Map.MapStatsIndex].Name
-        bolsterLevel = doomMapLevels[name]
-
-        bolsterLevel = bolsterLevel + bonus
-
-        if mapvars.mapAffixes then
-            bolsterLevel = mapvars.mapAffixes.Power * 10 + 20
-        end
         AddCombatLog("Entered Map : " .. name)
-
-        AddCombatLog(StrColor(32, 64, 255, "Doom Map Level set to ") .. StrColor(0, 255, 0, bolsterLevel))
-
-
-    end
-        AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
-
+        AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month+1, Game.DayOfMonth+1, Game.Hour, Game.Minute))
 
 end
 
 
-
--- On every tick, decide which monsters to show and write to JSON
 function events.Tick()
-    -- SDGMAWSETTINGS=SDGMAWSETTINGS or {}
 
     if Game.CurrentScreen ~= 0 then return end
     -- Only process in game screen
     local bRedraw = false
 
-    -- get maxID Monster
+    -- show monster floathing health text if player has identify monster skill or detect life buff or monster is not full health
+    -- get maxID Monster, higher ID Monster means further distance health will show
     local maxS = 0
     local maxM = 0
 
@@ -732,8 +534,6 @@ function events.Tick()
     local onMap = 0
     local screenSpace = 0
     local activeC = 0
-
-
 
     for i = 0, Map.Monsters.High do
         local mon = Map.Monsters[i]
@@ -764,10 +564,7 @@ function events.Tick()
                 if mon.NameId > 0 then
                     name = Game.PlaceMonTxt[mon.NameId]
                 end
-                -- name= name .. " " .. mon.AIState
-                --                if(SDGMAWSETTINGS.ftAbbreviateNames) then
-                --                    name=first_chars_of_words(name)
-                --                end
+                
 
                 local height = Game.MonListBin[mon.Id].Height
                 local hAdj = 1
@@ -840,7 +637,7 @@ function events.Tick()
                         -- paralyzed
                         status = "<Paralyzed>"
                     end
-                    local txt = string.format("%s  %s/%s ", name, hp, fullHP, status)
+                    local txt = string.format("%s  %s/%s %s", name, hp, fullHP, status)
 
                     txtMonHP[i].Text = StrColor(cr, cg, cb, txt)
                     txtMonHP[i].X = screenX
@@ -915,34 +712,12 @@ end
 
 function InitCombatLog()
     ShowCombatLog = true
-    InitSDGOverlayLog()
-    -- in game log will hide if overlay log present
     iCombatLogRows = 8
     iLastCombatLog = 0
     -- will clear on new map
     iCombatLogBaseY = 75
     txtCombatLog = { }
 
-    --    local TogglePreview = CustomUI.CreateButton{
-    -- IconUp = "tab6a",
-    -- IconDown = "tab6b",
-    -- Masked = true,
-    -- Screen = {0, const.Screens.SelectTarget},
-    -- Layer = 0,
-    -- X = MMPatch_UI and 477 or -1,
-    -- Y = MMPatch_UI and 30 or 100,
-    -- Condition = InGame,
-    -- MouseOverAction = function()
-    -- 	Game.ShowStatusText(ShowCombatLog and "Hide CLog" or "Show CLog")
-    -- end,
-    -- Action = function(t)
-    -- 	ShowCombatLog = not ShowCombatLog
-    -- 	t.IUpSrc, t.IDwSrc = t.IDwSrc, t.IUpSrc
-    -- 	t.IUpPtr, t.IDwPtr = t.IDwPtr, t.IUpPtr
-    -- 	Game.NeedRedraw = true
-    -- end,
-    -- Key = "ShowCombatLog"
-    -- }
 
     for i = 0, iCombatLogRows - 1 do
         txtCombatLog[i] = CustomUI.CreateText {
@@ -965,34 +740,37 @@ end
 function events.KeyUp(t)
     if (Game.CurrentScreen ~= 0) then return end
 
+--    if (t.Key == 88) then
+--        -- X key
+--        if (ShowCombatLog) then
+--            ShowCombatLog = false
+--        else
+--            ShowCombatLog = true
+--        end
+--        for i = 0, iLastCombatLog - 1 do
+--            txtCombatLog[i].Active = ShowCombatLog
+--        end
+--        Game.Redraw = true
+--    end
     if (t.Key == 88) then
-        -- L key
-        if (ShowCombatLog) then
-            ShowCombatLog = false
-        else
-            ShowCombatLog = true
-        end
-        for i = 0, iLastCombatLog - 1 do
-            txtCombatLog[i].Active = ShowCombatLog
-        end
-        Game.Redraw = true
-    end
-    if (t.Key == 86) then
+    -- x key
         ClearCombatLog()
+        radarToCombatlog=true
     end
 end
 function events.LeaveMap()
-    -- ClearCombatLog()
+    
 
 end
 function events.ExitMapAction(t)
     -- like exit game, death exit etc
-    -- ClearCombatLog()-- don't clear on death
-
+      if(t.Action == const.ExitMapAction.MainMenu or t.Action == const.ExitMapAction.NewGame or t.Action == const.ExitMapAction.LoadGame) then
+            ClearCombatLog()-- don't clear on death
+        end
 end
 
 function AddCombatLog(msg)
-    SDGAddToOverlayLog(msg)
+     SDGAddToOverlayLog(msg)  --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
     if (ShowCombatLog) then
         local iRow = iLastCombatLog
         if (iRow >= iCombatLogRows) then
@@ -1010,7 +788,7 @@ function AddCombatLog(msg)
     end
 end
 function ClearCombatLog()
-    SDGClearLog()
+    SDGClearLog() --uncomment if OverLay lua and dll are avaialbe and you want the windows overlay log instead of in game log
     iLastCombatLog = 0
     for i = 0, iCombatLogRows - 1 do
         txtCombatLog[i].Text = ""
@@ -1034,5 +812,22 @@ function AddHealToLog(spellName, totHeal, gotCrit, targetId, player)
     end
     -- debug.Message("Adding heal to log %s", spellName)
     AddCombatLog("  <" .. spellName .. ">" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
+
+end
+function AddHealToLogX(spellName, totHeal, gotCrit, targetId)
+
+    -- combat log
+    local healTxt = StrColor(64, 255, 64, round(totHeal))
+    if (gotCrit) then
+        healTxt = healTxt .. StrColor(255, 215, 0, " (crit)")
+    end
+    
+
+    local targetTxt = "<???>"
+    if (targetId >= 0) then
+        targetTxt = StrColor(0, 255, 255, Party[targetId].Name)
+    end
+    -- debug.Message("Adding heal to log %s", spellName)
+    AddCombatLog("  <" .. spellName .. ">" .. " heals " .. targetTxt .. " for " .. healTxt)
 
 end

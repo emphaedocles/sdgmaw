@@ -20,5 +20,10 @@ public:
 	std::string RangedRating;
 	std::string SpellRating;
 	std::string Vitality;
+	std::string MapMeleeDamage;
+	std::string MapRangedDamage;
+	std::string MapHealing;
+	std::string MapTotalDamage;
+
 };
 

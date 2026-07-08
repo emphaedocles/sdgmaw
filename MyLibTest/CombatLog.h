@@ -37,5 +37,12 @@ namespace CombatLog {
 
 	// Close and destroy the window
 	CombatLog_API void Dispose();
-}
+
+	// Post a request to display the current font used by the combat log (shows a line in the log).
+	CombatLog_API void ShowCurrentFont();
+
+	// Set the text of the top text box (ANSI/UTF-8)
+	CombatLog_API void SetTextBox(const char* text);
+
+}	
 

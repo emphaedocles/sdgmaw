@@ -183,8 +183,12 @@ function events.CalcDamageToMonster(t)
 		if ShowDamage then
 			ShowDamage(data.Player, damage, crit, data.Object, t.Monster)
 		end
-		AddDamageToMonText(t.Monster,damage,crit,data.Player,backstabHit or false, backstabMX or 0)
-		backstabHit=false
+		if(g_allowStealth) then
+			AddDamageToMonTextBS(t.Monster,damage,crit,data.Player,backstabHit or false, backstabMX or 0)
+		else
+			AddDamageToMonText(t.Monster,damage,crit,data.Player)
+		end
+		
 	end
 	
 	
@@ -214,6 +218,9 @@ function events.CalcDamageToMonster(t)
 		shoot="hits"
 		kill=""
 		critMessage= ""
+		local plName=t.Player.Name
+		local plDam=math.ceil(t.Result*divide)
+
 		if data.Object then 
 			if data.Object.SpellType>1 and data.Object.SpellType<133 then
 				name=Game.SpellsTxt[data.Object.SpellType].Name
@@ -284,7 +291,8 @@ function events.CalcDamageToMonster(t)
 				Game.ShowStatusText(msg)
 
 				AddCombatLog(clog)
-				
+				SDGAddDPSTracking(plName,plDam)
+
 				if calls>0 then
 					calls=calls-1
 					if t.Result==0 then

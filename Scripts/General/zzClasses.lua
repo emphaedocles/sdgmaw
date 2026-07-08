@@ -285,8 +285,6 @@ function events.CalcDamageToMonster(t)
 		local healTxt = StrColor(64, 255, 64, healValue)
 		local healerTxt=StrColor(255,128,255,pl.Name)
 		local targetTxt = StrColor(0, 255, 255, Party[healTarget].Name)
-		--AddCombatLog("  <Seraph-Strike-Heal>" .. healerTxt .. " heals " .. targetTxt .. " for " .. healTxt)
-
 		 AddHealToLog("Seraph-Strike", healValue,false,healTarget,pl, 4, false)
 
 
@@ -531,7 +529,9 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode then
+				cap=900
+			elseif DoomMapMode() then
 				cap=900
 			end
 			local speedDelay=0.015
@@ -558,8 +558,10 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
 			
@@ -594,8 +596,10 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900	
 			end
 			local speedDelay=0.015
 			if Party.High==0 then
@@ -624,8 +628,10 @@ function events.GameInitialized2()
 			end
 			
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900	
 			end
 			local speedDelay=0.015
 			if Party.High==0 then
@@ -648,8 +654,10 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
 			t.Result=t.Result+bonus
@@ -664,8 +672,10 @@ function events.GameInitialized2()
 				lvl=math.min(pl.LevelBase/2,bolster)
 			end
 			local cap=600
-			if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+			if vars.madnessMode  then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)
 			t.Result=t.Result+bonus
@@ -1066,31 +1076,31 @@ local function shamanSkills(isShaman, id)
 		local m7, bodyMastery=SplitSkill(pl.Skills[const.Skills.Body])
 		local txt
 		local fireDamage=m1/10
-		txt=baseSchoolsTxt[12] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nMelee attacks deal an extra " .. fireDamage .. "% of monster Hit points as fire damage"
+		txt=baseSchoolsTxt[12] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nMelee attacks deal an extra " .. fireDamage .. "% of monster Hit points as fire damage."
 		Skillz.setDesc(12,1,txt)
 		local airReduction=round((1-1/(m2/100+1))*1000)/10
-		txt=baseSchoolsTxt[13] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nReduce all damage taken by " .. airReduction .. "%\n"
+		txt=baseSchoolsTxt[13] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nReduce all damage taken by " .. airReduction .. "%\n"
 		Skillz.setDesc(13,1,txt)
 		local lvl=getPartyLevel(4)
 		
 		local _,_,_,avgRed=getPlayerEstimatedVitality(lvl+1)
 		local waterReduction=round(getMonsterDamage(false,(lvl+1))*(m3/lvl^0.65)/avgRed*0.99^(lvl^0.65)/2) --on average 1/2 of a B monster
 		 --waterReduction=round(getMonsterDamage(false,(lvl+1)^0.325*m3)^0.7)
-		txt=baseSchoolsTxt[14] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nReduce all damage taken by " .. waterReduction .. "(calculated after resistances)\n"
+		txt=baseSchoolsTxt[14] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nReduce all damage taken by " .. waterReduction .. "(calculated after resistances)\n"
 		Skillz.setDesc(14,1,txt)
 		local armsmasterDamage=earthMastery*m4
-		txt=baseSchoolsTxt[15] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nIncreases melee damage 1-2-3-4 (at N-E-M-GM) per Earth Magic Level\n"
+		txt=baseSchoolsTxt[15] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nIncreases melee damage 1-2-3-4 (at N-E-M-GM) per Earth Magic Level\n"
 		Skillz.setDesc(15,1,txt)
 		local spelldh=m5
-		txt=baseSchoolsTxt[16] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nIncreases melee damage by " .. spelldh .. "%\n"
+		txt=baseSchoolsTxt[16] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nIncreases melee damage by " .. spelldh .. "%\n"
 		Skillz.setDesc(16,1,txt)
 		SPLEECH=round(m6^1.25)
-		txt=baseSchoolsTxt[17] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nMelee attacks restore " .. SPLEECH .. " Spell Points\n"
+		txt=baseSchoolsTxt[17] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nMelee attacks restore " .. SPLEECH .. " Spell Points\n"
 		Skillz.setDesc(17,1,txt)
 		local FHP=pl:GetFullHP()
 		local leech=math.max(round(FHP^0.5* m7^1.5/70 * (1+bodyMastery/2)),m7)
-		txt=baseSchoolsTxt[18] .. "\n\nEach Skill point increases total spell damage by 0.5% and healing by 0.25%\nMelee attacks restore " .. leech .. " Hit Points\n"
-		Skillz.setDesc(18,1,txt)
+		txt=baseSchoolsTxt[18] .. "\n\nEvery 7 Skill level adds 1 level into ascension.\nMelee attacks restore " .. leech .. " Hit Points\n"
+Skillz.setDesc(18,1,txt)
 	else
 		for i=12,18 do
 			Skillz.setDesc(i,1,baseSchoolsTxt[i])
@@ -1340,7 +1350,7 @@ end
 DKSpellList={
 	[const.Skills.Water]={26, 27, 29, 32},
 	[const.Skills.Body]={68, 71, 76, 74},
-	[const.Skills.Dark]={91, 90, 96, 97},
+	[const.Skills.Dark]={91, 94, 96, 97},
 }
 
 function events.Action(t)
@@ -2249,7 +2259,6 @@ assassinSpellList={
 
 function events.Action(t)
 	if t.Action==105 and Game.CurrentPlayer>=0 and Game.CurrentPlayer<=Party.High then
-		
 		pl=Party[Game.CurrentPlayer]
 		if table.find(assassinClass, pl.Class) then
 			for i=1,99 do
@@ -2337,3 +2346,14 @@ subtlety - i0.5% chance to dodge an incoming attack
 poison - %HP water damage on energy attack
 assassination - adds flat damage (scaling with weapon skill) on isolated targets on skill (damage decreases depending on the number of targets in the nearby)
 ]]
+function events.BeforeLoadMap()
+	if not vars.LichFix then
+		for i=0, Party.High do
+			local pl=Party[i]
+			if pl.Class==const.Class.Lich and pl.LevelBase==1 then
+				pl.Class=const.Class.Necromancer
+			end
+		end
+		vars.LichFix=true
+	end
+end

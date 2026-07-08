@@ -107,8 +107,6 @@ local hopList = {8, 9, 14, 15}
 --modify Spells
 function events.PlayerCastSpell(t)
 	--refresh everyone before and after casting
-    --AddCombatLog("Casting spell ID: " .. t.SpellId .. " by " .. t.Player.Name)
-
 
 	mawRefresh(t.PlayerIndex)
 	function events.Tick() 
@@ -841,7 +839,7 @@ function doSharedLife(amount, spellQueueData)
 	else
 		Game.ShowStatusText(string.format("Shared Life heals for " .. round(totHeal) .. " Hit points"))
 	end
-	  AddHealToLog("Shared Life", totHeal,gotCrit,-1,t.Player)
+	  AddHealToLog("Shared Life", totHeal,gotCrit,-1,pl)
 
 	--calculate total HP and determine which players can safely participate
 	local fullHPs = {}	
@@ -1151,7 +1149,9 @@ function processAutoTargetHeal(spellId, pl, skillType, soundId, removeConditionF
 	end
 
 	min_index = pickLowestPartyMember()
-	
+	-- combat log
+	  AddHealToLog("Heal", totHeal,gotCrit,min_index,pl)
+
 	-- Calculate overheal
 	local hpBefore = Party[min_index].HP
 	local maxHP = GetMaxHP(Party[min_index])
@@ -2052,6 +2052,16 @@ function ascension(customIndex)
 			s=s/4
 			vars.eleStacks=vars.eleStacks or {}
 			vars.eleStacks[id]=vars.eleStacks[id] or 0
+		end
+		if table.find(shamanClass, pl.Class) then
+			elementalist=true
+			s=0
+			m=4
+			for i=12,18 do
+				local skill = SplitSkill(pl.Skills[i])
+				s=s+skill
+			end
+			s=s/7
 		end
 		-- Apply personality mana cost reduction
 		local personalityReduction = getPersonalityManaCostReduction(pl)

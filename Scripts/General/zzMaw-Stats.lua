@@ -17,8 +17,6 @@ local function ensureDamageTrackIfMapvars()
     if not mapvars then return false end
     mapvars.damageTrack = mapvars.damageTrack or { }
     mapvars.damageTrackRanged = mapvars.damageTrackRanged or { }
-    mapvars.backstabTrack = mapvars.backstabTrack or { }
-    mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
     mapvars.coveredTargetTrack = mapvars.coveredTrack or { }
     mapvars.coveredTrack = mapvars.coveredTrack or { }
     mapvars.retaliationTrack = mapvars.retaliationTrack or { }
@@ -50,8 +48,6 @@ function events.KeyDown(t)
                             local idx = p:GetIndex()
                             mapvars.damageTrack[idx] = 0
                             mapvars.damageTrackRanged[idx] = 0
-                            mapvars.backstabTrack[idx] = 0
-                            mapvars.backstabTrackCount[idx] = 0
                             mapvars.coveredTargetTrack[idx] = 0
                             mapvars.coveredTrack[idx] = 0
                             mapvars.retaliationTrack[idx] = 0
@@ -77,7 +73,7 @@ function getCritInfo(pl, dmgType, monLvl)
     local critDamageMultiplier = 1
 
     local cap = 1000
-    if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+    if vars.madnessMode or DoomMapMode()  then
         cap = 1500
     end
     local diminishingLevel = math.min(100 + monLvl * 1.4, cap)
@@ -585,10 +581,6 @@ function events.BuildStatInformationBox(t)
         -- damage tracker
         vars.damageTrack = vars.damageTrack or { }
         vars.damageTrack[Party[i]:GetIndex()] = vars.damageTrack[Party[i]:GetIndex()] or 0
-        vars.backstabTrack = vars.backstabTrack or { }
-        vars.backstabTrack[Party[i]:GetIndex()] = vars.backstabTrack[Party[i]:GetIndex()] or 0
-        vars.backstabTrackCount = vars.backstabTrackCount or { }
-        vars.backstabTrackCount[Party[i]:GetIndex()] = vars.backstabTrackCount[Party[i]:GetIndex()] or 0
         vars.retaliationTrack = vars.retaliationTrack or { }
         vars.retaliationTrack[Party[i]:GetIndex()] = vars.retaliationTrack[Party[i]:GetIndex()] or 0
         vars.retaliationTrackCount = vars.retaliationTrackCount or { }
@@ -604,9 +596,6 @@ function events.BuildStatInformationBox(t)
         t.Text = string.format("%s\n\nTOTAL DAMAGE RECOUNT\nTotal Damage done: %s", t.Text, StrColor(255, 255, 100, round(damage)))
         local damage = vars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
         t.Text = string.format("%s\nTotal Ranged Damage done: %s", t.Text, StrColor(255, 255, 100, round(damage)))
-        local backstabs = vars.backstabTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
-        local bsCount = vars.backstabTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
-        t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"
         local retaliations = vars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
         local retCount = vars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
         t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
@@ -704,12 +693,6 @@ function events.BuildStatInformationBox(t)
         mapvars.damageTrackRanged = mapvars.damageTrackRanged or { }
         mapvars.damageTrackRanged[Party[i]:GetIndex()] = mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
 
-        mapvars.backstabTrack = mapvars.backstabTrack or { }
-        mapvars.backstabTrack[idx] = mapvars.backstabTrack[idx] or 0
-
-        mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
-        mapvars.backstabTrackCount[idx] = mapvars.backstabTrackCount[idx] or 0
-
         mapvars.damageTrack = mapvars.damageTrack or { }
         mapvars.damageTrack[Party[i]:GetIndex()] = mapvars.damageTrack[Party[i]:GetIndex()] or 0
 
@@ -727,9 +710,6 @@ function events.BuildStatInformationBox(t)
         t.Text = string.format("%s\n\nCURRENT MAP DAMAGE RECOUNT\nMelee Damage done in current map: %s", t.Text, StrColor(255, 255, 100, round(damage)))
         local damage = mapvars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
         t.Text = string.format("%s\nRanged Damage done in current map: %s", t.Text, StrColor(255, 255, 100, round(damage)))
-        local backstabs = mapvars.backstabTrack[idx] or 0
-        local bsCount = mapvars.backstabTrackCount[idx] or 0
-        t.Text = string.format("%s\nTotal Backstab Damage done: %s", t.Text, StrColor(255, 100, 255, round(backstabs))) .. "(" .. StrColor(100, 255, 100, bsCount) .. " hits)"
         local retaliations = mapvars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
         local retCount = mapvars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
         t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
@@ -847,6 +827,20 @@ function events.CalcDamageToMonster(t)
     if t.Monster.SpellBuffs[19].ExpireTime >= Game.Time then
         painReflectionHit = true
     end
+end
+
+--mistform
+function events.PlayerAttacked(t)
+	if restoringMistformTime then return end
+	restoringMistformTime=true
+	local pl=t.Player
+	lastMistformTime=pl.SpellBuffs[26].ExpireTime
+	pl.SpellBuffs[26].ExpireTime=0
+	function events.Tick()
+		events.Remove("Tick",1)
+		pl.SpellBuffs[26].ExpireTime=lastMistformTime
+		restoringMistformTime=false
+	end
 end
 
 
@@ -995,7 +989,7 @@ function events.CalcDamageToPlayer(t)
 
     if t.Damage == 0 and t.Result == 0 then return end
 
-    if t.DamageKind == 4 and pl.SpellBuffs[26].ExpireTime > Game.Time then
+	if t.DamageKind==4 and restoringMistformTime then --mistform 
         -- mistform
         t.Damage = t.Damage * 0.25
     end
@@ -1063,7 +1057,9 @@ function events.CalcDamageToPlayer(t)
         if (data.Monster) then
             monName = Game.MonstersTxt[data.Monster.Id].Name
         end
+
         AddCombatLog( monName .. " damaged " .. t.Player.Name .. " " .. StrColor(255, 0, 0, shortenNumber(t.Result, 4, true)))
+
     end
 end
 
@@ -1177,7 +1173,8 @@ damageKindMap = {
     [10] = const.Damage.Dark,
 }
 function events.CalcDamageToMonster(t)
-	backStabHit=false
+		backStabHit=false
+
 
 	local data=WhoHitMonster()
 	if data and data.Player and data.Spell then
@@ -1299,68 +1296,10 @@ function events.CalcDamageToMonster(t)
 
 			Game.ShowStatusText(StrColor(255, 100, 100,pl.Name .. " Retaliation dealt " .. round(totalRetDamage) .. " damage to " .. t.Monster.NameId))
 		end
-		backstabHit=false
-		backstabMX=0
-		--backstab code
-		 if vars.backstab and vars.backstab[id]  then
-				local pl=t.Player
-				local s,m=SplitSkill(Skillz.get(pl,54))
-				local stacks=vars.backstab[id].Stacks
-
-			if(stacks>0) then
-				if(m<2) then
-					stacks=1
-				end
-				--	pl:ShowFaceAnimation(2)
-
-					
-				local damMult =1
-				 if m==2 then damMult=1.5
-				 elseif m==3 then damMult=2
-				  elseif m==4 then damMult=3
-				end
-
-				local totalBackstabDamage=0-- (damage* (m-1))
-				if damMult >0 then
-					t.Result=t.Result*damMult -- t.Result+totalRetDamage
-					totalBackstabDamage=t.Result			
-					bsDamTick = bsDamTick or {}
-					bsDamTick[id] = bsDamTick[id] or 0
-					bsDamTick[id] = bsDamTicksStart or 100
-					local r=2^(res/100)--adjust for res
-					totalBackstabDamage = totalBackstabDamage / r
-					backstabHit=true
-					backstabMX=damMult
-				end
-				
-					vars.backstab[id]["Time"]=  Game.Time
-					vars.backstab[id].Damage = totalBackstabDamage
-				  mapvars.backstabTrack=mapvars.backstabTrack or {}
-				  mapvars.backstabTrackCount = mapvars.backstabTrackCount or { }
-				vars.backstabTrack = vars.backstabTrack or { }	
-				vars.backstabTrackCount = vars.backstabTrackCount or { }
-
-				vars.backstabTrack[id]=vars.backstabTrack[id] or 0
-				vars.backstabTrack[id] = vars.backstabTrack[id] + totalBackstabDamage
-				mapvars.backstabTrack[id]=mapvars.backstabTrack[id] or 0
-				mapvars.backstabTrack[id] = mapvars.backstabTrack[id] + totalBackstabDamage
-			
-				vars.backstabTrackCount[id] = vars.backstabTrackCount[id] or 0
-				vars.backstabTrackCount[id] = vars.backstabTrackCount[id] + 1
-				mapvars.backstabTrackCount[id] = mapvars.backstabTrackCount[id] or 0
-				mapvars.backstabTrackCount[id] = mapvars.backstabTrackCount[id] + 1
-
-				vars.backstab[id].Stacks =math.max( stacks - 1,0)
-				
-			else
-				vars.backstab[id]["Time"]=  Game.Time
-				vars.backstab[id].Damage = 0
-			end
-			
+		if(g_allowStealth ) then
+		   t.Result=StealthBackstabDamage(t,res)
 		end
-
 	end
-	
 	res=2^(res/100)
 	t.Result = t.Result / res
 end
@@ -1872,7 +1811,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	local baseScaling=3
 	local endScaling=9
 	local maxPromotionLevel=250
-	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	if vars.madnessMode or DoomMapMode() then
 		maxPromotionLevel=500
 	end
 	local scalingHP=math.min((endScaling-baseScaling)*lvl/maxPromotionLevel,endScaling-baseScaling)+baseScaling
@@ -1896,7 +1835,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	end
 	
 	local levelCap=700
-	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	if vars.madnessMode or DoomMapMode()  then
 		levelCap=1050
 	end
 	local levelMult=math.min(lvl/levelCap,1)
@@ -1913,7 +1852,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
-	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	elseif DoomMapMode() then
 		masterLearned = 16
 	end
 	local bbMasteryBonus=math.min(1+skill/masterLearned*2,3) --use master as a reference
@@ -2042,7 +1981,7 @@ function getPlayerEstimatedPower(lvl)
 		masterLearned=30
 	elseif vars.insanityMode then
 		masterLearned=20
-	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	elseif DoomMapMode() then
 		masterLearned = 16
 	end
 	local armsMasterDamage=math.min(0.5+skill/masterLearned,2) --use gm as a reference
@@ -2072,7 +2011,7 @@ function getPlayerEstimatedPower(lvl)
 	local accuracy=might
 	
 	local diminishingLevel=math.min(100+lvl*1.4,1000)
-	if vars.madnessMode or (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	if vars.madnessMode  then
 		diminishingLevel=math.min(100+lvl*1.4,1500)
 	end
 	local critChance=0.05+(luck/math.min(500+lvl*7.5,5000))+0.1*math.min(lvl/300,1) --assume crit enchant at lvl 500
@@ -2164,9 +2103,6 @@ function GetDensityMultiplier(id)
 	elseif vars.insanityMode then
 		density=5
 		divisor=14*2
-	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
-		density=6
-		divisor = 12 * 2
 	elseif vars.Mode==2 then
 		density=4
 		divisor=18*2
@@ -2223,8 +2159,8 @@ function getBodyHealing(lvl, spellId, mastery)
 		masteries={0,12,30,50}
 	elseif vars.insanityMode then
 		masteries={0,8,20,32}
-	elseif(vars.Mode == 2 and vars.UseDoomMapLevels)then
-		masteries = { 0, 8, 16, 24 }
+	elseif DoomMapMode() then
+		masteries = { 0, 6, 16, 24 }
 	end
 
 	if not mastery then
@@ -2366,7 +2302,7 @@ function masteryThresholds()
 	  return {0, 12, 30, 50}
 	elseif vars.insanityMode then
 	  return {0, 8, 20, 32}
-	elseif (vars.Mode == 2 and vars.UseDoomMapLevels) then
+	elseif DoomMapMode() then
 		return { 0, 8, 16, 24 }
 	else
 	  return {0, 4, 7, 10}
@@ -2377,7 +2313,7 @@ function GetDifficulty()
 	local difficulty=3 --baseline
 	if vars.madnessMode then
 		difficulty=9
-	elseif vars.insanityMode then
+	elseif vars.insanityMode or DoomMapMode() then
 		difficulty=8
 	elseif vars.Mode==2 then
 		difficulty=7

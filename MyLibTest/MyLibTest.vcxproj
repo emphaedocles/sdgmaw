@@ -158,17 +158,27 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CharacterDetails.h" />
+    <ClInclude Include="CharacterDpsUI.h" />
     <ClInclude Include="CharacterStatsGdi.h" />
     <ClInclude Include="CharacterStatsUI.h" />
+    <ClInclude Include="DPSTrack.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="FullScreenOverlay.h" />
+    <ClInclude Include="MobRadar.h" />
+    <ClInclude Include="MyUtil.h" />
     <ClInclude Include="sdgmawix.h" />
     <ClInclude Include="CombatLog.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="TestCanvas.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CharacterDetails.cpp" />
+    <ClCompile Include="CharacterDpsUI.cpp" />
     <ClCompile Include="CharacterStatsGdi.cpp" />
     <ClCompile Include="CharacterStatsUI.cpp" />
+    <ClCompile Include="DPSTrack.cpp" />
+    <ClCompile Include="FullScreenOverlay.cpp" />
+    <ClCompile Include="MobRadar.cpp" />
     <ClCompile Include="sdgmawix.cpp" />
     <ClCompile Include="CombatLog.cpp" />
     <ClCompile Include="pch.cpp">
@@ -177,6 +187,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TestCanvas.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".github\copilot-instructions.md" />

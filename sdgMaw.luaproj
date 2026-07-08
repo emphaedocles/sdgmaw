@@ -31,21 +31,26 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\Tables\Class Skillz.txt" />
-    <Compile Include="Scripts\General\ExtraQuickSpells.lua" />
     <Compile Include="Scripts\General\MenuChooseCharacter.lua" />
     <Compile Include="Scripts\General\MenuChooseContinent.lua" />
     <Compile Include="Scripts\General\MenuExtraSettings.lua" />
-    <Compile Include="Scripts\General\sdgDoomMap.lua">
+    <Compile Include="Scripts\General\sdgDoomMap.lua" />
+    <Compile Include="Scripts\General\sdgMawCombatLog.lua">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Scripts\General\sdgMawOverlay.lua">
+    <Compile Include="Scripts\General\sdgMawOverlay.lua" />
+    <Compile Include="Scripts\General\sdgMAWSkills.lua">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Scripts\General\zzMaw-Items.lua" />
+    <Compile Include="Scripts\General\zzMaw-Maps.lua" />
     <Compile Include="Scripts\General\zzMaw-Spells.lua" />
-    <Content Include="Scripts\General\sdgMaw_Skills.lua">
-      <Publish>True</Publish>
-    </Content>
+    <Compile Include="Scripts\General\zzzSDGMawClass.lua">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Scripts\General\zzzSDGMawSpells.lua">
+      <SubType>Code</SubType>
+    </Compile>
     <Content Include="Scripts\General\zzClasses.lua">
       <Publish>True</Publish>
     </Content>
