@@ -839,7 +839,7 @@ function doSharedLife(amount, spellQueueData)
 	else
 		Game.ShowStatusText(string.format("Shared Life heals for " .. round(totHeal) .. " Hit points"))
 	end
-	  AddHealToLog("Shared Life", totHeal,gotCrit,-1,t.Player)
+	  AddHealToLog("Shared Life", totHeal,gotCrit,-1,pl)
 
 	--calculate total HP and determine which players can safely participate
 	local fullHPs = {}	
@@ -2052,6 +2052,16 @@ function ascension(customIndex)
 			s=s/4
 			vars.eleStacks=vars.eleStacks or {}
 			vars.eleStacks[id]=vars.eleStacks[id] or 0
+		end
+		if table.find(shamanClass, pl.Class) then
+			elementalist=true
+			s=0
+			m=4
+			for i=12,18 do
+				local skill = SplitSkill(pl.Skills[i])
+				s=s+skill
+			end
+			s=s/7
 		end
 		-- Apply personality mana cost reduction
 		local personalityReduction = getPersonalityManaCostReduction(pl)

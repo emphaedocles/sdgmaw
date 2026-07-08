@@ -18,7 +18,7 @@ public:
 
 	// Add or update an entity position. `id` is unique per entity. `x,y` are normalized [0..1].
 	// `label` is optional (UTF-8). Safe to call from any thread.
-	static void AddEntity(int id, float x, float y, int tier);
+	static void AddEntity(int id, float x, float y,float z, int tier, int hidden);
 
 	// Remove an entity by id.
 	static void RemoveEntity(int id);
@@ -32,5 +32,6 @@ public:
 	static HWND GetHwnd();
 	static void SetMaxRange(float range);
 	static void SetMapCompletion(float mu);
-	
+	static void SetVisible(bool visible);
+	static bool IsVisible();
 };

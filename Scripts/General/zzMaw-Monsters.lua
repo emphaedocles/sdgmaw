@@ -719,7 +719,7 @@ function recalculateMonsterTable()
             local baseLevel = doomMapLevels[name] or 0
             local withinMapDifference =(baseMapLevel - mean) * 2
             local tierModifier =(base.Level - LevelB) * 2
-            local level = baseLevel + withinMapDifference + tierModifier
+            local level = baseLevel + withinMapDifference + tierModifier + bonus
             totalLevel[i] = math.max(level, 5)
             mon.Level = math.min(totalLevel[i], 255)
         end

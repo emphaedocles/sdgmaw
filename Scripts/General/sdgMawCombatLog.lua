@@ -498,7 +498,7 @@ function events.AfterLoadMap()
     end
         local name = Game.MapStats[Map.MapStatsIndex].Name
         AddCombatLog("Entered Map : " .. name)
-        AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month, Game.DayOfMonth, Game.Hour, Game.Minute))
+        AddCombatLog(string.format("Timestamp: %s-%02d-%02d %02d:%02d", Game.Year, Game.Month+1, Game.DayOfMonth+1, Game.Hour, Game.Minute))
 
 end
 
@@ -740,21 +740,22 @@ end
 function events.KeyUp(t)
     if (Game.CurrentScreen ~= 0) then return end
 
+--    if (t.Key == 88) then
+--        -- X key
+--        if (ShowCombatLog) then
+--            ShowCombatLog = false
+--        else
+--            ShowCombatLog = true
+--        end
+--        for i = 0, iLastCombatLog - 1 do
+--            txtCombatLog[i].Active = ShowCombatLog
+--        end
+--        Game.Redraw = true
+--    end
     if (t.Key == 88) then
-        -- X key
-        if (ShowCombatLog) then
-            ShowCombatLog = false
-        else
-            ShowCombatLog = true
-        end
-        for i = 0, iLastCombatLog - 1 do
-            txtCombatLog[i].Active = ShowCombatLog
-        end
-        Game.Redraw = true
-    end
-    if (t.Key == 86) then
-    -- V key
+    -- x key
         ClearCombatLog()
+        radarToCombatlog=true
     end
 end
 function events.LeaveMap()

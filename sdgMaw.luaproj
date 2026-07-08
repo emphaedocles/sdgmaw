@@ -42,7 +42,12 @@
     <Compile Include="Scripts\General\sdgMAWSkills.lua">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Scripts\General\zzMaw-Items.lua" />
+    <Compile Include="Scripts\General\zzMaw-Maps.lua" />
     <Compile Include="Scripts\General\zzMaw-Spells.lua" />
+    <Compile Include="Scripts\General\zzzSDGMawClass.lua">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Scripts\General\zzzSDGMawSpells.lua">
       <SubType>Code</SubType>
     </Compile>

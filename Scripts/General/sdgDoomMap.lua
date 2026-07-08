@@ -93,6 +93,7 @@ local mm7MapProgression = {
     ["Evenmorn Island"] = 19,
     ["The Bracada Desert"] = 20,
     ["The Red Dwarf Mines"] = 21,
+    ["Lord Markham's Manor"] = 21,
     ["Tatalia"] = 22,
     ["Grand Temple of the Sun"] = 23,
     ["Grand Temple of the Moon"] = 24,
@@ -100,7 +101,6 @@ local mm7MapProgression = {
     ["The Tularean Caves"] = 26,
     ["Fort Riverstride"] = 26,
     ["Nighon Tunnels"] = 27,
-    ["Lord Markham's Manor"] = 28,
     ["Wromthrax's Cave"] = 29,
     ["The Hall of the Pit"] = 30,
     ["The Breeding Zone"] = 31,
@@ -245,7 +245,7 @@ function events.AfterLoadMap()
         
 
         AddCombatLog(StrColor(32, 64, 255, "Doom Map Level set to ") .. StrColor(0, 255, 0, bolsterLevel))
-
+        SetCurrentMapLevel(name, bolsterLevel)
 
     end
 end

@@ -20,11 +20,13 @@
 static std::atomic<HWND> g_hWnd{ nullptr };
 static HWND g_hRichEdit = nullptr;
 static HWND g_hStatus = nullptr;
+static HWND g_hTextBox = nullptr;  // new: single-line text box at top
 static HFONT g_hFont = nullptr;
 static HBRUSH g_hBgBrush = nullptr;
+static HBRUSH g_hTextBoxBgBrush = nullptr;  // brush for textbox background
 static HANDLE g_hThread = nullptr;
 static DWORD g_threadId = 0;
-static std::atomic<int> g_maxLines{ 200 }; // keep last N lines (default 100)
+static std::atomic<int> g_maxLines{ 1000 }; // keep last N lines (default 100)
 
 // When true the implementation will try to re-attach input and force-focus the RichEdit
 // WARNING: this actively steals focus from other apps/windows. Keep false for polite behavior.
@@ -36,10 +38,12 @@ static const UINT WM_CLEAR_TEXT = WM_USER + 3;
 static const UINT WM_SCROLL_TO_END = WM_USER + 4;
 static const UINT WM_SET_STATUS = WM_USER + 5; // wParam = index (0..2), lParam = wchar_t* (owned by handler)
 static const UINT WM_SHOW_FONT = WM_USER + 6;  // request: UI thread will append current font info to the log
+static const UINT WM_SET_TEXTBOX = WM_USER + 7; // new: set text box content; lParam = wchar_t* (owned by handler)
 
 // highlight colors (adjust as desired)
 static const COLORREF HIGHLIGHT_COLOR = RGB(64, 64, 64);   // highlight background for trailing space
 static const COLORREF CONTROL_BKG_COLOR = RGB(32, 32, 32); // control default background
+static const COLORREF TEXTBOX_TEXT_COLOR = RGB(0, 255, 0); // lime green for textbox text
 
 // track previous highlighted range (UI thread only)
 static LONG g_prevHighlightStart = 0;
@@ -208,7 +212,7 @@ struct AppendColorData {
     COLORREF color;
 };
 
-// ----- Window procedure & UI thread (updated to include status bar) -----
+// ----- Window procedure & UI thread (updated to include text box + status bar) -----
 static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -226,21 +230,26 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         RECT rc;
         GetClientRect(hwnd, &rc);
 
+        HINSTANCE hInst = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
+
+        // Create single-line text box at top (ES_READONLY so user can't edit; remove if you want editable)
+        g_hTextBox = CreateWindowExW(0, L"EDIT", L"",
+            WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_READONLY | WS_BORDER,
+            0, 0, rc.right - rc.left, 24, hwnd, nullptr, hInst, nullptr);
+
         // create the rich edit control sized to client (we will layout properly on WM_SIZE)
         g_hRichEdit = CreateWindowExW(0, MSFTEDIT_CLASS, L"",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL,
-            0, 0, rc.right - rc.left, rc.bottom - rc.top, hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+            0, 24, rc.right - rc.left, rc.bottom - rc.top-24, hwnd, nullptr, hInst, nullptr);
         if (g_hRichEdit) {
             // keep selection visually highlighted even when control/window loses focus
-            // EM_HIDESELECTION: wParam = FALSE => selection remains visible when control loses focus
             SendMessageW(g_hRichEdit, EM_HIDESELECTION, FALSE, 0);
 
-            // Create 14pt font for the rich edit control
+            // Create 12pt font for the rich edit control
             HDC hdc = GetDC(nullptr);
             int dpiY = GetDeviceCaps(hdc, LOGPIXELSY);
             ReleaseDC(nullptr, hdc);
             int lfHeight = -MulDiv(12, dpiY, 72); // 12 pt
-            // Use Segoe UI if available, fall back to default GUI font family
             g_hFont = CreateFontW(lfHeight, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
                 DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
                 VARIABLE_PITCH, L"Segoe UI");
@@ -267,36 +276,64 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             SetClassLongPtrW(g_hRichEdit, GCLP_HBRBACKGROUND, (LONG_PTR)g_hBgBrush);
         }
 
+        // Create brush for textbox background
+        g_hTextBoxBgBrush = CreateSolidBrush(CONTROL_BKG_COLOR);
+
+        // Set font for text box as well
+        if (g_hTextBox && g_hFont) {
+            SendMessageW(g_hTextBox, WM_SETFONT, (WPARAM)g_hFont, MAKELPARAM(TRUE, 0));
+			// Set class background brush for text box
+			SetClassLongPtrW(g_hTextBox, GCLP_HBRBACKGROUND, (LONG_PTR)g_hTextBoxBgBrush);
+        }
+
         // Create status bar (3 parts)
         g_hStatus = CreateWindowExW(0, STATUSCLASSNAMEW, nullptr,
             WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP,
-            0, 0, 0, 0, hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+            0, 0, 0, 0, hwnd, nullptr, hInst, nullptr);
 
         // initial empty texts
         if (g_hStatus) {
-            // will set parts properly on WM_SIZE
             SendMessageW(g_hStatus, SB_SETTEXTW, 0, (LPARAM)L"");
             SendMessageW(g_hStatus, SB_SETTEXTW, 1, (LPARAM)L"");
             SendMessageW(g_hStatus, SB_SETTEXTW, 2, (LPARAM)L"");
         }
     }
     return 0;
+
+    case WM_CTLCOLOREDIT:
+    {
+        // Handle textbox colors
+        HDC hdcEdit = (HDC)wParam;
+        HWND hEdit = (HWND)lParam;
+        if (hEdit == g_hTextBox) {
+            SetTextColor(hdcEdit, TEXTBOX_TEXT_COLOR);  // lime green text
+            SetBkColor(hdcEdit, CONTROL_BKG_COLOR);     // dark grey background
+            return (LRESULT)g_hTextBoxBgBrush;
+        }
+        break;
+    }
+
     case WM_SIZE:
     {
         int cx = LOWORD(lParam);
         int cy = HIWORD(lParam);
 
+        const int textBoxHeight = 24;
+        int currentY = 0;
+
+        // Position text box at top
+        if (g_hTextBox) {
+            MoveWindow(g_hTextBox, 0, currentY, cx, textBoxHeight, TRUE);
+            currentY += textBoxHeight;
+        }
+
         // Resize status bar first so it can compute its height
+        int statusHeight = 0;
         if (g_hStatus) {
             SendMessageW(g_hStatus, WM_SIZE, 0, 0);
-            // get status rect in screen coords then convert to client to get height
             RECT srect;
             GetWindowRect(g_hStatus, &srect);
-            // convert to client coords
-            POINT p = { srect.left, srect.top };
-            ScreenToClient(hwnd, &p);
-            int statusTop = p.y;
-            int statusHeight = srect.bottom - srect.top;
+            statusHeight = srect.bottom - srect.top;
             // Set parts equally (thirds)
             int part1 = cx / 3;
             int part2 = (cx * 2) / 3;
@@ -304,14 +341,13 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
             SendMessageW(g_hStatus, SB_SETPARTS, 3, (LPARAM)parts);
             // Move status to bottom
             MoveWindow(g_hStatus, 0, cy - statusHeight, cx, statusHeight, TRUE);
-            // Move rich edit to occupy remaining area
-            if (g_hRichEdit) {
-                MoveWindow(g_hRichEdit, 0, 0, cx, cy - statusHeight, TRUE);
-            }
-        } else {
-            if (g_hRichEdit) {
-                MoveWindow(g_hRichEdit, 0, 0, cx, cy, TRUE);
-            }
+        }
+
+        // Move rich edit to occupy remaining area (between text box and status bar)
+        if (g_hRichEdit) {
+            int richHeight = cy - currentY - statusHeight;
+            if (richHeight < 0) richHeight = 0;
+            MoveWindow(g_hRichEdit, 0, currentY, cx, richHeight, TRUE);
         }
     }
     return 0;
@@ -335,7 +371,6 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
     case WM_CLEAR_TEXT:
     {
         if (g_hRichEdit) {
-            // Clear all text in the control and ensure caret is at start
             SetWindowTextW(g_hRichEdit, L"");
             SendMessageW(g_hRichEdit, EM_SETSEL, 0, 0);
             SendMessageW(g_hRichEdit, EM_SCROLLCARET, 0, 0);
@@ -365,14 +400,25 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         if (idx > 2) idx = 2;
         wchar_t* wtxt = reinterpret_cast<wchar_t*>(lParam);
         if (!wtxt) return 0;
-        // SB_SETTEXT: wParam is (part index) for simple usage
         SendMessageW(g_hStatus, SB_SETTEXTW, (WPARAM)idx, (LPARAM)wtxt);
+        delete[] wtxt;
+    }
+    return 0;
+    case WM_SET_TEXTBOX:
+    {
+        if (!g_hTextBox) {
+            wchar_t* tmp = reinterpret_cast<wchar_t*>(lParam);
+            delete[] tmp;
+            return 0;
+        }
+        wchar_t* wtxt = reinterpret_cast<wchar_t*>(lParam);
+        if (!wtxt) return 0;
+        SetWindowTextW(g_hTextBox, wtxt);
         delete[] wtxt;
     }
     return 0;
     case WM_SHOW_FONT:
     {
-        // Build a human-readable description of the current font and append to the log.
         HFONT font = g_hFont ? g_hFont : (HFONT)GetStockObject(DEFAULT_GUI_FONT);
         LOGFONTW lf;
         std::wostringstream ss;
@@ -397,18 +443,21 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         DestroyWindow(hwnd);
         return 0;
     case WM_DESTROY:
-        // cleanup created GDI objects
         if (g_hFont && g_hFont != (HFONT)GetStockObject(DEFAULT_GUI_FONT)) {
             DeleteObject(g_hFont);
             g_hFont = nullptr;
         }
         if (g_hBgBrush) {
-            // Reset background brush to default to avoid double free if class reused
             SetClassLongPtrW(g_hRichEdit, GCLP_HBRBACKGROUND, 0);
             DeleteObject(g_hBgBrush);
             g_hBgBrush = nullptr;
         }
+        if (g_hTextBoxBgBrush) {
+            DeleteObject(g_hTextBoxBgBrush);
+            g_hTextBoxBgBrush = nullptr;
+        }
         g_hRichEdit = nullptr;
+        g_hTextBox = nullptr;
         g_hStatus = nullptr;
         g_hWnd = nullptr;
         PostQuitMessage(0);
@@ -428,7 +477,6 @@ static DWORD WINAPI UiThreadProc(LPVOID lp)
     wc.lpszClassName = L"MyRichWindowClass";
     RegisterClassExW(&wc);
 
-    // width = 600, height = 600 (example); adjust in CreateWindowExW parameters as needed
     HWND hwnd = CreateWindowExW(WS_EX_APPWINDOW, wc.lpszClassName, L"SDG MAW Overlay",
         WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, 700, 600,
@@ -549,26 +597,21 @@ namespace CombatLog {
         PostMessageW(hwnd, WM_APPEND_TEXT_COLOR, 0, (LPARAM)data);
     }
 
-    // New: parse embedded color tokens and append segments with parsed colors.
-    // Token format: form-feed (0x0C, '\f') followed by EXACTLY 5 decimal digits.
-    // The 5-digit decimal is parsed as a 16-bit RGB value (RGB565). It will be expanded to 24-bit color.
     void AddTextColorE(const char* text)
     {
         if (!text) return;
 
         const char* p = text;
         const char* segStart = p;
-        COLORREF currentColor = RGB(255, 255, 255); // default white
+        COLORREF currentColor = RGB(255, 255, 255);
 
         while (*p) {
-            if (*p == '\f') { // form-feed token start
-                // flush segment before token
+            if (*p == '\f') {
                 if (p > segStart) {
                     std::string seg(segStart, p - segStart);
                     if (!seg.empty()) AddTextColor(seg.c_str(), currentColor);
                 }
 
-                // check that there are exactly 5 digits following
                 const char* d = p + 1;
                 bool ok = true;
                 for (int i = 0; i < 5; ++i) {
@@ -576,37 +619,30 @@ namespace CombatLog {
                 }
 
                 if (!ok) {
-                    // not a valid token: treat the form-feed as literal text
                     AddTextColor("\f", currentColor);
-                    p = p + 1; // advance past the form-feed
+                    p = p + 1;
                     segStart = p;
                     continue;
                 }
 
-                // parse exactly 5 decimal digits into a value (expected 0..65535)
                 unsigned int val = 0;
                 for (int i = 0; i < 5; ++i) {
                     val = val * 10u + (unsigned int)(d[i] - '0');
                 }
 
-                // clamp to 16-bit range
                 val &= 0xFFFFu;
 
-                // advance p past token (form-feed + 5 digits)
                 p = d + 5;
                 segStart = p;
 
-                // Interpret val as 16-bit RGB (RGB565): R=5 bits, G=6 bits, B=5 bits
                 unsigned int r5 = (val >> 11) & 0x1F;
                 unsigned int g6 = (val >> 5) & 0x3F;
                 unsigned int b5 = val & 0x1F;
 
-                // Expand to 8-bit channels by bit replication
-                unsigned int r8 = (r5 << 3) | (r5 >> 2); // 5->8
-                unsigned int g8 = (g6 << 2) | (g6 >> 4); // 6->8
-                unsigned int b8 = (b5 << 3) | (b5 >> 2); // 5->8
+                unsigned int r8 = (r5 << 3) | (r5 >> 2);
+                unsigned int g8 = (g6 << 2) | (g6 >> 4);
+                unsigned int b8 = (b5 << 3) | (b5 >> 2);
 				if (r8 < 32 && g8 < 32 && b8 < 32) {
-                    // avoid too-dark colors: boost to minimum brightness
                     r8 = 255;
                     g8 = 255;
                     b8 = 255;
@@ -620,7 +656,6 @@ namespace CombatLog {
             }
         }
 
-        // flush final segment
         if (p > segStart) {
             std::string seg(segStart, p - segStart);
             if (!seg.empty()) AddTextColor(seg.c_str(), currentColor);
@@ -639,7 +674,6 @@ namespace CombatLog {
         HWND hwnd = g_hWnd.load();
         if (!hwnd) return;
 
-        // If caller is already the UI thread, operate directly.
         if (GetCurrentThreadId() == g_threadId) {
             if (g_hRichEdit) {
                 int len = (int)SendMessageW(g_hRichEdit, WM_GETTEXTLENGTH, 0, 0);
@@ -649,8 +683,6 @@ namespace CombatLog {
             return;
         }
 
-        // Synchronously deliver the scroll request to the UI thread to ensure it
-        // is processed after any previously queued PostMessage append operations.
         SendMessageW(hwnd, WM_SCROLL_TO_END, 0, 0);
     }
 
@@ -659,7 +691,6 @@ namespace CombatLog {
         if (maxLines < 1) maxLines = 1;
         g_maxLines.store(maxLines);
 
-        // If UI exists, trim immediately on UI thread so we don't exceed the new limit.
         HWND hwnd = g_hWnd.load();
         if (!hwnd) return;
 
@@ -667,7 +698,6 @@ namespace CombatLog {
             TrimLinesIfNeeded(g_hRichEdit);
         }
         else {
-            // synchronously ensure trim runs on UI thread
             SendMessageW(hwnd, WM_SCROLL_TO_END, 0, 0);
         }
     }
@@ -680,8 +710,16 @@ namespace CombatLog {
         if (index > 2) index = 2;
         wchar_t* wtxt = ToWideAlloc(text ? text : "");
         if (!wtxt) return;
-        // Post to UI thread; handler will delete wtxt
         PostMessageW(hwnd, WM_SET_STATUS, (WPARAM)index, (LPARAM)wtxt);
+    }
+
+    void SetTextBox(const char* text)
+    {
+        HWND hwnd = g_hWnd.load();
+        if (!hwnd) return;
+        wchar_t* wtxt = ToWideAlloc(text ? text : "");
+        if (!wtxt) return;
+        PostMessageW(hwnd, WM_SET_TEXTBOX, 0, (LPARAM)wtxt);
     }
 
     void ShowCurrentFont()

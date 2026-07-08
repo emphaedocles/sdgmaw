@@ -163,6 +163,7 @@
     <ClInclude Include="CharacterStatsUI.h" />
     <ClInclude Include="DPSTrack.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="FullScreenOverlay.h" />
     <ClInclude Include="MobRadar.h" />
     <ClInclude Include="MyUtil.h" />
     <ClInclude Include="sdgmawix.h" />
@@ -176,6 +177,7 @@
     <ClCompile Include="CharacterStatsGdi.cpp" />
     <ClCompile Include="CharacterStatsUI.cpp" />
     <ClCompile Include="DPSTrack.cpp" />
+    <ClCompile Include="FullScreenOverlay.cpp" />
     <ClCompile Include="MobRadar.cpp" />
     <ClCompile Include="sdgmawix.cpp" />
     <ClCompile Include="CombatLog.cpp" />

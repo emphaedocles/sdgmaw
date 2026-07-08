@@ -158,6 +158,11 @@ static int lua_ShowRadar(lua_State* L)
 	MobRadar::Show("SDG Maw Radar");
 	return 0;
 }
+static int lua_CloseRadar(lua_State* L)
+{
+	MobRadar::Close();
+	return 0;
+}
 static int lua_ClearRadar(lua_State* L)
 {
 	MobRadar::ClearEntities();
@@ -168,8 +173,10 @@ static int lua_AddRadarEntity(lua_State* L)
 	int id = (int)luaL_optinteger(L, 1, 0);
 	float x = (float)luaL_optnumber(L, 2, 0);
 	float y = (float)luaL_optnumber(L, 3, 0);
-	int tier = (int)luaL_optinteger(L, 4,1);
-	MobRadar::AddEntity(id, x, y, tier);
+	float z = (float)luaL_optnumber(L, 4, 0);
+	int tier = (int)luaL_optinteger(L, 5,1);
+	int hidden = (int)luaL_optinteger(L, 6, 0);
+	MobRadar::AddEntity(id, x, y,z, tier,hidden);
 	return 0;
 }
 static int lua_SetRadarRange(lua_State* L)
@@ -197,6 +204,20 @@ static int lua_SetMapMu(lua_State* L)
 	MobRadar::SetMapCompletion(mu);
 	return 0;
 }
+static int lua_SetRadarVisible(lua_State* L)
+{
+	int vv= luaL_optinteger(L, 1, 1);
+
+	bool v = false;
+	if (vv == 1) v = true;
+	MobRadar::SetVisible(v);
+	return 0;
+}
+static int lua_CLTitle(lua_State* L)
+{
+	std::string name = luaL_optstring(L, 1, "");
+	CombatLog::SetTextBox(name.c_str());
+}
 // Register functions
 static const luaL_Reg sdgmawix_funcs[] = {
 	{"addtext",lua_AddText},
@@ -218,6 +239,9 @@ static const luaL_Reg sdgmawix_funcs[] = {
 	{"removeradarentity",lua_RemoveRadarEntity},
 	{"setpartydir",lua_RadarPartyFacing},
 	{"setmapmu",lua_SetMapMu},
+	{"setradarvisible",lua_SetRadarVisible},
+	{"closeradar",lua_CloseRadar},
+	{"clsettitle",lua_CLTitle},
 	{NULL, NULL}
 };
 // Entry point for Lua 5.1
