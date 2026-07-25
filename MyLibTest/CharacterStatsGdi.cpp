@@ -85,6 +85,7 @@ void CharacterStatsGdi::Destroy()
 {
 	if (hwnd_)
 	{
+		KillTimer(hwnd_, flashTimerId_);
 		// Clear user data so window proc won't reference freed object
 		SetWindowLongPtr(hwnd_, GWLP_USERDATA, 0);
 		DestroyWindow(hwnd_);
@@ -96,6 +97,21 @@ void CharacterStatsGdi::Destroy()
 void CharacterStatsGdi::SetDetails(const CharacterDetails& details)
 {
 	details_ = details;
+	if (details_.Health < details_.MaxHealth / 2) {
+		// Start flashing if health is below max
+		if (!flashTimerId_) {
+			flashVisible_ = true;
+			flashTimerId_ = SetTimer(hwnd_, 1, 500, nullptr); // 500ms interval
+		}
+	}
+	else {
+		// Stop flashing if health is full
+		if (flashTimerId_) {
+			KillTimer(hwnd_, flashTimerId_);
+			flashTimerId_ = 0;
+			flashVisible_ = false;
+		}
+	}
 	if (hwnd_) InvalidateRect(hwnd_, nullptr, TRUE);
 }
 
@@ -134,6 +150,13 @@ LRESULT CALLBACK CharacterStatsGdi::WndProc(UINT msg, WPARAM wParam, LPARAM lPar
 	case WM_DESTROY:
 		// Object will shutdown GDI+ in Destroy() call chain.
 		return 0;
+	case WM_TIMER:
+		if (wParam == flashTimerId_)
+		{
+			flashVisible_ = !flashVisible_;
+			InvalidateRect(hwnd_, nullptr, TRUE);
+		}
+		return 0;
 	}
 	return DefWindowProc(hwnd_, msg, wParam, lParam);
 }
@@ -169,7 +192,12 @@ void CharacterStatsGdi::OnPaint()
 		// Border
 		Pen borderPen(Color(180, 180, 180), 1.0f);
 		memG.DrawRectangle(&borderPen, clientF);
-
+		if (flashVisible_) {
+			Pen flashPen(Color(255, 220, 30, 30), 4.0f);
+			// inset slightlyso it doesn't clip
+			RectF flashRect(2.0f, 2.0f, width - 4.0f, height - 4.0f);
+			memG.DrawRectangle(&flashPen, flashRect);
+		}
 		// Text layout
 		FontFamily fontFamily(L"Segoe UI");
 		Font font(&fontFamily, 11.0f, FontStyleRegular, UnitPixel);

@@ -248,6 +248,12 @@ function recalculateMawMonster()
 					else 
 						partyLvl=oldTable.Level*2
 					end
+                elseif DoomMapMpod() then
+					if not madnessStartingMaps[name] and doomMapLevels[name] then
+						partyLvl=doomMapLevels[name]+(mapLevels[name].High-mapLevels[name].Mid)*2-oldTable.Level
+					else 
+						partyLvl=oldTable.Level*2
+					end
 				end
 				--level increase 
 				oldLevel=oldTable.Level
@@ -336,6 +342,10 @@ function events.Action(t)
 			Game.BolsterAmount=300
 			recalculateMonsterTable()
 			recalculateMawMonster()
+        elseif DoomMapMode()then
+            Game.BolsterAmount = 400
+            recalculateMonsterTable()
+            recalculateMawMonster()
 		elseif vars.Mode==2 then
 			Game.BolsterAmount=600
 			recalculateMonsterTable()
@@ -363,6 +373,10 @@ function events.AfterLoadMap()
 		Game.BolsterAmount=300
 		recalculateMonsterTable()
 		recalculateMawMonster()
+    elseif DoomMapMode()then
+        Game.BolsterAmount = 400
+        recalculateMonsterTable()
+        recalculateMawMonster()
 	elseif vars.Mode==2 then
 		Game.BolsterAmount=600
 		recalculateMonsterTable()
@@ -471,7 +485,7 @@ function events.MonsterKillExp(t)
 		t.Exp=0
 		return
 	end
-	if vars.madnessMode then 
+	if vars.madnessMode or DoomMapMode() then 
 		if mapvars.mawBounty or Map.Name=="zarena.blv" or Map.Name=="d42.blv" or Map.Name=="7d05.blv" then
 			t.Exp=0
 			return
@@ -563,12 +577,18 @@ function recalculateMonsterTable()
 	--add a bonus in case dungeon is resetted
 	vars.mapResetCount=vars.mapResetCount or {}
 	vars.mapResetCount[Map.Name]=vars.mapResetCount[Map.Name] or 0
-	local bonus=vars.mapResetCount[Map.Name]*20
+	local resetAmount=20
+	if DoomMapMode() then
+		resetAmount=10
+	end
+	local bonus=vars.mapResetCount[Map.Name]*resetAmount
 	
 	--madness, used to calculate gold
 	local name=Game.MapStats[Map.MapStatsIndex].Name
 	if vars.madnessMode and madnessMapLevels[name] then
 		bolsterLevel=madnessMapLevels[name]
+	elseif DoomMapMode() and doomMapLevels[name] then
+        bolsterLevel = doomMapLevels[name]
 	end	
 	
 	bolsterLevel=bolsterLevel+bonus
@@ -632,7 +652,7 @@ function recalculateMonsterTable()
 		local adjust=0
 		local baseMapLevel=0
 		local adjustMult=1.5
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			adjustMult=1
 		end
 		--scale map monsters
@@ -692,7 +712,14 @@ function recalculateMonsterTable()
 			
 			totalLevel[i]=math.max(level, 5)
 			mon.Level=math.min(totalLevel[i],255)
+		elseif DoomMapMode() and not madnessStartingMaps[name] and not mapvars.mapAffixes then
+			local baseLevel=doomMapLevels[name] or 0
+			local withinMapDifference=(baseMapLevel-mean)*2
+			local tierModifier=(base.Level-LevelB)*2
+			local level=baseLevel+withinMapDifference+tierModifier+bonus--add map reset in
 			
+			totalLevel[i]=math.max(level, 5)
+			mon.Level=math.min(totalLevel[i],255)
 		end
 		
 		--arena
@@ -1004,7 +1031,7 @@ function AdjustMonsterDensity()
 			end
 		end
 	end
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		for i=1,Game.MapStats.High do
 			if Game.MapStats[i].Mon1Hi>1 then
 				Game.MapStats[i].Mon1Low=5
@@ -1042,7 +1069,7 @@ function AdjustMonsterDensity()
 			local name2=map.Monster2Pic
 			local name3=map.Monster3Pic
 			local divisor=18
-			if vars.madnessMode then
+			if vars.madnessMode or DoomMapMode() then
 				divisor=10
 			elseif vars.insanityMode then
 				divisor=14
@@ -2239,6 +2266,8 @@ end
 
 --TRUE NIGHTMARE MODE
 function events.CanSaveGame(t)
+    if DoomMapMode() then return end
+
 	if Game.BolsterAmount~=300 and vars and vars.Mode~=2 then return end
 	if t.SaveKind ==1 or foodTaking then
 		return
@@ -2709,7 +2738,7 @@ function checkMapCompletition()
 			local bolster=getPartyLevel()
 			
 			vars.dungeonCompletedList=vars.dungeonCompletedList or {}
-			if vars.dungeonCompletedList[name] and not vars.madnessMode then
+			if vars.dungeonCompletedList[name] and not (vars.madnessMode) then
 				vars.dungeonCompletedList[name]=true
 				if Game.CurrentScreen~=22 then
 					if vars.insanityMode then
@@ -2738,7 +2767,7 @@ function checkMapCompletition()
 						end
 					end
 					mapvars.mapsDropped=mapvars.mapsDropped+1
-					if vars.madnessMode then
+					if vars.madnessMode or DoomMapMode() then
 						vars.ownedMaps=vars.ownedMaps+1
 					end
 					Mouse.Item.BonusStrength=possibleMaps[math.random(1,#possibleMaps)]
@@ -2774,6 +2803,8 @@ function checkMapCompletition()
 				end
 				if vars.madnessMode then
 					bolster=madnessMapLevels[name] or 0
+				elseif DoomMapMode() then
+					bolster = doomMapLevels[name] or 0
 				end
 				if mapvars.mapAffixes then
 					bolster=mapvars.mapAffixes.Power*10
@@ -2798,10 +2829,14 @@ function checkMapCompletition()
 					else
 						experience=experience/2
 					end
+				elseif DoomMapMode() then
+					experience=math.ceil(totalMonster^0.7*(bolster*20+bolster^1.8)/3/1000)*1000
 				end
 				local gold=math.ceil(experience^0.9/1000)*1000 
 				if vars.madnessMode then
 					gold=round(experience/3/1000)*1000
+				elseif DoomMapMode() then
+					gold=round(experience/2/1000)*1000
 				end
 				evt.ForPlayer(0)
 				evt.Add{"Gold", Value = gold}
@@ -2967,6 +3002,15 @@ function events.AfterLoadMap()
 				if vars.Mode == 2 then 
 					bossSpawns = math.ceil((Map.Monsters.Count - 30) / 60) 
 				end
+				local sageS,sageM=GetPartySagecraft()
+				if(sageM>2) then
+				--master sagecraft gives more bosses!
+					local bossx= math.max(sageS-15,0)
+					bossSpawns=bossSpawns + bossx
+					if(bossx>0) then
+						AddCombatLog("Sagecraft mastery increases the number of bosses in this map by " .. bossx)
+					end
+				end
 				if getMapAffixPower(16) then
 					bossSpawns = math.ceil(bossSpawns * (1 + getMapAffixPower(16) / 100))
 				end
@@ -3081,11 +3125,11 @@ function generateBoss(index, nameIndex, skillType)
 	if not skill then
 		local chanceMult = 1
 		if vars.Mode == 2 then chanceMult = 2 end
-		if vars.insanityMode then chanceMult = 3 end
+		if vars.insanityMode or DoomMapMode() then chanceMult = 3 end
 
 		-- Use seeded generation in madnessMode
 		local mapSeed = getMapSeedForBossAffixes()
-		if mapSeed and vars.madnessMode then
+		if mapSeed and (vars.madnessMode or DoomMapMode()) then
 			-- Seeded boss generation
 			skill = getSeededSkillForBoss(mapSeed)
 			
@@ -3929,7 +3973,7 @@ function calculateDirection(x_m, y_m, x_p, y_p)
 end
 
 function events.AfterLoadMap()
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		MAWBOLSTER[600]="Mad."
 	elseif vars.insanityMode then
 		MAWBOLSTER[600]="Insane"
@@ -4534,7 +4578,7 @@ end
 
 
 function events.PickCorpse(t)
-	if vars.madnessMode then 
+	if vars.madnessMode or DoomMapMode() then 
 		if mapvars.mawBounty or Map.Name=="zarena.blv" or Map.Name=="d42.blv" or Map.Name=="7d05.blv" then
 			local mon=t.Monster
 			mon.TreasureItemPercent=0

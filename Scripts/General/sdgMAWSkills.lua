@@ -3,6 +3,7 @@
 function events.GameInitialized2()
 
     g_allowStealth = true
+    g_allowSagecraft = true
     -- if not present or false, Stealth will be ignored even if taken
 
 
@@ -16,6 +17,15 @@ function events.GameInitialized2()
     Skillz.setDesc(stealthSkill, 5, "Triple Cover bonus, chance to backstab per skill point x3, Backstab damage multiplier 3x")
     Skillz.learn_at(stealthSkill, 30)
 
+    local sagecraftSkill = 55
+    Skillz.new_misc(sagecraftSkill)
+    Skillz.setName(sagecraftSkill, "Sagecraft")
+    Skillz.setDesc(sagecraftSkill, 1, "Sagecraft. Treasure Hunters, Scavengers, Thrill Seekers and the like benefit from this skill. Adds a bonus to Treasure finding, Perception and ID Skills.  Masteries gained at 8-16-32")
+    Skillz.setDesc(sagecraftSkill, 2, "Increase Chance to find UnCommon and Rare items by 1% per skill.  Increase Perception and ID Skills by 1 per skill. Increase gold found by 1% per skill")
+    Skillz.setDesc(sagecraftSkill, 3, "Increase Chance to find UnCommon and Rare items by 2% per skill and Epic by 1% per Skill.  Increase Perception and ID Skills by 1 per skill.  Increase gold found by 2% per skill")
+    Skillz.setDesc(sagecraftSkill, 4, "Increase Chance to find UnCommon and Rare items by 3% per skill and Epic by 2% per Skill and Ancient/Primordial by 1% per skill.  Increase Perception and ID Skills by 1 per skill.  Increase gold found by 3% per skill")
+    Skillz.setDesc(sagecraftSkill, 5, "Increase Chance to find UnCommon and Rare items by 4% per skill and Epic by 3% per Skill, Ancient/Primordial by 2% per skill and Legendary by 1% per skill.  Increase Perception and ID Skills by 1 per skill and adds 1 to Mastery of each.  Increase gold found by 4% per skill")
+    Skillz.learn_at(sagecraftSkill, 30)
 
 
     backstabStacks = { }
@@ -69,6 +79,7 @@ end
 function events.Action(t)
     if t.Action == 121 then
         if t.Param == 54 then
+            -- stealth
             local stealthRequirements = { 8, 16, 32 }
             local pl = Party[Game.CurrentPlayer]
             local s, m = SplitSkill(Skillz.get(pl, 54))
@@ -87,6 +98,27 @@ function events.Action(t)
                 Skillz.set(pl, 54, JoinSkill(s, m + 1))
             elseif stealthRequirements[m] and s >= stealthRequirements[m] and Skillz.MasteryLimit(pl, 54) > m then
                 Skillz.set(pl, 54, JoinSkill(s, m + 1))
+            end
+        elseif t.Param == 55 then
+            -- sagecraft
+            local sageRequirements = { 8, 16, 32 }
+            local pl = Party[Game.CurrentPlayer]
+            local s, m = SplitSkill(Skillz.get(pl, 55))
+            if s == 32 then
+                t.Handled = true
+                Game.ShowStatusText("This skill has reached its limit")
+            elseif s > 32 then
+                t.Handled = true
+                while s > 32 do
+                    pl.SkillPoints = pl.SkillPoints + s
+                    s = s - 1
+                end
+                Skillz.set(pl, 55, JoinSkill(s, m))
+            end
+            if pl.SkillPoints > s and sageRequirements[m] and s + 1 >= sageRequirements[m] and Skillz.MasteryLimit(pl, 55) > m then
+                Skillz.set(pl, 55, JoinSkill(s, m + 1))
+            elseif sageRequirements[m] and s >= sageRequirements[m] and Skillz.MasteryLimit(pl, 55) > m then
+                Skillz.set(pl, 55, JoinSkill(s, m + 1))
             end
         end
     end
@@ -137,7 +169,7 @@ function events.Tick()
                 end
             end
         else
-                backstabStacks[i].Text = ""
+            backstabStacks[i].Text = ""
         end
     end
 end
@@ -241,9 +273,9 @@ end
 function AddBackstabStack(player)
     -- backstab/counterstrick from steath skilled trigged by covered player on their next attack
     local st, mt = SplitSkill(Skillz.get(player, 54))
-     if (st *(mt - 1)) / 100 > math.random() then
-    
-         local idxT = player:GetIndex()
+    if (st *(mt - 1)) / 100 > math.random() then
+
+        local idxT = player:GetIndex()
         -- debugging , make it 100% chance to gain stack
         g_backstab = g_backstab or { }
         g_backstab[idxT] = g_backstab[idxT] or { }
@@ -270,7 +302,7 @@ end
 function StealthBackstabDamage(t, res)
     backstabHit = false
     backstabMX = 0
-    local id=t.Player:GetIndex()
+    local id = t.Player:GetIndex()
 
     -- backstab code
     if g_backstab and g_backstab[id] then
@@ -333,4 +365,173 @@ function StealthBackstabDamage(t, res)
 
     end
     return t.Result
+end
+
+function GetSagecraftSkill(skill)
+    local sage_s, sage_m = GetPartySagecraft()
+    local sp = 0
+    local mp = 0
+    if g_allowSagecraft then
+        for i = 0, Party.High do
+            local s, m = SplitSkill(Party[i].Skills[skill])
+            if (skill == const.Skills.Perception or skill == const.Skills.IdentifyMonster or skill == const.Skills.IdentifyItem) then
+              if (s>0 and m>0) then
+                local skillBonus = 0
+                if sage_s > 0 then
+                    skillBonus = sage_s
+                end
+                if(skillBonus>s) then skillBonus=s end --can only add up to what skill already is
+                s = s + skillBonus/2
+                
+                if (sage_m > 3) then
+                    m = m + 1
+                end
+
+               end
+            end
+            if (s > sp) then sp = s end
+            if (m > mp) then mp = m end
+        end
+    end
+    return sp, mp
+end
+
+function GetPartySagecraft()
+    local maxS = 0
+    local maxM = 0
+    if g_allowSagecraft then
+        for i = 0, Party.High do
+            local pl = Party[i]
+            local s, m = SplitSkill(Skillz.get(pl, 55))
+            if s > maxS then
+                maxS = s
+            end
+            if m > maxM then
+                maxM = m
+            end
+        end
+    end
+    return maxS, maxM
+end
+function GetPartySagecraftGoldMx()
+    local goldBonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase gold found
+        local s, m = GetPartySagecraft()
+        if s > 0 then
+            goldBonus = goldBonus +(s * m) / 100
+        end
+    end
+    return goldBonus
+end
+function GetPartyUncommonSageCraftMx()
+    local uncommonBonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find uncommon items
+        local s, m = GetPartySagecraft()
+        if s > 0 then
+            uncommonBonus = uncommonBonus +(s * m) / 100
+        end
+    end
+    return uncommonBonus
+end
+
+function GetPartyRareSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find rare items
+        local s, m = GetPartySagecraft()
+        if s > 0 then
+            bonus = bonus +(s * m) / 100
+        end
+    end
+    return bonus
+end
+
+function GetPartyCraftGemsSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find rare items
+        local s, m = GetPartySagecraft()
+        if s > 0 then
+            bonus = bonus +(s * m) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyEpicSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find epic items
+        local s, m = GetPartySagecraft()
+        if m > 1 then
+            bonus = bonus +(s *(m - 1)) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyCraftSpecialSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find epic items
+        local s, m = GetPartySagecraft()
+        if m > 1 then
+            bonus = bonus +(s *(m - 1)) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyAncientSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find ancient items
+        local s, m = GetPartySagecraft()
+        if m > 2 then
+            bonus = bonus +(s *(m - 2)) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyPrimordialSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find primordial items
+        local s, m = GetPartySagecraft()
+        if m > 2 then
+            bonus = bonus +(s *(m - 2)) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyLegendarySageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find legendary items
+        local s, m = GetPartySagecraft()
+        if m > 3 then
+            bonus = bonus +(s *(m - 3)) / 100
+        end
+    end
+    return bonus
+end
+function GetPartyCelestialSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        -- sagecraft skill will increase chance to find celestial        items
+        local s, m = GetPartySagecraft()
+        if m > 3 then
+            bonus = bonus +(s *(m - 3)) / 200
+        end
+    end
+    return bonus
+end
+function GetBossLootStrengthSageCraftMx()
+    local bonus = 1
+    if g_allowSagecraft then
+        local s, m = GetPartySagecraft()
+        if s > 0 then
+            bonus = bonus +(s * m) / 1000
+        end
+    end
+    return bonus
 end

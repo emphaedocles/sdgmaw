@@ -1106,6 +1106,23 @@ function events.PlayerAttacked(t)
 		if covered then
 			mem.call(0x4A6FCE, 1, mem.call(0x42D747, 1, mem.u4[0x75CE00]), const.Spells.Shield, t.PlayerSlot)
 			Party[coverPlayerIndex]:ShowFaceAnimation(14)
+
+			local target = t.PlayerSlot
+			local idxC =Party[coverPlayerIndex]:GetIndex()
+			local idxT = Party[target]:GetIndex()
+			local plTarget = Party[target]
+			AddCombatLog(StrColor(0,255,255, Party[coverPlayerIndex].Name .. " covered " .. Party[target].Name ))
+			vars.coveredTrack = vars.coveredTrack or { }
+			vars.coveredTargetTrack = vars.coveredTargetTrack or { }
+			mapvars.coveredTrack = mapvars.coveredTrack or { }
+			mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
+
+			vars.coveredTrack[idxC] =(vars.coveredTrack[idxC] or 0) + 1
+			vars.coveredTargetTrack[idxT] =(vars.coveredTargetTrack[idxT] or 0) + 1
+
+			mapvars.coveredTrack[idxC] =(mapvars.coveredTrack[idxC] or 0) + 1
+			mapvars.coveredTargetTrack[idxT] =(mapvars.coveredTargetTrack[idxT] or 0) + 1
+
 			--Game.ShowStatusText(Party[coverPlayerIndex].Name .. " cover " .. Party[t.PlayerSlot].Name)
 			t.PlayerSlot=coverPlayerIndex
 			local pl=Party[t.PlayerSlot]
@@ -1127,6 +1144,9 @@ function events.PlayerAttacked(t)
 				end
 				vars.retaliation[id]["Stacks"]=math.min(vars.retaliation[id]["Stacks"],cap)
 			end	
+			if(g_allowStealth) then
+				AddBackstabStack(plTarget)
+			end
 		end
 	end
 end
@@ -1554,7 +1574,7 @@ function events.LoadMap()
 	end
 	for i=1,#trainingCenters[currentWorld] do
 		Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/20)*10
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			Game.HouseRules.Training[trainingCenters[currentWorld][i]].Quality=round(baseTrainers[trainingCenters[currentWorld][i]]^1.5/10)*10
 		end
 	end
@@ -1697,6 +1717,8 @@ local normalCosts={0,1000,4000,20000}
 local doomCosts={0,2000,10000,50000}
 local insanityCost={0,10000,50000,250000}
 local madnessCost={0,25000,500000,2000000}
+local doomMapReq = { 0, 8, 16, 24 }
+
 
 local function getReqAndCost(mastery, player)
 	local pl = Party[player or Game.CurrentPlayer]
@@ -1705,6 +1727,9 @@ local function getReqAndCost(mastery, player)
 	if vars.madnessMode then
 		baseCost = madnessCost[mastery]
 		requirements = madnessLearningRequirements[mastery]
+	elseif vars.doomMapMode then
+		baseCost = doomCosts[mastery]
+		requirements = doomMapReq[mastery]	
 	elseif vars.insanityMode then
 		baseCost = insanityCost[mastery]
 		requirements = insanityLearningRequirements[mastery]
@@ -1856,6 +1881,8 @@ function events.Action(t)
 				if m<4 and vars.oldPlayerMasteries[id][t.Param]>m then
 					if vars.madnessMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,12,30,50}
+					elseif DoomMapMode() then
+						requirements = { 0, 8, 16, 24 }	
 					elseif vars.insanityMode and table.find(horizontalSkills, t.Param) then
 						requirements={0,8,20,32}
 					elseif Game.freeProgression or not table.find(horizontalSkills, t.Param) then
@@ -2683,6 +2710,8 @@ function GetArmsmasterSupremeRequirement()
 	local requirement=30
 	if vars.madnessMode then
 		requirement=70
+	elseif DoomMapMode() then
+		requirement = 40
 	elseif vars.insanityMode then
 		requirement=50
 	end
@@ -2714,12 +2743,22 @@ function events.Action(t)
 	end
 end
 
-local meleeSkills={0,1,2,3,4,6}
+local meleeSkills={0,1,2,3,4,6,33}--33 is unarmed
+local raceSkills={const.Race.Vampire,const.Race.Dragon,const.Race.DarkElf}
+
 function events.GetSkill(t)
+    if(table.find(raceSkills,t.Skill)) then
+		local index=t.Player:GetIndex()
+		if vars.legendaries and vars.legendaries[index] and table.find(vars.legendaries[index], 36) then
+			t.Result=t.Result+10
+		end
+		
+	end
 	if table.find(meleeSkills, t.Skill) then
 		local index=t.Player:GetIndex()
 		if vars.legendaries and vars.legendaries[index] and table.find(vars.legendaries[index], 33) then
 			t.Result=t.Result+10
+
 		end
 	end
 	if table.find(meleeSkills, t.Skill) then

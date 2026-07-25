@@ -5,6 +5,8 @@
 #include "CharacterDetails.h"
 #include "CharacterDpsUI.h"
 #include "MobRadar.h"
+#include "BossStatsOverlay.h"
+
 #include <string>
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -156,16 +158,19 @@ static int lua_adddpsentry(lua_State* L)
 static int lua_ShowRadar(lua_State* L)
 {
 	MobRadar::Show("SDG Maw Radar");
+	BossStatsOverlay::Show("SDG Maw Boss Stats");
 	return 0;
 }
 static int lua_CloseRadar(lua_State* L)
 {
 	MobRadar::Close();
+	BossStatsOverlay::Close();
 	return 0;
 }
 static int lua_ClearRadar(lua_State* L)
 {
 	MobRadar::ClearEntities();
+	BossStatsOverlay::ClearBosses();
 	return 0;
 }
 static int lua_AddRadarEntity(lua_State* L)
@@ -176,7 +181,23 @@ static int lua_AddRadarEntity(lua_State* L)
 	float z = (float)luaL_optnumber(L, 4, 0);
 	int tier = (int)luaL_optinteger(L, 5,1);
 	int hidden = (int)luaL_optinteger(L, 6, 0);
-	MobRadar::AddEntity(id, x, y,z, tier,hidden);
+	int hp = (int)luaL_optinteger(L, 7, 0);
+	int fullhp = (int)luaL_optinteger(L, 8, 0);
+	const char* name = luaL_optstring(L, 9, "Unknown");
+	int isTreasure = (int)luaL_optinteger(L, 10, 0);
+
+	MobRadar::AddEntity(id, x, y, z, tier, hidden, isTreasure,name);
+	if (tier > 1 && !isTreasure) // boss
+	{
+		BossStatsOverlay::UpdateBoss(id, name, hp, fullhp, tier);
+	}
+	return 0;
+}
+
+static int lua_SetProximityRange(lua_State* L)
+{
+	float r = (float)luaL_optnumber(L, 1, 0);
+	MobRadar::SetProximityRange(r);
 	return 0;
 }
 static int lua_SetRadarRange(lua_State* L)
@@ -189,6 +210,7 @@ static int lua_RemoveRadarEntity(lua_State* L)
 {
 	int id = (int)luaL_optinteger(L, 1, 0);
 	MobRadar::RemoveEntity(id);
+	BossStatsOverlay::RemoveBoss(id);
 	return 0;
 }
 static int lua_RadarPartyFacing(lua_State* L)
@@ -218,6 +240,53 @@ static int lua_CLTitle(lua_State* L)
 	std::string name = luaL_optstring(L, 1, "");
 	CombatLog::SetTextBox(name.c_str());
 }
+static int lua_SetBossWarnSound(lua_State* L)
+{
+	const char* wavPath = luaL_optstring(L, 1, "");
+	MobRadar::SetBossWarnSound(wavPath);
+	return 0;
+}
+static int lua_SetHiddenWarnSound(lua_State* L)
+{
+	const char* wavPath = luaL_optstring(L, 1, "");
+	MobRadar::SetHiddenWarnSound(wavPath);
+	return 0;
+}
+static int lua_SetMobAppearedSound(lua_State* L)
+{
+	const char* wavPath = luaL_optstring(L, 1, "");
+	MobRadar::SetMonsterTickSound(wavPath);
+	return 0;
+}
+static int lua_playsound(lua_State* L)
+{
+	const char* wavPath = luaL_optstring(L, 1, "");
+	MobRadar::SetPlaySound(wavPath);
+	return 0;
+}
+static int lua_SetTreasureWarnSound(lua_State* L)
+{
+	const char* wavPath = luaL_optstring(L, 1, "");
+	MobRadar::SetTreasureWarnSound(wavPath);
+	return 0;
+}
+static int lua_SetTreasureWarnEnabled(lua_State* L)
+{
+	bool enabled = (bool)luaL_optinteger(L, 1, 1);
+	MobRadar::SetTreasureWarnEnabled(enabled);
+	return 0;
+}
+static int lua_SetLogFile(lua_State* L)
+{
+	const char* path = luaL_optstring(L, 1, "");
+	CombatLog::SetLogFile(path);
+	return 0;
+}
+static int lua_CloseLogFile(lua_State* L)
+{
+	CombatLog::CloseLogFile();
+	return 0;
+}
 // Register functions
 static const luaL_Reg sdgmawix_funcs[] = {
 	{"addtext",lua_AddText},
@@ -242,6 +311,15 @@ static const luaL_Reg sdgmawix_funcs[] = {
 	{"setradarvisible",lua_SetRadarVisible},
 	{"closeradar",lua_CloseRadar},
 	{"clsettitle",lua_CLTitle},
+	{"setbosswarnsound",lua_SetBossWarnSound},
+	{"sethiddenwarnsound",lua_SetHiddenWarnSound},
+	{"playsound",lua_playsound},
+	{"setmobappearedsound",lua_SetMobAppearedSound},
+	{"settreasurerwarnsound",lua_SetTreasureWarnSound},
+	{"settreasurawnenabled",lua_SetTreasureWarnEnabled},
+	 {"setproximityrange", lua_SetProximityRange},
+		 {"setlogfile",   lua_SetLogFile},
+	{"closelogfile", lua_CloseLogFile},
 	{NULL, NULL}
 };
 // Entry point for Lua 5.1

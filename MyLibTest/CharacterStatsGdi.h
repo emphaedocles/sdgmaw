@@ -42,4 +42,7 @@ private:
 
 	// Paint routine
 	void OnPaint();
+
+	bool  flashVisible_;   // current flash on/off state
+	UINT_PTR flashTimerId_; // 0 when timer is not running
 }; 

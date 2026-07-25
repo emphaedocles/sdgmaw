@@ -17,6 +17,8 @@ namespace CombatLog {
 	// Append text to the RichEdit (ANSI/UTF-8)
 	CombatLog_API void AddText(const char* text);
 
+	CombatLog_API void AddTextW(const wchar_t* wtext);
+
 	// Append text with a specific color. 'color' is a COLORREF (use RGB(r,g,b)).
 	CombatLog_API void AddTextColor(const char* text, unsigned int color);
 
@@ -44,5 +46,11 @@ namespace CombatLog {
 	// Set the text of the top text box (ANSI/UTF-8)
 	CombatLog_API void SetTextBox(const char* text);
 
+	// Open (or reopen) a UTF-8 log file. Pass nullptr or empty to close/disable.
+// Thread-safe. Appends to existing file if it already exists.
+	CombatLog_API void SetLogFile(const char* utf8Path);
+
+	// Flush and close the log file immediately.
+	CombatLog_API void CloseLogFile();
 }	
 

@@ -19,7 +19,7 @@ local spriteMappings = {
     ["rock12"] = "Rok1",
     ["rock13"] = "Rok1",
     ["rock14"] = "Rok1",
-    
+
     -- FLOWERS
     ["flower01"] = "6Flower01",
     ["flower02"] = "6Flower02",
@@ -34,7 +34,7 @@ local spriteMappings = {
     ["flower11"] = "6Flower11",
     ["flower12"] = "6Flower12",
     ["flower13"] = "6Flower13",
-    
+
     -- CORPSES
     ["Corpse"] = "Corpse01",
     ["Corpse01"] = "Corpse02",
@@ -70,76 +70,77 @@ function events.AfterLoadMap()
     end
 end
 
---disable respawn in outside maps (mostly)
-outSideMaps={1,2,3,4,5,6,7,8,13, 62,63,64,65,66,67,68,69,70,72,73,74,99,100,140,141,143,144,145,146,147,148,149,150,151}
+-- disable respawn in outside maps (mostly)
+outSideMaps = { 1, 2, 3, 4, 5, 6, 7, 8, 13, 62, 63, 64, 65, 66, 67, 68, 69, 70, 72, 73, 74, 99, 100, 140, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151 }
 function events.GameInitialized2()
-	for i=1,#outSideMaps do
-		Game.MapStats[outSideMaps[i]].RefillDays=1000000000
-	end
+    for i = 1, #outSideMaps do
+        Game.MapStats[outSideMaps[i]].RefillDays = 1000000000
+    end
 end
 function events.BeforeLoadMap()
-	if vars.insanityMode then
-		for i=1,Game.MapStats.High do
-			Game.MapStats[i].RefillDays=1000000000
-		end
-	end
+    if vars.insanityMode then
+        for i = 1, Game.MapStats.High do
+            Game.MapStats[i].RefillDays = 1000000000
+        end
+    end
 end
---reset dungeons
---store
+-- reset dungeons
+-- store
 function events.GameInitialized2()
-	dungeonResetList={}
-	for i=1,Game.MapStats.High do
-		dungeonResetList[i]=Game.MapStats[i].RefillDays
-	end
+    dungeonResetList = { }
+    for i = 1, Game.MapStats.High do
+        dungeonResetList[i] = Game.MapStats[i].RefillDays
+    end
 end
 
 function events.LoadMap()
-	if vars.resetDungeon==Map.Name then
-		vars.mapResetCount=vars.mapResetCount or {}
-		vars.mapResetCount[Map.Name]=vars.mapResetCount[Map.Name] or 0
-		vars.mapResetCount[Map.Name]=vars.mapResetCount[Map.Name]+1
-	end
+    if vars.resetDungeon == Map.Name then
+        vars.mapResetCount = vars.mapResetCount or { }
+        vars.mapResetCount[Map.Name] = vars.mapResetCount[Map.Name] or 0
+        vars.mapResetCount[Map.Name] = vars.mapResetCount[Map.Name] + 1
+    end
 end
 
---restore
+-- restore
 function events.AfterLoadMap()
-	for i=1,Game.MapStats.High do
-		Game.MapStats[i].RefillDays=dungeonResetList[i]
-		if vars.insanityMode then
-			Game.MapStats[i].RefillDays=1000000000
-		end
-	end
-	vars.dungeonCompletedList=vars.dungeonCompletedList or {}
-	for key, value in pairs(vars.dungeonCompletedList) do
-		if vars.dungeonCompletedList[key]=="resetting" and vars.resetDungeon==Map.Name then
-			vars.dungeonCompletedList[key]="resetted"
-		elseif vars.dungeonCompletedList[key]=="resetting" then
-			vars.dungeonCompletedList[key]=true
-		end
-	end
-	questionAsked=false
-	vars.resetDungeon=false
+    for i = 1, Game.MapStats.High do
+        Game.MapStats[i].RefillDays = dungeonResetList[i]
+        if vars.insanityMode then
+            Game.MapStats[i].RefillDays = 1000000000
+        end
+    end
+    vars.dungeonCompletedList = vars.dungeonCompletedList or { }
+    for key, value in pairs(vars.dungeonCompletedList) do
+        if vars.dungeonCompletedList[key] == "resetting" and vars.resetDungeon == Map.Name then
+            vars.dungeonCompletedList[key] = "resetted"
+        elseif vars.dungeonCompletedList[key] == "resetting" then
+            vars.dungeonCompletedList[key] = true
+        end
+    end
+    questionAsked = false
+    vars.resetDungeon = false
 end
 
 function canResetDungeon(mapFileName)
-	if vars.insanityMode then
-		return false
-	end
-	for i=1,Game.MapStats.High do
-		if Game.MapStats[i].FileName==mapFileName then
-			local name=Game.MapStats[i].Name
-			if vars.dungeonCompletedList[name]==true then
-				return true
-			else
-				return false
-			end			
-		end
-	end
+    if vars.insanityMode then
+        return false
+    end
+    for i = 1, Game.MapStats.High do
+        if Game.MapStats[i].FileName == mapFileName then
+            local name = Game.MapStats[i].Name
+            if vars.dungeonCompletedList[name] == true then
+                return true
+            else
+                return false
+            end
+        end
+    end
 end
 
---used in maps
-resetTxt="The dungeon has already been cleared, but you have the option to reset it and attempt it once more with even harder monsters. Please note that no completion rewards will be given for this reset. Would you like to proceed with resetting the dungeon? (yes/no)"
-local possibleAnswers={"yes", "Yes", "YES", " yes", " Yes", " YES"} 
+-- used in maps
+resetTxt = "The dungeon has already been cleared, but you have the option to reset it and attempt it once more with even harder monsters. Please note that no completion rewards will be given for this reset. Would you like to proceed with resetting the dungeon? (yes/no)"
+local possibleAnswers = { "yes", "Yes", "YES", " yes", " Yes", " YES" }
+local clearResetAnswer = { "clearreset" }
 function resetMap(dungeonId)
 	--if canResetDungeon(dungeonId) and not vars.resetDungeon and not questionAsked and not vars.onlineMode then
 	if canResetDungeon(dungeonId) and not vars.resetDungeon and not questionAsked then
@@ -154,6 +155,19 @@ function resetMap(dungeonId)
 					Game.ShowStatusText("Entering will reset the dungeon")
 				end
 			end
+		elseif table.find(clearResetAnswer, answer) then
+			--vars.resetDungeon=dungeonId
+			vars.resetDungeon=false
+			for i=1,Game.MapStats.High do
+				if Game.MapStats[i].FileName==vars.resetDungeon then
+					if vars.mapResetCount[Game.MapStats[i].Name] then
+						vars.mapResetCount[Game.MapStats[i].Name]=0
+						Game.ShowStatusText("Map Reset Count Cleaered")
+					end
+				end
+			end
+		else
+			vars.resetDungeon=false
 		end
 	end
 end
@@ -1716,7 +1730,7 @@ function events.MonsterKilled(mon)
 	mapvars.mapsDropped=mapvars.mapsDropped or 0
 	vars.mapDropFailures=vars.mapDropFailures or 0
 	local chances=0.001
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		chances=chances*2
 		if mapvars.mapAffixes then
 			local map=mapLevels[Game.MapStats[Map.MapStatsIndex].Name]
@@ -1729,7 +1743,7 @@ function events.MonsterKilled(mon)
 		end
 	end
 	local levelRequired=100
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		levelRequired=70
 		if vars.ownedMaps>=3 then
 			--return disabled, as maps are no longer easily farmable
@@ -1802,7 +1816,7 @@ function events.MonsterKilled(mon)
 		end
 		obj.Item.Bonus=bonus
 		obj.Item.MaxCharges=round(getMonsterLevel(mon)/10-math.random(0,3))
-		if vars.insanityMode and not vars.madnessMode then
+		if vars.insanityMode and not (vars.madnessMode or DoomMapMode()) then
 			obj.Item.MaxCharges=math.max(obj.Item.MaxCharges,30)
 		end
 	elseif getMonsterLevel(mon) >= levelRequired then
@@ -1879,7 +1893,7 @@ function events.UseMouseItem(t)
 		else
 			odm(fileName)
 		end
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			vars.ownedMaps=vars.ownedMaps-1
 		end
 		Mouse.Item.Number=0
@@ -2164,7 +2178,7 @@ function events.BuildItemInformationBox(t)
 end
 
 function events.LoadMap()
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		vars.ownedMaps=vars.ownedMaps or 0
 		vars.ownedMaps=math.max(vars.ownedMaps,0)
 	end
@@ -2196,7 +2210,7 @@ function events.LeaveMap()
 end
 ]]
 function events.Action(t)
-	if t.Action==14 and vars.madnessMode then
+	if t.Action==14 and (vars.madnessMode or DoomMapMode()) then
 		BeginGrabObjects()
 		checkForMapDropped=true
 		function events.Tick()
@@ -2223,7 +2237,7 @@ end
 
 
 function events.Action(t)
-	if (t.Action==23 or t.Action==25) and vars.madnessMode then
+	if (t.Action==23 or t.Action==25) and (vars.madnessMode or DoomMapMode()) then
 		checkForMapDropped=false
 	end
 end

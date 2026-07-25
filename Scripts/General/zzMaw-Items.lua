@@ -1,9 +1,9 @@
 function events.GenerateItem(t)
-	--get party average level
-	Handled = true
-	--[[calculate party experience
+    -- get party average level
+    Handled = true
+    --[[calculate party experience
 	if Map.MapStatsIndex==0 then return end
-	local currentWorld=TownPortalControls.MapOfContinent(Map.MapStatsIndex) 
+	local currentWorld=TownPortalControls.MapOfContinent(Map.MapStatsIndex)
 	if currentWorld==4 then
 		return
 	end
@@ -24,462 +24,468 @@ function events.GenerateItem(t)
 		end
 	end
 	]]
-	if t.Strength==7 then
-		t.Strength=6
-	end
+    if t.Strength == 7 then
+        t.Strength = 6
+    end
 end
 
 -- Function to get and advance monster type seed (global for use across scripts)
 function getMonsterSeed(monsterId)
-	-- Initialize global seed if needed
-	if not vars.seed then
-		vars.seed = os.time()
-	end
-	
-	-- Initialize monster counters if needed
-	vars.monsterCounters = vars.monsterCounters or {}
-	vars.monsterSeeds = vars.monsterSeeds or {}
-	
-	-- Initialize this monster type if first encounter
-	if not vars.monsterCounters[monsterId] then
-		vars.monsterCounters[monsterId] = 0
-		-- Create initial seed for this monster type based on global seed + monster ID
-		vars.monsterSeeds[monsterId] = vars.seed + (monsterId * 1009)
-	end
-	
-	-- Get current seed for this monster type
-	local currentSeed = vars.monsterSeeds[monsterId]
-	
-	-- Advance counter and generate next seed deterministically
-	vars.monsterCounters[monsterId] = vars.monsterCounters[monsterId] + 1
-	
-	-- Generate next seed using linear congruential generator formula
-	-- Using constants from Numerical Recipes: a=1664525, c=1013904223, m=2^32
-	vars.monsterSeeds[monsterId] = (vars.monsterSeeds[monsterId] * 1664525 + 1013904223) % 4294967296
-	
-	return currentSeed
+    -- Initialize global seed if needed
+    if not vars.seed then
+        vars.seed = os.time()
+    end
+
+    -- Initialize monster counters if needed
+    vars.monsterCounters = vars.monsterCounters or { }
+    vars.monsterSeeds = vars.monsterSeeds or { }
+
+    -- Initialize this monster type if first encounter
+    if not vars.monsterCounters[monsterId] then
+        vars.monsterCounters[monsterId] = 0
+        -- Create initial seed for this monster type based on global seed + monster ID
+        vars.monsterSeeds[monsterId] = vars.seed +(monsterId * 1009)
+    end
+
+    -- Get current seed for this monster type
+    local currentSeed = vars.monsterSeeds[monsterId]
+
+    -- Advance counter and generate next seed deterministically
+    vars.monsterCounters[monsterId] = vars.monsterCounters[monsterId] + 1
+
+    -- Generate next seed using linear congruential generator formula
+    -- Using constants from Numerical Recipes: a=1664525, c=1013904223, m=2^32
+    vars.monsterSeeds[monsterId] =(vars.monsterSeeds[monsterId] * 1664525 + 1013904223) % 4294967296
+
+    return currentSeed
 end
 
 -- Function to get boss loot seed based on global seed, map, and boss spawn count
 local function getBossLootSeed(mon)
-	-- Initialize global seed if needed
-	if not vars.seed then
-		vars.seed = os.time()
-	end
-	-- Create deterministic map hash
-	local mapName = Map.Name or "default"
-	local mapHash = 0
-	for i = 1, #mapName do
-		mapHash = mapHash + string.byte(mapName, i) * i * 31
-	end
-	
-	-- Add map index if available
-	if Map.MapStatsIndex then
-		mapHash = mapHash + Map.MapStatsIndex * 97
-	end
-	local index=mon:GetIndex()
-	mapvars.BossSeed = mapvars.BossSeed or {}
-	mapvars.BossSeed[index] = mapvars.BossSeed[index] or 0
-	-- Create boss seed based on: global seed + map hash + boss spawn count + monster ID
-	local bossLootSeed = vars.seed + mapHash + (index * 1337) + (mon.Id * 2003) + mapvars.BossSeed[index]
-	mapvars.BossSeed[index] = mapvars.BossSeed[index]+1
-	
-	-- Ensure seed is positive and within reasonable range
-	bossLootSeed = math.abs(bossLootSeed) % 2147483647
-	
-	return bossLootSeed
+    -- Initialize global seed if needed
+    if not vars.seed then
+        vars.seed = os.time()
+    end
+    -- Create deterministic map hash
+    local mapName = Map.Name or "default"
+    local mapHash = 0
+    for i = 1, #mapName do
+        mapHash = mapHash + string.byte(mapName, i) * i * 31
+    end
+
+    -- Add map index if available
+    if Map.MapStatsIndex then
+        mapHash = mapHash + Map.MapStatsIndex * 97
+    end
+    local index = mon:GetIndex()
+    mapvars.BossSeed = mapvars.BossSeed or { }
+    mapvars.BossSeed[index] = mapvars.BossSeed[index] or 0
+    -- Create boss seed based on: global seed + map hash + boss spawn count + monster ID
+    local bossLootSeed = vars.seed + mapHash +(index * 1337) +(mon.Id * 2003) + mapvars.BossSeed[index]
+    mapvars.BossSeed[index] = mapvars.BossSeed[index] + 1
+
+    -- Ensure seed is positive and within reasonable range
+    bossLootSeed = math.abs(bossLootSeed) % 2147483647
+
+    return bossLootSeed
 end
 
 function IsEnchantableItem(it)
-	local num = it.Number
-	if num == 866 or num == 867 or num == 1666 or num == 1667 then
-		return false
-	end
-	return num <= 151 or (num >= 803 and num <= 936) or (num >= 1603 and num <= 1736)
+    local num = it.Number
+    if num == 866 or num == 867 or num == 1666 or num == 1667 then
+        return false
+    end
+    return num <= 151 or(num >= 803 and num <= 936) or(num >= 1603 and num <= 1736)
 end
 
 function events.PickCorpse(t)
-	--if Game.BolsterAmount~=300 then return end
-	local monster = Map.Monsters[t.MonsterIndex]
-	if monster then
-		-- Check if this is a boss monster (NameId 220-299)
-		local isBoss = monster.NameId >= 220 and monster.NameId < 300
-		
-		-- Apply deterministic seeding first
-		if isBoss then
-			-- Use boss loot seeding for all modes
-			local seed = getBossLootSeed(monster)
-			Game.RandSeed = seed
-			math.randomseed(seed)
-		elseif vars.insanityMode then
-			-- Use new deterministic monster-type seeding for insanity mode
-			local seed = getMonsterSeed(monster.Id)
-			Game.RandSeed = seed
-			math.randomseed(seed)
-		else
-			-- Use old position-based seeding for other modes
-			-- Check if seed exists for this monster, if not create one
-			if not mapvars.MonsterSeed or not mapvars.MonsterSeed[t.MonsterIndex] then
-				-- Initialize mapvars.MonsterSeed if it doesn't exist
-				mapvars.MonsterSeed = mapvars.MonsterSeed or {}
-				
-				-- Create deterministic seed for this monster
-				local mapName = Map.Name or "default"
-				local mapSeed = vars.seed
-				for i = 1, #mapName do
-					mapSeed = mapSeed + string.byte(mapName, i) * i * 13
-				end
-				
-				-- Add map index if available
-				if Map.MapStatsIndex then
-					mapSeed = mapSeed + Map.MapStatsIndex * 47
-				end
-				
-				-- Generate seed for this specific monster
-				local monsterSeed = mapSeed + t.MonsterIndex * 97
-				mapvars.MonsterSeed[t.MonsterIndex] = monsterSeed
-			end
-			
-			Game.RandSeed = mapvars.MonsterSeed[t.MonsterIndex]
-			math.randomseed(mapvars.MonsterSeed[t.MonsterIndex])
-		end
-		
-		-- Now perform loot calculations (merged from zzMaw-Monsters.lua)
-		local mon = monster
-		
-		-- Calculate gold
-		local lvl = BLevel[mon.Id] or mon.Level
-		local gold = mon.TreasureDiceCount * (mon.TreasureDiceSides + 1) / 2
-		local newGold = (bolsterLevel2 + lvl) * 7.5
-		local tier = 2
-		
-		if mon.Id % 3 == 1 then
-			newGold = newGold / 2
-			tier = 1
-		elseif mon.Id % 3 == 0 then
-			newGold = newGold * 2
-			tier = 3
-		end
-		
-		if gold > 0 and newGold > gold then
-			local goldMult = (bolsterLevel2 + lvl)^1.5 / (lvl)^1.5
-			mon.TreasureDiceCount = math.min(newGold^0.5, 255)
-			mon.TreasureDiceSides = math.min(newGold^0.5, 255)
-		end
-		
-		-- Calculate loot chances and quality
-		if mon.Item == 0 and (mon.NameId < 220 or mon.NameId > 300) then
-			local name = Game.MapStats[Map.MapStatsIndex].Name
-			local lvlID = mon.Id
-			if tier == 1 then
-				lvlID = mon.Id + 1
-			elseif tier == 3 then
-				lvlID = mon.Id - 1
-			end
-			local lvl = math.max(basetable[lvlID].Level, mapLevels[name].Low)
-			local originalValue = math.min(mon.TreasureItemPercent, 50)
-			mon.TreasureItemPercent = math.ceil(mon.Level^0.5 * (1 + tier) * 0.5 + originalValue * 0.3)
-			
-			if vars.Mode == 2 then
-				mon.TreasureItemPercent = round(mon.TreasureItemPercent * 0.5)
-			elseif Game.BolsterAmount == 300 then
-				mon.TreasureItemPercent = round(mon.TreasureItemPercent * 0.75)
-			end
-			
-			local itemTier = (lvl + 10 * tier) / 20
-			if itemTier % 20 / 20 > math.random() then
-				itemTier = itemTier + 1
-			end
-			itemTier = math.floor(itemTier)
-			mon.TreasureItemLevel = math.max(math.min(itemTier, 6), 1)
-			if itemTier <= 0 then
-				mon.TreasureItemPercent = round(mon.TreasureItemPercent * 2^(itemTier - 1))
-			end
-			if math.random() < 0.7 then
-				mon.TreasureItemType = 0
-			end
-		end
-		
-		local densityMultiplier=GetDensityMultiplier(mon.Id)
-		-- Special handling for bosses and resurrected
-		if mon.NameId > 300 then
-			mon.TreasureItemPercent = round(mon.TreasureItemPercent / 4*densityMultiplier^0.5)
-			mon.TreasureDiceSides = math.max(round(mon.TreasureDiceSides / 4*densityMultiplier^0.5), 1)
-		elseif mon.NameId > 220 or mon.NameId == 160 then
-			mon.TreasureItemPercent = 100
-			local skill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
-			if skill == "Broodling" then
-				if mon.Id % 3 == 0 then
-					mon.TreasureItemPercent = 30
-				elseif mon.Id % 3 == 2 then
-					mon.TreasureItemPercent = 10
-				elseif mon.Id % 3 == 1 then
-					mon.TreasureItemPercent = 4
-				end
-			end
-			
-			-- Item tier for bosses
-			local name = Game.MapStats[Map.MapStatsIndex].Name
-			local lvl = math.max(basetable[mon.Id].Level, mapLevels[name].Low)
-			local id = mon:GetIndex()
-			if id and mapvars.uniqueMonsterLevel and mapvars.uniqueMonsterLevel[id] then
-				lvl = mapvars.uniqueMonsterLevel[id]
-			end
-			local itemTier = lvl / 20 + 2
-			if itemTier % 15 / 15 > math.random() then
-				itemTier = itemTier + 1
-			end
-			mon.TreasureItemLevel = math.max(math.min(itemTier, 6), 2)
-			bossLoot = true
-			local monsterSkill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
-			if monsterSkill == "Omnipotent" then
-				OmnipotentLoot = true
-			end
-		end
-		
-		-- Loot filter code
-		goldBeforeLoot = Party.Gold
-		lootFromMonster = true
-		lootMultiplier=densityMultiplier
-		-- Handle seed state after loot calculations
-		RunNextTick(function()
-			lootFromMonster = false
-			-- Update seed for non-insanity mode if needed
-			if not vars.insanityMode and not isBoss then
-				mapvars.MonsterSeed[t.MonsterIndex] = Game.RandSeed
-			end
-		end)
-	end
+    -- if Game.BolsterAmount~=300 then return end
+    local monster = Map.Monsters[t.MonsterIndex]
+    if monster then
+        -- Check if this is a boss monster (NameId 220-299)
+        local isBoss = monster.NameId >= 220 and monster.NameId < 300
+
+        -- Apply deterministic seeding first
+        if isBoss then
+            -- Use boss loot seeding for all modes
+            local seed = getBossLootSeed(monster)
+            Game.RandSeed = seed
+            math.randomseed(seed)
+        elseif vars.insanityMode then
+            -- Use new deterministic monster-type seeding for insanity mode
+            local seed = getMonsterSeed(monster.Id)
+            Game.RandSeed = seed
+            math.randomseed(seed)
+        else
+            -- Use old position-based seeding for other modes
+            -- Check if seed exists for this monster, if not create one
+            if not mapvars.MonsterSeed or not mapvars.MonsterSeed[t.MonsterIndex] then
+                -- Initialize mapvars.MonsterSeed if it doesn't exist
+                mapvars.MonsterSeed = mapvars.MonsterSeed or { }
+
+                -- Create deterministic seed for this monster
+                local mapName = Map.Name or "default"
+                local mapSeed = vars.seed
+                for i = 1, #mapName do
+                    mapSeed = mapSeed + string.byte(mapName, i) * i * 13
+                end
+
+                -- Add map index if available
+                if Map.MapStatsIndex then
+                    mapSeed = mapSeed + Map.MapStatsIndex * 47
+                end
+
+                -- Generate seed for this specific monster
+                local monsterSeed = mapSeed + t.MonsterIndex * 97
+                mapvars.MonsterSeed[t.MonsterIndex] = monsterSeed
+            end
+
+            Game.RandSeed = mapvars.MonsterSeed[t.MonsterIndex]
+            math.randomseed(mapvars.MonsterSeed[t.MonsterIndex])
+        end
+
+        -- Now perform loot calculations (merged from zzMaw-Monsters.lua)
+        local mon = monster
+
+        -- Calculate gold
+        local lvl = BLevel[mon.Id] or mon.Level
+        local gold = mon.TreasureDiceCount *(mon.TreasureDiceSides + 1) / 2
+        local newGold =(bolsterLevel2 + lvl) * 7.5
+        local tier = 2
+
+        if mon.Id % 3 == 1 then
+            newGold = newGold / 2
+            tier = 1
+        elseif mon.Id % 3 == 0 then
+            newGold = newGold * 2
+            tier = 3
+        end
+
+        if gold > 0 and newGold > gold then
+            local goldMult =(bolsterLevel2 + lvl) ^ 1.5 /(lvl) ^ 1.5
+            mon.TreasureDiceCount = math.min(newGold ^ 0.5, 255)
+            mon.TreasureDiceSides = math.min(newGold ^ 0.5, 255)
+        end
+
+        -- Calculate loot chances and quality
+        if mon.Item == 0 and(mon.NameId < 220 or mon.NameId > 300) then
+            local name = Game.MapStats[Map.MapStatsIndex].Name
+            local lvlID = mon.Id
+            if tier == 1 then
+                lvlID = mon.Id + 1
+            elseif tier == 3 then
+                lvlID = mon.Id - 1
+            end
+            local lvl = math.max(basetable[lvlID].Level, mapLevels[name].Low)
+            local originalValue = math.min(mon.TreasureItemPercent, 50)
+            mon.TreasureItemPercent = math.ceil(mon.Level ^ 0.5 *(1 + tier) * 0.5 + originalValue * 0.3)
+
+            if vars.Mode == 2 then
+                mon.TreasureItemPercent = round(mon.TreasureItemPercent * 0.5)
+            elseif Game.BolsterAmount == 300 then
+                mon.TreasureItemPercent = round(mon.TreasureItemPercent * 0.75)
+            end
+
+            local itemTier =(lvl + 10 * tier) / 20
+            if itemTier % 20 / 20 > math.random() then
+                itemTier = itemTier + 1
+            end
+            itemTier = math.floor(itemTier)
+            mon.TreasureItemLevel = math.max(math.min(itemTier, 6), 1)
+            if itemTier <= 0 then
+                mon.TreasureItemPercent = round(mon.TreasureItemPercent * 2 ^(itemTier - 1))
+            end
+            if math.random() < 0.7 then
+                mon.TreasureItemType = 0
+            end
+        end
+
+        local densityMultiplier = GetDensityMultiplier(mon.Id)
+        -- Special handling for bosses and resurrected
+        if mon.NameId > 300 then
+            mon.TreasureItemPercent = round(mon.TreasureItemPercent / 4 * densityMultiplier ^ 0.5)
+            mon.TreasureDiceSides = math.max(round(mon.TreasureDiceSides / 4 * densityMultiplier ^ 0.5), 1)
+        elseif mon.NameId > 220 or mon.NameId == 160 then
+            mon.TreasureItemPercent = 100
+            local skill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
+            if skill == "Broodling" then
+                if mon.Id % 3 == 0 then
+                    mon.TreasureItemPercent = 30
+                elseif mon.Id % 3 == 2 then
+                    mon.TreasureItemPercent = 10
+                elseif mon.Id % 3 == 1 then
+                    mon.TreasureItemPercent = 4
+                end
+            end
+
+            -- Item tier for bosses
+            local name = Game.MapStats[Map.MapStatsIndex].Name
+            local lvl = math.max(basetable[mon.Id].Level, mapLevels[name].Low)
+            local id = mon:GetIndex()
+            if id and mapvars.uniqueMonsterLevel and mapvars.uniqueMonsterLevel[id] then
+                lvl = mapvars.uniqueMonsterLevel[id]
+            end
+            local itemTier = lvl / 20 + 2
+            if itemTier % 15 / 15 > math.random() then
+                itemTier = itemTier + 1
+            end
+            mon.TreasureItemLevel = math.max(math.min(itemTier, 6), 2)
+            bossLoot = true
+            local monsterSkill = string.match(Game.PlaceMonTxt[mon.NameId], "([^%s]+)")
+            if monsterSkill == "Omnipotent" then
+                OmnipotentLoot = true
+            end
+        end
+
+        -- Loot filter code
+        goldBeforeLoot = Party.Gold
+        lootFromMonster = true
+        lootMultiplier = densityMultiplier
+        -- Handle seed state after loot calculations
+        RunNextTick( function()
+            lootFromMonster = false
+            -- Update seed for non-insanity mode if needed
+            if not vars.insanityMode and not isBoss then
+                mapvars.MonsterSeed[t.MonsterIndex] = Game.RandSeed
+            end
+        end )
+    end
 end
 
 function events.CastTelepathy(t)
-	--if Game.BolsterAmount~=300 then return end
-	local monster = Map.Monsters[t.MonsterIndex]
-	if monster then
-		-- Check if this is a boss monster (NameId 220-299)
-		local isBoss = monster.NameId >= 220 and monster.NameId < 300
-		
-		if isBoss then
-			-- Use boss loot seeding for all modes
-			local seed = getBossLootSeed(monster)
-			Game.RandSeed = seed
-			RunNextTick(function()
-			end)
-		elseif vars.insanityMode then
-			-- Use new deterministic monster-type seeding for insanity mode
-			local seed = getMonsterSeed(monster.Id)
-			Game.RandSeed = seed
-			RunNextTick(function()
-			end)
-		else
-			-- Use old position-based seeding for other modes
-			Game.RandSeed = mapvars.MonsterSeed[t.MonsterIndex]
-			RunNextTick(function()
-				mapvars.MonsterSeed[t.MonsterIndex] = Game.RandSeed
-			end)
-		end
-	end
+    -- if Game.BolsterAmount~=300 then return end
+    local monster = Map.Monsters[t.MonsterIndex]
+    if monster then
+        -- Check if this is a boss monster (NameId 220-299)
+        local isBoss = monster.NameId >= 220 and monster.NameId < 300
+
+        if isBoss then
+            -- Use boss loot seeding for all modes
+            local seed = getBossLootSeed(monster)
+            Game.RandSeed = seed
+            RunNextTick( function()
+            end )
+        elseif vars.insanityMode then
+            -- Use new deterministic monster-type seeding for insanity mode
+            local seed = getMonsterSeed(monster.Id)
+            Game.RandSeed = seed
+            RunNextTick( function()
+            end )
+        else
+            -- Use old position-based seeding for other modes
+            Game.RandSeed = mapvars.MonsterSeed[t.MonsterIndex]
+            RunNextTick( function()
+                mapvars.MonsterSeed[t.MonsterIndex] = Game.RandSeed
+            end )
+        end
+    end
 end
 function events.LoadMap()
-	--if Game.BolsterAmount~=300 then return end
-	if not vars.insanityMode then
-		-- Use old seeding system for non-insanity modes
-		if not mapvars.MonsterSeed then
-			-- Generate or use existing global seed
-			if not vars.seed then
-				vars.seed = os.time()
-			end
-			
-			-- Create map-specific seed variation
-			local mapName = Map.Name or "default"
-			local mapSeed = vars.seed
-			for i = 1, #mapName do
-				mapSeed = mapSeed + string.byte(mapName, i) * i * 13
-			end
-			
-			-- Add map index if available
-			if Map.MapStatsIndex then
-				mapSeed = mapSeed + Map.MapStatsIndex * 47
-			end
-			
-			-- Set the combined seed
-			Game.RandSeed = mapSeed
-			math.randomseed(mapSeed)
-			
-			mapvars.MonsterSeed = {}
-			for i = 0, Map.Monsters.High do
-				local monster = Map.Monsters[i]
-				if monster then
-					-- Generate enough variation for each monster
-					local monsterSeed = Game.RandSeed + i * 97
-					Game.RandSeed = monsterSeed
-					math.randomseed(monsterSeed)
-					
-					-- Additional randomization to ensure all combinations possible
-					for j = 1, 50 + (i % 20) do
-						Game.Rand()
-						math.random()
-					end
-					
-					mapvars.MonsterSeed[i] = Game.RandSeed
-				end
-			end
-		end
-	end
+    -- if Game.BolsterAmount~=300 then return end
+    if not vars.insanityMode then
+        -- Use old seeding system for non-insanity modes
+        if not mapvars.MonsterSeed then
+            -- Generate or use existing global seed
+            if not vars.seed then
+                vars.seed = os.time()
+            end
+
+            -- Create map-specific seed variation
+            local mapName = Map.Name or "default"
+            local mapSeed = vars.seed
+            for i = 1, #mapName do
+                mapSeed = mapSeed + string.byte(mapName, i) * i * 13
+            end
+
+            -- Add map index if available
+            if Map.MapStatsIndex then
+                mapSeed = mapSeed + Map.MapStatsIndex * 47
+            end
+
+            -- Set the combined seed
+            Game.RandSeed = mapSeed
+            math.randomseed(mapSeed)
+
+            mapvars.MonsterSeed = { }
+            for i = 0, Map.Monsters.High do
+                local monster = Map.Monsters[i]
+                if monster then
+                    -- Generate enough variation for each monster
+                    local monsterSeed = Game.RandSeed + i * 97
+                    Game.RandSeed = monsterSeed
+                    math.randomseed(monsterSeed)
+
+                    -- Additional randomization to ensure all combinations possible
+                    for j = 1, 50 +(i % 20) do
+                        Game.Rand()
+                        math.random()
+                    end
+
+                    mapvars.MonsterSeed[i] = Game.RandSeed
+                end
+            end
+        end
+    end
 end
---create tables to calculate special enchant
+-- create tables to calculate special enchant
 function events.GameInitialized2()
-	Game.ItemsTxt[67].NotIdentifiedName="Mace"
-	Game.ItemsTxt[804].NotIdentifiedName="Longsword"
-	--calculate totals by enchant type
-	totBonus2={}
-	for k=0,3 do
-		totBonus2[k]={}
-		for v=0, 11 do
-			totBonus2[k][v]=0
-			for i=0, Game.SpcItemsTxt.High do
-				lvl=Game.SpcItemsTxt[i].Lvl
-				if lvl==k then
-					totBonus2[k][v]=totBonus2[k][v]+Game.SpcItemsTxt[i].ChanceForSlot[v]
-				end
-			end
-		end
-	end
-	
-	--calculate total of each item level per item type
-	itemStrength={}	
-	itemStrength[3]={}
-	itemStrength[4]={}
-	itemStrength[5]={}
-	itemStrength[6]={}
-	for v=0, 11 do	
-		itemStrength[3][v]=totBonus2[0][v]+totBonus2[1][v]
-		itemStrength[4][v]=totBonus2[0][v]+totBonus2[1][v]+totBonus2[2][v]
-		itemStrength[5][v]=totBonus2[1][v]+totBonus2[2][v]+totBonus2[3][v]
-		itemStrength[6][v]=totBonus2[3][v]
-	end
-	--list of possible enchants per item level
-	enchants={}
-	enchants[3]={0,1}
-	enchants[4]={0,1,2}
-	enchants[5]={1,2,3}
-	enchants[6]={3}
+    Game.ItemsTxt[67].NotIdentifiedName = "Mace"
+    Game.ItemsTxt[804].NotIdentifiedName = "Longsword"
+    -- calculate totals by enchant type
+    totBonus2 = { }
+    for k = 0, 3 do
+        totBonus2[k] = { }
+        for v = 0, 11 do
+            totBonus2[k][v] = 0
+            for i = 0, Game.SpcItemsTxt.High do
+                lvl = Game.SpcItemsTxt[i].Lvl
+                if lvl == k then
+                    totBonus2[k][v] = totBonus2[k][v] + Game.SpcItemsTxt[i].ChanceForSlot[v]
+                end
+            end
+        end
+    end
+
+    -- calculate total of each item level per item type
+    itemStrength = { }
+    itemStrength[3] = { }
+    itemStrength[4] = { }
+    itemStrength[5] = { }
+    itemStrength[6] = { }
+    for v = 0, 11 do
+        itemStrength[3][v] = totBonus2[0][v] + totBonus2[1][v]
+        itemStrength[4][v] = totBonus2[0][v] + totBonus2[1][v] + totBonus2[2][v]
+        itemStrength[5][v] = totBonus2[1][v] + totBonus2[2][v] + totBonus2[3][v]
+        itemStrength[6][v] = totBonus2[3][v]
+    end
+    -- list of possible enchants per item level
+    enchants = { }
+    enchants[3] = { 0, 1 }
+    enchants[4] = { 0, 1, 2 }
+    enchants[5] = { 1, 2, 3 }
+    enchants[6] = { 3 }
 end
 
---create enchant table
-encStrDown={2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84}
-encStrUp={3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108,111,114,117,120,125,130}
+-- create enchant table
+encStrDown = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84 }
+encStrUp = { 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108, 111, 114, 117, 120, 125, 130 }
 
 
-enc1Chance={20,30,40,50,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80}
-enc2Chance={20,30,35,40,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60}
-spcEncChance={5,10,15,20,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40}
+enc1Chance = { 20, 30, 40, 50, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 }
+enc2Chance = { 20, 30, 35, 40, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60 }
+spcEncChance = { 5, 10, 15, 20, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 }
 
 function events.BeforeLoadMap()
-	if vars.AusterityMode then
-		encStrDown={1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 19, 20, 21, 22, 23, 24, 25}
-		encStrUp={3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60}
+    if vars.AusterityMode then
+        encStrDown = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 19, 20, 21, 22, 23, 24, 25 }
+        encStrUp = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60 }
 
 
-		enc1Chance = {20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29}
-		enc2Chance = {10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19}
-		spcEncChance = {40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 46, 46, 47, 47, 48, 48, 49, 49}
-	elseif higherLootPowerRange then
-		encStrDown={5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200,205,210,215,220,225,230,235,240,245,250,255,260,265,270,275,280,285,290,295,300,310,320}
-		encStrUp={5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130,135,140,145,150,155,160,165,170,175,180,185,190,195,200,205,210,215,220,225,230,235,240,245,250,255,260,265,270,275,280,285,290,295,300,310,320}
+        enc1Chance = { 20, 20, 21, 21, 22, 22, 23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29 }
+        enc2Chance = { 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19 }
+        spcEncChance = { 40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 45, 45, 46, 46, 47, 47, 48, 48, 49, 49 }
+    elseif higherLootPowerRange then
+        encStrDown = { 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 310, 320 }
+        encStrUp = { 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 310, 320 }
 
 
-		enc1Chance={20,30,40,50,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80}
-		enc2Chance={20,30,35,40,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60}
-		spcEncChance={5,10,15,20,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40}
-	else
-		encStrDown={2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84}
-		encStrUp={3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,60,63,66,69,72,75,78,81,84,87,90,93,96,99,102,105,108,111,114,117,120,125,130}
+        enc1Chance = { 20, 30, 40, 50, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 }
+        enc2Chance = { 20, 30, 35, 40, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60 }
+        spcEncChance = { 5, 10, 15, 20, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 }
+    else
+        encStrDown = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84 }
+        encStrUp = { 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 60, 63, 66, 69, 72, 75, 78, 81, 84, 87, 90, 93, 96, 99, 102, 105, 108, 111, 114, 117, 120, 125, 130 }
 
 
-		enc1Chance={20,30,40,50,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80}
-		enc2Chance={20,30,35,40,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60}
-		spcEncChance={5,10,15,20,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40}
-	end
+        enc1Chance = { 20, 30, 40, 50, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80 }
+        enc2Chance = { 20, 30, 35, 40, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60 }
+        spcEncChance = { 5, 10, 15, 20, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 }
+    end
 end
 
-primordialWeapEnchants={39,40,41,46}
-primordialArmorEnchants={1,2,80}
+primordialWeapEnchants = { 39, 40, 41, 46 }
+primordialArmorEnchants = { 1, 2, 80 }
 
-local goldId={187,188,189,197,198,199,999,1000,1001,1799,1800,1801}
+local goldId = { 187, 188, 189, 197, 198, 199, 999, 1000, 1001, 1799, 1800, 1801 }
 function events.AfterLoadMap()
-	Sleep(1)
-	if not mapvars.chestGoldFix then
-		local name=Game.MapStats[Map.MapStatsIndex].Name
-		local mapLevel=(mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3
-		if vars.madnessMode and madnessMapLevels[name] then
-			bolsterLevel=madnessMapLevels[name]
-		end	
-		if mapvars.mapAffixes then
-			bolsterLevel=mapvars.mapAffixes.Power*10+20
-		end
-		for i=0,Map.Chests.High do
-			for k=1,Map.Chests[i].Items.High do
-				local it=Map.Chests[i].Items[k]
-				if table.find(goldId,it.Number) then
-					local goldType=(table.find(goldId,it.Number)-1)%3+1
-					if goldType==3 then
-						goldType=4
-					end
-					it.Bonus2=10*(mapLevel+bolsterLevel)*goldType*(0.66+math.random()*0.66)
-				end
-			end
-		end
-		mapvars.chestGoldFix=true
-	end
-	
-	if not mapvars.lootFiltered then
-		for i=0,Map.Chests.High do
-			for k=1,Map.Chests[i].Items.High do
-				local it=Map.Chests[i].Items[k]
-				if (it.Number>=1 and it.Number<=151) or (it.Number>=803 and it.Number<=936) or (it.Number>=1603 and it.Number<=1736) then
-					local itemPower=1
-					if it.Bonus>0 then
-						itemPower=itemPower+1
-					end
-					if it.Bonus2>0 then
-						itemPower=itemPower+1
-					end
-					if it.Charges>1000 then
-						itemPower=itemPower+1
-					end
-					if it.BonusExpireTime==1 then
-						itemPower=5
-					elseif it.BonusExpireTime==2 then
-						itemPower=6
-					elseif it.BonusExpireTime>10 and it.BonusExpireTime<1000 then
-						itemPower=7
-					end
-					
-					local filter=vars.MAWSETTINGS.lootFilter
-					
-					local tierList={"Common", "Uncom.", "Rare", "Epic", "Ancient", "Primordial", "Legendary", [0]="OFF"}
-					local filterPower=table.find(tierList, filter)
-					local itemID=it.Number
-					if itemPower<=filterPower then
-						local goldId={1799,999,187,1800,1000,188,1801,1001,189}
-						local itemGold=getItemValue(it, true)
-						it.Number=goldId[math.min((itemPower)*2-math.random(0,1),9)]
-						it.Bonus2=itemGold
-					end
-				end
-			end
-		end
-		mapvars.lootFiltered = true
-	end
+    Sleep(1)
+    if not mapvars.chestGoldFix then
+        local name = Game.MapStats[Map.MapStatsIndex].Name
+        local mapLevel =(mapLevels[name].Low + mapLevels[name].Mid + mapLevels[name].High) / 3
+        if vars.madnessMode and madnessMapLevels[name] then
+            bolsterLevel = madnessMapLevels[name]
+        elseif DoomMapMode() and doomMapLevels[name] then
+            bolsterLevel = doomMapLevels[name]
+        end
+        if mapvars.mapAffixes then
+            bolsterLevel = mapvars.mapAffixes.Power * 10 + 20
+        end
+        for i = 0, Map.Chests.High do
+            for k = 1, Map.Chests[i].Items.High do
+                local it = Map.Chests[i].Items[k]
+                if table.find(goldId, it.Number) then
+                    local goldType =(table.find(goldId, it.Number) -1) % 3 + 1
+                    if goldType == 3 then
+                        goldType = 4
+                    end
+                    it.Bonus2 = 10 *(mapLevel + bolsterLevel) * goldType *(0.66 + math.random() * 0.66)
+                end
+            end
+        end
+        mapvars.chestGoldFix = true
+    end
+
+    if not mapvars.lootFiltered then
+        for i = 0, Map.Chests.High do
+            for k = 1, Map.Chests[i].Items.High do
+                local it = Map.Chests[i].Items[k]
+                if (it.Number >= 1 and it.Number <= 151) or(it.Number >= 803 and it.Number <= 936) or(it.Number >= 1603 and it.Number <= 1736) then
+                    local itemPower = 1
+                    if it.Bonus > 0 then
+                        itemPower = itemPower + 1
+                    end
+                    if it.Bonus2 > 0 then
+                        itemPower = itemPower + 1
+                    end
+                    if it.Charges > 1000 then
+                        itemPower = itemPower + 1
+                    end
+                    if it.BonusExpireTime == 1 then
+                        itemPower = 5
+                    elseif it.BonusExpireTime == 2 then
+                        itemPower = 6
+                    elseif it.BonusExpireTime > 10 and it.BonusExpireTime < 1000 then
+                        itemPower = 7
+                    end
+
+                    local filter = vars.MAWSETTINGS.lootFilter
+
+                    local tierList = { "Common", "Uncom.", "Rare", "Epic", "Ancient", "Primordial", "Legendary", [0] = "OFF" }
+                    local filterPower = table.find(tierList, filter)
+                    local itemID = it.Number
+                    if itemPower <= filterPower then
+                        local goldId = { 1799, 999, 187, 1800, 1000, 188, 1801, 1001, 189 }
+                        local itemGold = getItemValue(it, true)
+                        it.Number = goldId[math.min((itemPower) * 2 - math.random(0, 1), 9)]
+                        it.Bonus2 = itemGold
+                    end
+                end
+            end
+        end
+        mapvars.lootFiltered = true
+    end
 end
 
 function events.ItemGenerated(t)
 	if Game.CurrentScreen==16 or Game.CurrentScreen==21 then return end
+	
+
 	--boss items forced
 	if bossLoot then
+		DebugAddCombatLog(StrColor(64,0,0,"Boss loot generated"))
 		if not IsEnchantableItem(t.Item) then
-			t.Item:Randomize(t.Strength, 0)
+		    local str=t.Strength*GetBossLootStrengthSageCraftMx()
+			t.Item:Randomize(str, 0)
 			return
 		end
 	end
@@ -505,7 +511,10 @@ function events.ItemGenerated(t)
 	-- Build combined artifact list and initialize pity counters
 	lootMultiplier = lootMultiplier or 1
 	if Game.HouseScreen~=2 and Game.HouseScreen~=95 and IsEnchantableItem(t.Item) then
-		local artifactChance = 0.005 * lootMultiplier
+		
+		local sageX=GetPartyLegendarySageCraftMx()
+
+		local artifactChance = 0.005 * lootMultiplier * sageX
 		vars.artifactRollPity = vars.artifactRollPity or 0
 		local chance = pity_chance(artifactChance, vars.artifactRollPity)
 		if math.random() < chance then
@@ -532,10 +541,16 @@ function events.ItemGenerated(t)
 		end
 	end	
 
+	local bReturn=false
+
+
 	-- spawn crafting materials in misc shops, substituting recipes
 	if (Game.HouseScreen == 2 or Game.HouseScreen == 95) and not vars.AusterityMode then
-		local id = Game:GetCurrentHouse()
-		local stat = t.Item:T().EquipStat
+		local stat = t.Item:T().EquipStat	
+		local id=t.Item.Number
+
+
+
 
 		if (stat >= 12 and math.random() < 0.3 or stat == 19) and id <= 110 then
 			-- reset item
@@ -589,10 +604,90 @@ function events.ItemGenerated(t)
 			end
 
 			t.Item.Number = 1041 + math.min(reagentLevel, 19)
-			return
+
+		
+		 bReturn=true
+		--	return
 		end
 	end
+	if(bReturn) then
+	   local Estat = t.Item:T().EquipStat-- in case was modified above
+
+		local itemID=t.Item.Number
+		local itemStr=itemID
+		if itemID>=221 and itemID<=263 then
+			itemStr = "Potion"
+		elseif itemID>=1041 and itemID<=1068 then
+			itemStr = "Crafting"
+		elseif reagentList[itemID] then
+			itemStr = "Reagent"
+		end
+
+		local iName=t.Item:T().Name
+		local iType = t.Item:T().NotIdentifiedName
+		local sndx=t.Item:T().SpriteIndex
+		local picc=t.Item:T().Picture
+		local bHighlightInLog=false
+						--debug item gen in shop
+		--DebugAddCombatLog("       Type: " .. iType.. " EStat: " .. Estat)
+		--DebugAddCombatLog("       SpriteIndex: " ..sndx)
+		--DebugAddCombatLog("       Picture: " ..picc)
+		if iType== "Scroll" or iType=="Spell Scroll" then
+		--is scroll, test if in scroll list
+			if sdgScrollIcn[iName] then
+			--if in icn list, swap icon
+			--DebugAddCombatLog(StrColor(255,0,0,"Replacing Icon"))
+				t.Item:T().SpriteIndex = sdgScrollIcn[iName]["sprite"]
+				t.Item:T().Picture = sdgScrollIcn[iName]["pic"]
+				bHighlightInLog=true
+			else
+			--set to boring scroll
+				t.Item:T().SpriteIndex = sdgScrollIcn["default"]["sprite"]
+				t.Item:T().Picture = sdgScrollIcn["default"]["pic"]
+			end
+		end
+		if(bHighlightInLog)then
+			DebugAddCombatLog(StrColor(255,128,255, "ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType))
+		else
+			DebugAddCombatLog("ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType)
+		end
+		if Estat==18 then
+		 DebugAddCombatLog(StrColor(255,255,128,"   Item is gold"))
+		end
+		 return
+	else
+--		local itemID=t.Item.Number
+--		local iName=t.Item:T().Name
+--		local iType = t.Item:T().NotIdentifiedName
+--		local sndx=t.Item:T().SpriteIndex
+--		local picc=t.Item:T().Picture
+--		local bHighlightInLog=false
+--						--debug item gen in shop
+--		--DebugAddCombatLog("       Type: " .. iType.. " EStat: " .. Estat)
+--		--DebugAddCombatLog("       SpriteIndex: " ..sndx)
+--		--DebugAddCombatLog("       Picture: " ..picc)
+--		if iType== "Scroll" or iType=="Spell Scroll" then
+--		--is scroll, test if in scroll list
+--			if sdgScrollIcn[iName] then
+--			--if in icn list, swap icon
+--			--DebugAddCombatLog(StrColor(255,0,0,"Replacing Icon"))
+--				t.Item:T().SpriteIndex = sdgScrollIcn[iName]["sprite"]
+--				t.Item:T().Picture = sdgScrollIcn[iName]["pic"]
+--				bHighlightInLog=true
+--			else
+--			--set to boring scroll
+--				t.Item:T().SpriteIndex = sdgScrollIcn["default"]["sprite"]
+--				t.Item:T().Picture = sdgScrollIcn["default"]["pic"]
+--			end
+--		end
+--		if(bHighlightInLog)then
+--			DebugAddCombatLog(StrColor(255,128,255, "ItemID: "..itemID.." Name: " .. iName .. "    Type: " .. iType))
+--		else
+--			DebugAddCombatLog("ItemID: "..itemID.." Name: " .. iName .. "    Type: " .. iType)
+--		end
+	end
 	
+
 	if IsEnchantableItem(t.Item) or reagentList[t.Item.Number] then
 		t.Handled=true
 		local it=t.Item
@@ -646,6 +741,12 @@ function events.ItemGenerated(t)
 				partyLevel=((mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3)^1.5
 			end
 			mapLevel=0
+		elseif DoomMapMode()  then
+		   if(doomMapLevels[name]) then
+				partyLevel=doomMapLevels[name]
+			else
+				partyLevel=((mapLevels[name].Low+mapLevels[name].Mid+mapLevels[name].High)/3)^1.5
+			end
 		end
 		if mapvars.mapAffixes then
 			currentLevel=mapvars.mapAffixes.Power*10+20
@@ -670,6 +771,8 @@ function events.ItemGenerated(t)
 		if vars.insanityMode then
 			difficultyExtraPower=1.4
 		end
+		local sageBossX=GetBossLootStrengthSageCraftMx()
+		difficultyExtraPower=difficultyExtraPower*sageBossX
 		--nerf shops if no exp in current world
 		--[[
 		if (Game.HouseScreen==2 or Game.HouseScreen==95) and Game.freeProgression then 
@@ -688,7 +791,7 @@ function events.ItemGenerated(t)
 		cap1=cap1/2
 		maxChargesCap=maxChargesCap/2
 		
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			maxChargesCap=200
 		end
 		it.MaxCharges=math.floor(partyLevel/10+mapLevel/80)
@@ -703,7 +806,7 @@ function events.ItemGenerated(t)
 			bonusCap=bonusCap+20
 		end
 		cap2=14+bonusCap
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			cap2=54
 			bonusCap=42
 		end
@@ -743,13 +846,21 @@ function events.ItemGenerated(t)
 		end
 		]]
 		--calculate chances
+		local UCSageX=GetPartyUncommonSageCraftMx()
+		local RareSageX=GetPartyRareSageCraftMx()
+		local EpicSageX=GetPartyEpicSageCraftMx()
+		local AncientSageX=GetPartyAncientSageCraftMx()
+		local PrimordialSageX = GetPartyPrimordialSageCraftMx()
+		local LegendarySageX=GetPartyLegendarySageCraftMx()
+		local CelestialSageX=GetPartyCelestialSageCraftMx()
+
 		local p1=enc1Chance[math.min(pseudoStr,#enc1Chance)]/100
 		local p2=enc2Chance[math.min(pseudoStr,#enc2Chance)]/100
 		local p3=spcEncChance[math.min(pseudoStr,#spcEncChance)]/100
 		
-		p1=p1^(1/diffMult)
-		p2=p2^(1/diffMult)
-		p3=p3^(1/diffMult)
+		p1=p1^(1/diffMult)*UCSageX
+		p2=p2^(1/diffMult)*RareSageX
+		p3=p3^(1/diffMult)*EpicSageX
 		
 		if p1>roll1 then
 			it.Bonus=math.random(1,16)
@@ -789,7 +900,7 @@ function events.ItemGenerated(t)
 				
 		--ancient item
 		ancient=false
-		ancientChance=(p1*p2*p3)/4^(1/diffMult^0.5)
+		ancientChance=(p1*p2*p3)/4^(1/diffMult^0.5)*AncientSageX
 		if mapvars.mapAffixes then
 			local nAff=0
 			for i=1,4 do
@@ -807,6 +918,7 @@ function events.ItemGenerated(t)
 	
 		ancientRoll=math.random()
 		if ancientRoll<=ancientChance or OmnipotentLoot then
+			DebugAddCombatLog("Ancient Chance: "..ancientChance*100)
 			ancient=true
 			it.Charges=math.random(round(encStrUp[pseudoStr]+1),math.min(math.ceil(encStrUp[pseudoStr]*1.2), encStrUp[pseudoStr]+10))
 			it.Charges=math.ceil(it.Charges*difficultyExtraPower) --bolster
@@ -845,8 +957,10 @@ function events.ItemGenerated(t)
 		
 		--primordial item
 		primordial=math.random()
-		primordialChance=ancientChance/4^(1/diffMult^0.5)
+		primordialChance=ancientChance/4^(1/diffMult^0.5)*PrimordialSageX
 		if primordial<=primordialChance or OmnipotentLoot then
+			DebugAddCombatLog("Primordial Chance: "..primordialChance*100)
+
 			if ancient then
 				it.MaxCharges=it.MaxCharges-chargesBonus
 			end
@@ -894,11 +1008,14 @@ function events.ItemGenerated(t)
 				baseChance=0
 			end
 			local chance = pity_chance(baseChance, vars.legendaryPityCounter)
-			chance=chance*lootMultiplier^0.5
+			chance=chance*lootMultiplier^0.5 * LegendarySageX
 			-- Apply pity protection using new pity system
 			
 			if chance>=math.random() or OmnipotentLoot then
 				-- Reset pity counter on successful drop
+				DebugAddCombatLog(StrColor(255,255,0,"Legendary Rolled: "..chance*100 .. " LootMx: " .. lootMultiplier .. " LegendarySageX: ".. LegendarySageX))
+				sdgPlaySound("tada.wav")
+
 				if not OmnipotentLoot then
 					vars.legendaryPityCounter = 0
 				end
@@ -959,10 +1076,12 @@ function events.ItemGenerated(t)
 			vars.celestialPityCounter = vars.celestialPityCounter or 0
 			local baseChance=0.1
 			local chance = pity_chance(baseChance, vars.celestialPityCounter)
-			chance = chance * lootMultiplier^0.5
+			chance = chance * lootMultiplier^0.5 * CelestialSageX
 			
 			
 			if math.random()<chance or OmnipotentLoot then
+				DebugAddCombatLog(StrColor(128,255,255,"Celestial Rolled: "..chance*100 .. " LootMx: " .. lootMultiplier .. " CelestialSageX: ".. CelestialSageX))
+				sdgPlaySound("tada.wav")
 				it.BonusExpireTime=it.BonusExpireTime+100
 				if not OmnipotentLoot then
 					vars.celestialPityCounter = 0
@@ -1096,23 +1215,80 @@ function events.ItemGenerated(t)
 			itemPower=7
 		end
 		
-		vars.MAWSETTINGS=vars.MAWSETTINGS or {}
-		vars.MAWSETTINGS.lootFilter=vars.MAWSETTINGS.lootFilter or "OFF"
+--		vars.MAWSETTINGS=vars.MAWSETTINGS or {}
+--		vars.MAWSETTINGS.lootFilter=vars.MAWSETTINGS.lootFilter or "OFF"
 		
 		local filter=vars.MAWSETTINGS.lootFilter
 
 		local tierList={"Common", "Uncom.", "Rare", "Epic", "Ancient", "Primordial", "Legendary", [0]="OFF"}
-		local filterPower=table.find(tierList, filter)
-		local itemID=it.Number
+		local filterPower=table.find(tierList, filter) or 0
+		local itemID=t.Item.Number
+
+		if g_allowDebug then
+		--will diplay generated items in combatlog
+			local itemID=it.Number
+			local tierTxt="Tier: " .. tierList[itemPower]
+		
+			if t.Item.BonusExpireTime>=100 and t.Item.BonusExpireTime<=200 then
+				tierTxt="Tier: Celestial"
+			end
+
+			local itemStr=itemID
+			if itemID>=221 and itemID<=263 then
+				itemStr = "Potion"
+			elseif itemID>=1041 and itemID<=1068 then
+				itemStr = "Crafting"
+			elseif reagentList[itemID] then
+				itemStr = "Reagent"
+			end
+
+			local iName= it:T().Name
+			local iType = it:T().NotIdentifiedName
+			local iDesc="Name: " .. iName .. "    Type: " .. iType
+			local clrText=""
+
+			if(itemPower>7)then
+			--celestial
+				clrText=StrColor(255,255,0,iDesc .." " .. tierTxt)
+			elseif(itemPower>6) then
+			--legendary
+				clrText = StrColor(0,255, 255, iDesc .." " .. tierTxt)
+			elseif(itemPower>5) then
+			--primordial
+				clrText = StrColor(192, 0, 0, iDesc .." " .. tierTxt)
+			elseif(itemPower>4) then
+			--ancient
+				clrText = StrColor(255, 128, 64, iDesc .." " .. tierTxt)
+			elseif(itemPower>3) then
+			--epic
+				clrText = StrColor(255, 0, 255, iDesc .." " ..tierTxt)
+			elseif(itemPower>2) then
+			--rare
+				clrText = StrColor(0, 128, 255, iDesc .." " .. tierTxt)
+			elseif(itemPower>1) then
+			--uncommon
+				clrText = StrColor(0, 255,0, iDesc .." " .. tierTxt)
+			else
+				 clrText=iDesc
+			end
+			DebugAddCombatLog(clrText)
+			DebugAddCombatLog("***")
+		end
+		
+
 		if itemPower<=filterPower then
 			if lootFromMonster then
 				lootFromMonster=false
 				local itemGold=getItemValue(it, true)
+				local GoldSageX=GetPartySagecraftGoldMx()
+				local bonusGold=itemGold*GoldSageX
+				local dGold=bonusGold-itemGold
+				DebugAddCombatLog("Gold Gained from Item Filter " .. bonusGold .. "  (SageCraft bonus  " .. dGold .. ")")
 				it.Number=0
 				RunNextTick(function()
 					goldGained=Party.Gold-goldBeforeLoot
-					Party.Gold=Party.Gold+itemGold
-					Game.ShowStatusText("You found " .. itemGold+goldGained .. " gold! (" .. tierList[itemPower] .. " " .. Game.ItemsTxt[itemID].NotIdentifiedName .. " filtered)")
+					Party.Gold=Party.Gold+bonusGold					
+					Game.ShowStatusText("You found " .. bonusGold+goldGained .. " gold! (" .. tierList[itemPower] .. " " .. Game.ItemsTxt[itemID].NotIdentifiedName .. " filtered)")
 				end)
 			end
 		end
@@ -1134,6 +1310,54 @@ function events.ItemGenerated(t)
 			it.MaxCharges=math.min(math.random(1+it.MaxCharges*minValue,it.MaxCharges*1.5),255)
 			it.Charges=it.Charges-it.Charges%1000+math.random(1+it.Charges%1000*minValue,it.Charges%1000)
 		end
+	else
+	 local Estat = t.Item:T().EquipStat-- in case was modified above
+
+		local itemID=t.Item.Number
+		local itemStr=itemID
+		if itemID>=221 and itemID<=263 then
+			itemStr = "Potion"
+		elseif itemID>=1041 and itemID<=1068 then
+			itemStr = "Crafting"
+		elseif reagentList[itemID] then
+			itemStr = "Reagent"
+		end
+
+		local iName=t.Item:T().Name
+		local iType = t.Item:T().NotIdentifiedName
+		local iMaterial=t.Item:T().Material
+		local sndx=t.Item:T().SpriteIndex
+		local picc=t.Item:T().Picture
+		if(iMaterial==2)then
+			DebugAddCombatLog(StrColor(255,255,64,"ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType))
+
+		elseif (iMaterial==1) then
+			DebugAddCombatLog(StrColor(255,255, 128,"ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType))
+		elseif (iMaterial==3) then
+			DebugAddCombatLog(StrColor(255,128, 128,"ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType))
+		else 
+
+							--debug item gen in shop
+			--DebugAddCombatLog("       Type: " .. iType.. " EStat: " .. Estat)
+			--DebugAddCombatLog("       SpriteIndex: " ..sndx)
+			--DebugAddCombatLog("       Picture: " ..picc)
+			if (iType=="Scroll" or iType=="Spell Scroll") and sdgScrollIcn then
+			--is scroll, test if in scroll list
+				if sdgScrollIcn[iName] then
+				--if in icn list, swap icon
+				--DebugAddCombatLog(StrColor(255,0,0,"Replacing Icon"))
+				t.Item:T().SpriteIndex = sdgScrollIcn[iName]["sprite"]
+				t.Item:T().Picture = sdgScrollIcn[iName]["pic"]
+				DebugAddCombatLog(StrColor(255,128,255, "ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType))
+			else
+				DebugAddCombatLog("ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType)
+
+				end
+			else
+				DebugAddCombatLog("ItemID: "..itemStr.." Name: " .. iName .. "    Type: " .. iType)
+
+			end
+	  end
 	end
 end
 
@@ -1386,6 +1610,7 @@ legendaryEffects={
 	[33]="Increase Melee weapon skill by 10",
 	[34]="Overhealing refunds mana",
 	[35]="Overhealing reduces recovery time equal to half overhealing amount",
+	[36]="Increase Racial Skills (Dragon, Vampire, DarkElf) by 10",
 }
 
 function updateCelestialItem(it,pl)
@@ -1408,7 +1633,7 @@ function updateCelestialItem(it,pl)
 			lvl=lvl2*1.2
 		end
 		local tier=math.min(lvl/11+5,60)
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			tier=math.min(math.min(lvl,1000)/11+5,90)
 		end
 		local mult=3
@@ -1428,7 +1653,7 @@ function updateCelestialItem(it,pl)
 			it.Charges=math.floor(it.Charges/1000)*1000+math.min(math.round(tier*mult*slotMult),999)
 		end
 		local cap=180 
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			cap=240
 		end
 		it.MaxCharges=math.min(math.round(tier*mult*0.8),cap)
@@ -1540,7 +1765,7 @@ function events.BuildItemInformationBox(t)
 					if vars.insanityMode then
 						bolsterMult=1.4
 					end
-					if vars.madnessMode then
+					if vars.madnessMode or DoomMapMode() then
 						bolsterMult=2
 					end
 					local maxValue=120 * bolsterMult
@@ -1610,7 +1835,7 @@ function events.BuildItemInformationBox(t)
 						if vars.insanityMode then
 							bolsterMult=1.4
 						end
-						if vars.madnessMode then
+						if vars.madnessMode or DoomMapMode() then
 							bolsterMult=2
 						end
 						local maxValue=120 * bolsterMult
@@ -1829,7 +2054,7 @@ function events.BuildItemInformationBox(t)
 			maxChargesCap=maxChargesCap+100 --mapping release
 			maxChargesCap=maxChargesCap/2
 
-			if vars.madnessMode then
+			if vars.madnessMode or DoomMapMode() then
 				maxChargesCap=150
 			end
 			maxChargesCap=round(maxChargesCap)
@@ -1969,6 +2194,7 @@ bonusEffects = {
     [78] = { bonusType = 53, bonusRange = {11, 14}, statModifier = 20 },
     [79] = { bonusType = 53, bonusValues = {15, 16}, statModifier = 20 },
     [80] = { bonusType = 53, bonusRange = {1, 16}, statModifier = 5 },
+    [81] = { bonusType = 53, bonusRange = {1, 16}, statModifier = 5 },
 }
 
 --create dictionary with description list
@@ -2035,6 +2261,7 @@ function checktext(MaxCharges,bonus2,it)
 		[32] = "Mind Magic Skill +" .. math.floor(MaxCharges/4)+5,
 		[33] = "Spirit Magic Skill +" .. math.floor(MaxCharges/4)+5,
 		[34] = "Water Magic Skill +" .. math.floor(MaxCharges/4)+5,
+		[35] = "Racial Skills (Dragon, Vampire, Dark Elf) +" .. math.floor(MaxCharges/4)+5,
 		--stats enchants
 		[38] = "Meditation Skill +" .. math.floor(MaxCharges*3/20)+3,
 		[39] = "Adds " .. math.floor(40*enchantDamageMult*attackSpeedMult*legDmgMult) .. "-" .. math.floor(80*enchantDamageMult*attackSpeedMult*legDmgMult) .. " to spell damage and +" .. math.floor(bonusEffects[46].statModifier * mult).. " Intellect and personality.",
@@ -2064,7 +2291,7 @@ function checktext(MaxCharges,bonus2,it)
 		[78] = " +" .. math.floor(bonusEffects[78].statModifier * mult) .. " Elemental Resistances.",
 		[79] = " +" .. math.floor(bonusEffects[79].statModifier * mult) .. " Body and mind Resistances.",
 		[80] = " +" .. math.floor(bonusEffects[80].statModifier * mult) .. " to Seven Stats, HP, SP, Armor, Resistances.",
-	}
+		}
 
 	
 	return bonus2txt[bonus2]
@@ -2294,6 +2521,7 @@ enchantList={
 	[32] = true ,
 	[33] = true ,
 	[34] = true ,
+	[35] = true ,
 	[38] = true ,
 	[46] = true ,
 	[66] = true ,
@@ -2489,7 +2717,7 @@ function events.BuildItemInformationBox(t)
 		text=t.Description
 		t.Description = text:gsub(pattern, function(match) return replaceNumber(match, t.Item.BonusExpireTime) end)
 		local txt="\n\nScale with player level, up to level 550."
-		if vars.madnessMode then
+		if vars.madnessMode or DoomMapMode() then
 			txt="\n\nScale with player level, up to level 900."
 		end
 		if t.Item.BonusExpireTime>=1 then
@@ -2806,7 +3034,7 @@ function events.BuildItemInformationBox(t)
 			end
 			if t.Item.BonusExpireTime>100 and t.Item.BonusExpireTime<200 then
 				txt=StrColor(120, 240, 255,"\n\nCelestial Items cannot be upgraded with crafting Gems or Cubes, but scale with player level, up to level 600.")
-				if vars.madnessMode then
+				if vars.madnessMode or DoomMapMode() then
 					txt=StrColor(120, 240, 255,"\n\nCelestial Items cannot be upgraded with crafting Gems or Cubes, but scale with player level, up to level 1000.")
 				end
 			end
@@ -4158,7 +4386,9 @@ artifactSkillBonus[1313] =	{	[const.Skills.Unarmed] = 10,
 artifactSkillBonus[1317] =	{	[const.Skills.Meditation] = 8}
 -- Hareck's Leather
 artifactSkillBonus[1318] =	{	[const.Skills.Dagger] = 5,
-								[const.Skills.Unarmed] = 5,}
+								[const.Skills.Unarmed] = 5,
+								[const.Skills.Dodging]=5,
+								}
 -- Old Nick
 artifactSkillBonus[1319] =	{	[const.Skills.DisarmTraps] = 5}
 -- Glory shield
@@ -4269,6 +4499,7 @@ function events.KeyDown(t)
 	--base numbers
 	if t.Key==82 then
 		refreshItems()
+
 	end	
 end
 
@@ -4291,7 +4522,8 @@ function refreshItems()
 	else 
 		return
 	end
-	
+    
+
 	local currentWorld=TownPortalControls.MapOfContinent(Map.MapStatsIndex)
 	local partyLevel=getPartyLevel(4)-math.min(vars.MMLVL[currentWorld]/2, 54)
 	--cap
@@ -4309,6 +4541,7 @@ function refreshItems()
 		Party.Gold=Party.Gold-cost
 	end
 	--check for shop
+	ClearCombatLog()
 	if not vars.shopType[id] then
 		mawStoreShop()
 	end
@@ -4330,6 +4563,8 @@ function refreshItems()
 			Game.GuildItemIconPtr[i] = Game.IconsLod:LoadBitmapPtr(h[i]:T().Picture)
 		end
 	end
+			AddCombatLog("Shop items refreshed!")
+
 end
 
 --get house info and fix broken prices
@@ -4407,7 +4642,7 @@ function artifactPowerMult(level, isAC, customLevel)
 	end
 	]]
 	local cap=550
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		cap=900
 	end
 	if customLevel>=1 then
@@ -5051,8 +5286,11 @@ function events.AfterLoadMap()
 			if it.MaxCharges==0 then
 				if table.find(mawArtifacts, it.Number) then
 					if it:T().Value>=20000 and it.BonusStrength==0 then
+					   
+					   DebugAddCombatLog(StrColor(128,0,0,"Replacing Artifact "))
+
 						bossLoot = true
-						it:Randomize(6,0)
+						it:Randomize(7,0)
 					end
 				end
 			end
@@ -5061,7 +5299,7 @@ function events.AfterLoadMap()
 	if vars.Mode==2 and not vars.StartingItemFix then
 		vars.StartingItemFix=true
 		local extraPower=5
-		if vars.insanityMode then
+		if vars.insanityMode or DoomMapMode() then
 			extraPower=10
 		end
 		for i=0,Party.PlayersArray.High do

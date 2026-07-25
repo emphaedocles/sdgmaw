@@ -255,7 +255,12 @@ end
 function events.CalcDamageToMonster(t)
 	if t.Result==0 then return end
 	local data = WhoHitMonster()
-		if data and data.Player and (data.Player.Class==55 or data.Player.Class==54 or data.Player.Class==53) and t.DamageKind==4 and data.Object==nil then
+		if data and data.Player and (data.Player.Class==55 or data.Player.Class==54 or data.Player.Class==53) and data.Object==nil then
+		local adjH=1.0
+		if t.DamageKind~=4 then--allow for 'ranged' at reduced amount
+			adjH=0.25
+		end	
+
 		local pl=data.Player
 		local partyHP=0
 		for i=0,Party.High do
@@ -267,15 +272,28 @@ function events.CalcDamageToMonster(t)
 		--get body
 		bodyS,bodyM=SplitSkill(pl.Skills[const.Skills.Body])
 		
-		if bodyS==0 and spiritS==0 then return end
+		if bodyS==0 then return end
 		
 		--Calculate heal value and apply
 		healValue=(bodyS^1.3*bodyM*2)*damageMultiplier[t.PlayerIndex]["Melee"]
+
 		personality=pl:GetPersonality()
 		healValue=round(healValue*(1+personality/1000))
+		healValue=healValue*adjH
 
 		local healTarget, lowestHealthPercentage=pickLowestPartyMember()
 		
+		--add to combatlog
+
+		local healTxt = StrColor(64, 255, 64, healValue)
+		local healerTxt=StrColor(255,128,255,pl.Name)
+		local targetTxt = StrColor(0, 255, 255, Party[healTarget].Name)
+		 AddHealToLog("Seraph-Strike", healValue,false,healTarget,pl, 4, false)
+
+
+		--add to floating text
+		SetHealText(healTarget,healValue)
+
 		local percent, partyId, playerId=OnlineLowestHealthPercentage()
 		
 		if lowestHealthPercentage>0.25 and percent<lowestHealthPercentage then
@@ -513,6 +531,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap=900
 			end
 			local speedDelay=0.015
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30) 
@@ -537,6 +557,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + (dragonFang.Damage[m]) * s / 100)  * (math.min(lvl,cap) * 2 +30)
 			
@@ -570,6 +592,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local speedDelay=0.015
 			local baseDamage=(1 + dragonBreath.Damage[m] * s / 100) * (20 + 2 * math.min(lvl,cap)) + mightEffect
@@ -597,6 +621,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local speedDelay=0.015
 			local baseDamage=(1 + dragonBreath.Damage[m] * s / 100) * (20 + 2 * math.min(lvl,cap)) + mightEffect
@@ -618,6 +644,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (1 + dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40) - (s * oldDodge)
 			t.Result=t.Result+bonus
@@ -634,6 +662,8 @@ function events.GameInitialized2()
 			local cap=600
 			if vars.madnessMode then
 				cap=900
+			elseif DoomMapMode() then
+				cap = 900
 			end
 			local bonus= (dragonScales.AC[m]/100 * s) * (math.min(lvl,cap)+40)
 			t.Result=t.Result+bonus
@@ -859,6 +889,8 @@ function events.GameInitialized2()
 			if data.Object==nil then
 				local breath = SplitSkill(data.Player:GetSkill(const.Skills.DragonAbility))
 				local fang, fangM = SplitSkill(data.Player:GetSkill(const.Skills.Unarmed))
+				AddCombatLog("fang skill: " .. fang .. " breath skill: " .. breath)
+
 				if breath>=fang then
 					local x, y = directionToUnitVector(Party.Direction)
 					push=push or {}
@@ -991,6 +1023,7 @@ function events.GameInitialized2()
 				mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 				mapvars.leechDone[id]=mapvars.leechDone[id] + healing
 			end
+			SetLeechText(id,healing)
 			data.Player.HP=math.min(data.Player.HP+leech, data.Player:GetFullHP())
 		end
 	end
@@ -1206,7 +1239,7 @@ function events.GameInitialized2()
 					mapvars.leechDone[id]=mapvars.leechDone[id] or 0
 					mapvars.leechDone[id]=mapvars.leechDone[id] + healing
 				end
-				
+				SetLeechText(id,healing)
 				pl.HP=math.min(pl:GetFullHP(), pl.HP+heal+leech)
 				
 				--dark grasp

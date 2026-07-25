@@ -54,6 +54,9 @@
     <ClInclude Include="FullScreenOverlay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BossStatsOverlay.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sdgmawix.cpp">
@@ -87,6 +90,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FullScreenOverlay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BossStatsOverlay.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

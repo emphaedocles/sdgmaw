@@ -169,6 +169,9 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
+			-- combat log
+			AddHealToLog("Cure Curse", totHeal,gotCrit,t.TargetId,t.Player)
+
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -255,6 +258,8 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
+			-- combat log
+		  AddHealToLog("Resurrection", totHeal,gotCrit,t.TargetId,t.Player)
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -316,6 +321,8 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(tooltipHeal) .. " Hit points"))
 			end
+			-- combat log
+		  AddHealToLog("Heal", totHeal,gotCrit,t.TargetId,t.Player)
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 and t.MultiplayerData then
@@ -388,6 +395,8 @@ function events.PlayerCastSpell(t)
 			else
 				Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 			end
+			-- combat log
+		  AddHealToLog("Greater Heal", totHeal,gotCrit,t.TargetId,t.Player)
 		end
 		--end of healing calculation
 		if t.TargetKind == 3 then
@@ -465,6 +474,8 @@ if t.SpellId == 77 then
     else
       Game.ShowStatusText("You heal the party for " .. tooltipHeal .. " hit points")
     end
+-- combat log
+	  AddHealToLog("Power Cure", totHeal,gotCrit,t.TargetId,t.Player)
   end
 
   -- === application du soin ===
@@ -821,6 +832,9 @@ function doSharedLife(amount, spellQueueData)
 	else
 		Game.ShowStatusText(string.format("Shared Life heals for " .. round(totHeal) .. " Hit points"))
 	end
+	--combat log
+		  AddHealToLog("Shared Life", totHeal,gotCrit,-1,pl)
+
 	--calculate total HP and determine which players can safely participate
 	local fullHPs = {}	
 	local sortedParty = {}
@@ -1159,7 +1173,8 @@ function processAutoTargetHeal(spellId, pl, skillType, soundId, removeConditionF
 	else
 		Game.ShowStatusText(string.format("You Heal for " .. round(totHeal) .. " Hit points"))
 	end
-
+		-- combat log
+	  AddHealToLog("Heal", totHeal,gotCrit,min_index,pl)
 	min_index = pickLowestPartyMember()
 	
 	-- Calculate overheal
@@ -1446,6 +1461,15 @@ function events.PlayerCastSpell(t)
 					currentExpireTime=mon.SpellBuffs[cc.Debuff].ExpireTime
 				end
 				if currentExpireTime > prevExpireTime[i] then
+				local monName= "??"
+				local cctxt=cc.CCName				
+				if(mon.NameId>0) then
+					monName = Game.PlaceMonTxt[mon.NameId]
+				else
+					monName = Game.MonstersTxt[mon.Id].Name
+				end
+				--Game.ShowStatusText("Hit" .. "  " .. hit)
+				AddCombatLog(StrColor(255, 148, 128, monName .. "--" .. cctxt))--add stunned notificatino to combatlog
 					-- Monster was affected, apply diminishing returns
 					local masteryMult = ({0.5, 0.65, 0.8, 1})[math.max(1,m)]
 					local duration=cc.Duration * masteryMult
@@ -1609,6 +1633,14 @@ function events.CalcDamageToMonster(t)
 		if hit>math.random() then
 			mon.Resistances[const.Damage.Earth]=0
 			mon.Level=0
+			local monName= "??"
+			if(mon.NameId>0) then
+				monName = Game.PlaceMonTxt[mon.NameId]
+			else
+				monName = Game.MonstersTxt[mon.Id].Name
+			end
+			AddCombatLog(StrColor(255, 148, 128, monName .. "  Stunned!!"))--add stunned notificatino to combatlog
+
 		else
 			mon.Resistances[const.Damage.Earth]=65000
 		end

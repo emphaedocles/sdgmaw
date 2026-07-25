@@ -13,5 +13,6 @@ class CharacterStatsUI
 
 	// Close and destroy the window
 	static void Close();
+
 };
 

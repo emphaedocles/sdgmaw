@@ -1,15 +1,19 @@
 local sdgMAWDLL = require("sdgmawix")
 local dpsInit = false;
 local radarInit = false;
- radarToCombatlog=false;
+local radarLastCount = 0
+
+radarToCombatlog = false;
 
 local function InitSDGOverlayLog()
     if (sdgMAWDLL) then
+         local appPath = AppPath:lower()
+
+        sdgMAWDLL.setlogfile(appPath .. "sdgmawlog.txt")
         sdgMAWDLL.showmsg("Log started..", "SDG- MAW Overlay")
         sdgMAWDLL.showcharstats()
         sdgMAWDLL.setstatustext("V to clear combat log", 0)
         sdgMAWDLL.showdps()
-
         ShowCombatLog = false
         -- hide in game log when overlay log is used
         if (txtCombatLog) then
@@ -19,6 +23,21 @@ local function InitSDGOverlayLog()
 
             Game.Redraw = true
         end
+        sdgMAWDLL.addline("AppPath:" .. appPath)
+
+        sdgMAWDLL.setbosswarnsound(appPath .. "data\\sounds\\boss.wav")
+        sdgMAWDLL.sethiddenwarnsound(appPath .. "data\\sounds\\hidden.wav")
+        sdgMAWDLL.setmobappearedsound(appPath .. "data\\sounds\\radar.wav")
+        sdgMAWDLL.settreasurerwarnsound(appPath .. "data\\sounds\\treasure.wav")
+        sdgMAWDLL.settreasurawnenabled(1)
+
+
+    end
+end
+function sdgPlaySound(sound)
+    if (sound) then
+        local appPath = AppPath:lower()
+        sdgMAWDLL.playsound(appPath .. "data\\sounds\\" .. sound)
     end
 end
 function events.GameInitialized2()
@@ -68,26 +87,28 @@ local ticksBetweenRadarUpdates = 100
 local radarTicks = 0
 local radarVisible = 0
 function HideRadar()
-    if (sdgMAWDLL) then-- and radarVisible == 1) then
---      if(radarInit) then
---        radarInit=false
---        sdgMAWDLL.closeradar()
---      end
---        sdgMAWDLL.addline("Hiding radar..")
---        radarVisible = 0
---        sdgMAWDLL.setradarvisible(radarVisible)
+    if (sdgMAWDLL) then
+        -- and radarVisible == 1) then
+        --      if(radarInit) then
+        --        radarInit=false
+        --        sdgMAWDLL.closeradar()
+        --      end
+        --        sdgMAWDLL.addline("Hiding radar..")
+        --        radarVisible = 0
+        --        sdgMAWDLL.setradarvisible(radarVisible)
     end
 end
 function ShowRadar()
-    if (sdgMAWDLL ) then
+    if (sdgMAWDLL) then
         if (not radarInit) then
             radarInit = true
             sdgMAWDLL.showradar()
---            radarVisible=1
---        else
---            sdgMAWDLL.addline("Showing radar..")
---            radarVisible = 1
---            sdgMAWDLL.setradarvisible(radarVisible)
+            sdgMAWDLL.setproximityrange(512)
+            --            radarVisible=1
+            --        else
+            --            sdgMAWDLL.addline("Showing radar..")
+            --            radarVisible = 1
+            --            sdgMAWDLL.setradarvisible(radarVisible)
         end
     end
 end
@@ -132,43 +153,57 @@ function GetTier(mon)
     return monType
 end
 function UpdateRadar()
-    local maxS = 0
     local maxM = 0
     local alive = 0
     local onMap = 0
+    local perceptionMaster = 0
     local angle = math.rad(Party.Direction / 2048.0 * 360.0) or 0
     -- local px=math.cos(angle)
     -- local py=math.sin(angle)
     sdgMAWDLL.setpartydir(angle, 0)
     local mapMu = mapvars.completition or 0
     sdgMAWDLL.setmapmu(mapMu / 100.0)
-    local maxP=0;
-    if(radarToCombatlog) then
+    local maxP = 0;
+    if (radarToCombatlog) then
         local msg = "Parsing monsters for radar"
-      SDGAddToOverlayLog(msg)
+        SDGAddToOverlayLog(msg)
     end
-    for i = 0, Party.High do
-        local s, m = SplitSkill(Party[i]:GetSkill(const.Skills.IdentifyMonster))
-        local s1 = SplitSkill(Party[i].Skills[const.Skills.IdentifyMonster])
-        local sp, mp = SplitSkill(Party[i].Skills[const.Skills.Perception])
-        if s1 > 0 then
-            if s * m > maxS then
-                maxS = s * m
-            end
-            if m > maxM then
-                maxM = m
-            end
-        end
-        if(sp>0) then
-            local perception = sp * mp
-            if perception > maxP then
-                maxP = perception
-            end
-        end
+    -- radar is primarly based on Perception, but MonsterID mastery can also help to identify monsters
+    local idM_s, idM_m = GetSagecraftSkill(const.Skills.IdentifyMonster)
+    local p_s, p_m = GetSagecraftSkill(const.Skills.Perception)
+    maxP = p_s * p_m
+    maxM = idM_m
+
+    --    for i = 0, Party.High do
+    --        local s, m = SplitSkill(Party[i]:GetSkill(const.Skills.IdentifyMonster))
+    --        local s1 = SplitSkill(Party[i].Skills[const.Skills.IdentifyMonster])
+    --        local sp, mp = SplitSkill(Party[i].Skills[const.Skills.Perception])
+    --        if s1 > 0 then
+    --            if m > maxM then
+    --                maxM = m
+    --            end
+    --        end
+    --        if(sp>0) then
+    --            if(mp>perceptionMaster) then
+    --                perceptionMaster=mp
+    --            end
+    --            local perception = sp * mp
+    --            if perception > maxP then
+    --                maxP = perception
+    --            end
+    --        end
+    --    end
+    -- increased skill/mastery in perception will increase the radar range, but it is capped at 4x the base range
+    local distAdj = 1 + maxP / 10
+    local radarRange = distAdj * 500;
+
+    if radarRange > 4000 then
+        radarRange = 4000
     end
-    local distAdj = 1 + maxM / 4
-    local radarRange = distAdj * 2000;
+
     sdgMAWDLL.setradarrange(radarRange);
+    -- at Perception Master rank (3), hidden monsters will be detected, but they will be harder to detect, so distance is reduced
+    -- at Perception Grandmaster rank (4), hidden monsters will be detected, and distance is not reduced plus Monster Tier will be detected
     for i = 0, Map.Monsters.High do
         local mon = Map.Monsters[i]
 
@@ -177,51 +212,151 @@ function UpdateRadar()
         if (baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19)) then
             alive = alive + 1
         end
-        local isHidden=0
+        local isHidden = 0
 
-        if (mon.ShowOnMap or maxP>=3) and mon.ShowAsHostile and baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19) then
+        if (mon.ShowOnMap or perceptionMaster >= 3) and mon.ShowAsHostile and baseHP > 0 and not(mon.AIState == 5 or mon.AIState == 11 or mon.AIState == 19) then
             onMap = onMap + 1
             local dx = mon.X - Party.X
             local dy = mon.Y - Party.Y
             local dz = mon.Z - Party.Z
-            
-            if(maxP>=3 and not mon.ShowOnMap) then
-                isHidden=1
+
+            if (perceptionMaster >= 3 and not mon.ShowOnMap) then
+                isHidden = 1
             end
 
-            local dist = math.sqrt(dx * dx + dy * dy + (dz/2 * dz/2))
-            local distAdj=0
-            if(isHidden==1) then
+            local dist = math.sqrt(dx * dx + dy * dy +(dz / 2 * dz / 2))
+
+            local detectRange = radarRange
+            if (isHidden == 1) then
                 -- hidden mosnters are harder to detect, so distance is increased
-                distAdj = dist/2
-            end
-            if (dist+distAdj) <= radarRange then
-                -- MonsterID mastery will increase distance
-                local tier = GetTier(mon)
-                if(isHidden==1) then
-                    tier=1
+                if (perceptionMaster < 4) then
+                    detectRange = radarRange / 2
+                else
+                    detectRange = 0
                 end
-                --                if(maxM<2) then
-                --                    tier=1--require MonID Expert+ to recognized bosses
-                --                end
-                --                if (maxM<4) then
-                --                    if(tier>2) then tier=2 end --require GM to recognized BL vs Omin bossese
-                --                end
-                sdgMAWDLL.addradarentity(i, dx, dy,dz, tier, isHidden)
-                if(radarToCombatlog) then
-                    local monName = Game.MonstersTxt[mon.Id].Name
-                    local msg = string.format("Monster %s:%s, dz:%s ,hidden:%s", monName, i, dz, isHidden)
+                -- distAdj = dist/4
+            end
+            if (dist <= detectRange) then
+                local tier = GetTier(mon)
+                -- 1 normal, 2 boss, 3 brood, 4 omni
+                if (isHidden == 1 and perceptionMaster < 4) then
+                    tier = 1
+                end
+                if (maxM < 2) then
+                    tier = 1
+                    -- require MonID Expert+ to recognized bosses
+                end
+                if (maxM < 3) then
+                    if (tier > 2) then tier = 2 end
+                    -- require GM to recognized BL vs Omin bossese
+                end
+                local exponent = math.floor(mon.Resistances[0] / 1000)
+                local hp = mon.HP * 2 ^ exponent
+                local basehp = mon.HP
+                local fullHP = mon.FullHP * 2 ^ exponent
+                local name = Game.MonstersTxt[mon.Id].Name
+                if mon.NameId > 0 then
+                    name = Game.PlaceMonTxt[mon.NameId]
+                end
+
+
+                sdgMAWDLL.addradarentity(i, dx, dy, dz, tier, isHidden, hp, fullHP, name)
+                if (radarToCombatlog) then
+                    local msg = string.format("Monster %s:%s, dz:%s ,hidden:%s", name, i, dz, isHidden)
                     SDGAddToOverlayLog(msg)
                 end
             else
-                sdgMAWDLL.removeradarentity(i);     
+                sdgMAWDLL.removeradarentity(i);
             end
 
         else
             sdgMAWDLL.removeradarentity(i);
         end
     end
-    radarToCombatlog=false
+    if (radarLastCount == 0 and onMap > 0) then
+        -- sdgPlaySound("tada.wav")
+    end
+    radarLastCount = onMap
+    radarToCombatlog = false
+
+--    if (p_s > 1) then
+--        -- Treasure chests (non-empty only) — IDs offset by 10000 to avoid monster ID collision
+--        -- requires perception expert to detect chests and items on ground
+----        for i = 0, Map.Sprites.High do
+----            local chest = Map.Sprites[i]
+
+----            local hasItems = bit.band(chest.Bits, 16) ~= 0   -- chest.IsChest or chest.IsObeliskChest --and chest.Items and chest.Items.High >= 1
+----            if hasItems then
+------                local cx=chest.Pos[0]
+------                local cy=chest.Pos[1]
+------                local cz=chest.Pos[2]
+----                local dx = chest.X - Party.X
+----                local dy = chest.Y - Party.Y
+----                local dz = chest.Z - Party.Z
+----                local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+----                if dist <= radarRange then
+----                    sdgMAWDLL.addradarentity(10000 + i, dx, dy, dz, 1, 0, 0, 0, "Chest", 1)
+----                else
+----                    sdgMAWDLL.removeradarentity(10000 + i)
+----                end
+----            else
+----                sdgMAWDLL.removeradarentity(10000 + i)
+----            end
+----        end
+
+--        -- Ground items (dropped loot) — IDs offset by 20000 to avoid collision
+--        --only care about items with a tier > then curren filter
+--        local filter=vars.MAWSETTINGS.lootFilter
+
+--		local tierList={"Common", "Uncom.", "Rare", "Epic", "Ancient", "Primordial", "Legendary", [0]="OFF"}
+--		local filterPower=table.find(tierList, filter) or 0
+
+--        for i = 0, Map.Objects.High do
+--            local obj = Map.Objects[i]
+--            local hasItem = obj and obj.Item and obj.Visible and obj.Item.Number and obj.Item.Number > 0 and obj.Item.Bonus  -- or reagentList[obj.Item.Number] then
+
+--            if hasItem then
+
+--                local dx = obj.X - Party.X
+--                local dy = obj.Y - Party.Y
+--                local dz = obj.Z - Party.Z
+--                local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+--                if dist <= radarRange and math.abs(dz)<200 then
+
+--           		local itemPower=1
+
+--		            if obj.Item.Bonus>0 then
+--			            itemPower=itemPower+1
+--		            end
+--		            if obj.Item.Bonus2>0 then
+--			            itemPower=itemPower+1
+--		            end
+--		            if obj.Item.Charges>1000 then
+--			            itemPower=itemPower+1
+--		            end
+--		            if obj.Item.BonusExpireTime==1 then
+--			            itemPower=5
+--		            elseif obj.Item.BonusExpireTime==2 then
+--			            itemPower=6
+--		            elseif obj.Item.BonusExpireTime>10 and obj.Item.BonusExpireTime<1000 then
+--			            itemPower=7
+--		            end
+
+--                    if itemPower >= filterPower then
+--                    	local iName= obj.Item:T().Name
+--			            local iType = obj.Item:T().NotIdentifiedName
+--			            local iDesc= iType .. itemPower
+--                        sdgMAWDLL.addradarentity(20000 + i, dx, dy, dz, 1, 0, 0, 0, iDesc, 1)
+
+--                    else
+--                        sdgMAWDLL.removeradarentity(20000 + i)
+--                    end
+--                else
+--                    sdgMAWDLL.removeradarentity(20000 + i)
+--            end
+--            end
+--        end
+--    end
 end
 local function GetSPRegen(char)
     local fullSP = char:GetFullSP()
@@ -260,6 +395,7 @@ local function GetSPRegen(char)
 end
 
 function SDGAddDPSTracking(playerName, damage)
+
     if sdgMAWDLL then
         if (not dpsInit) then
             SDGInitDPS()

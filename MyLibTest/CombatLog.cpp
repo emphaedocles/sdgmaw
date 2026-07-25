@@ -1,4 +1,4 @@
-// (implementation file � update of existing myopen.cpp)
+﻿// (implementation file — update of existing myopen.cpp)
 #include "pch.h"
 #include "CombatLog.h"
 #include <windows.h>
@@ -8,6 +8,10 @@
 #include <atomic>
 #include <cctype> // isdigit
 #include <sstream>
+#include <fstream>
+#include <mutex>
+#include <chrono>
+#include <ctime>
 
 #pragma comment(lib, "comctl32.lib")
 
@@ -49,6 +53,11 @@ static const COLORREF TEXTBOX_TEXT_COLOR = RGB(0, 255, 0); // lime green for tex
 static LONG g_prevHighlightStart = 0;
 static int g_prevHighlightLen = 0;
 
+// File logging state ---------------------------------------------------------
+static std::mutex       g_logMutex;
+static std::wofstream   g_logFile;
+static std::wstring     g_logPath;
+
 // Helper: convert ANSI (current code page) to wide
 static wchar_t* ToWideAlloc(const char* s)
 {
@@ -59,6 +68,44 @@ static wchar_t* ToWideAlloc(const char* s)
     MultiByteToWideChar(CP_ACP, 0, s, -1, out, len);
     return out;
 }
+
+
+// Write a wide string to the log file (no newline added — caller supplies it).
+// Must be called with g_logMutex held.
+static void WriteToLogLocked(const wchar_t* wtxt)
+{
+    if (!g_logFile.is_open() || !wtxt)
+    {
+        HWND hwnd = g_hWnd.load();
+		wchar_t* wtxt = ToWideAlloc("Log File Not Open or Text Is Null");
+        if (hwnd) PostMessageW(hwnd, WM_APPEND_TEXT, 0, (LPARAM)wtxt);
+        else      delete[] wtxt;
+        return;
+    }
+    g_logFile << wtxt;
+    g_logFile.flush();
+}
+
+// Strip color-escape tokens (\f + 5 digits) from a wide string before logging.
+static std::wstring StripColorTokens(const wchar_t* wtxt)
+{
+    if (!wtxt) return {};
+    std::wstring out;
+    out.reserve(wcslen(wtxt));
+    const wchar_t* p = wtxt;
+    while (*p)
+    {
+        if (*p == L'\f')
+        {
+            // skip \f + up to 5 digit chars
+            ++p;
+            for (int i = 0; i < 5 && *p && iswdigit(*p); ++i) ++p;
+        }
+        else { out += *p++; }
+    }
+    return out;
+}
+
 
 // Trim the control so only the last g_maxLines lines remain.
 // Must be called on UI thread.
@@ -92,7 +139,7 @@ static void TrimLinesIfNeeded(HWND hRich)
     SendMessageW(hRich, EM_SETSEL, (WPARAM)len, (LPARAM)len);
     SendMessageW(hRich, EM_SCROLLCARET, 0, 0);
 
-    // Previous highlight indices may no longer be valid after trimming � reset
+    // Previous highlight indices may no longer be valid after trimming — reset
     g_prevHighlightStart = 0;
     g_prevHighlightLen = 0;
 }
@@ -460,6 +507,21 @@ static LRESULT CALLBACK RichWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
         g_hTextBox = nullptr;
         g_hStatus = nullptr;
         g_hWnd = nullptr;
+        g_hWnd = nullptr;
+        // ── Auto-close log on window destroy ─────────────────────────────
+        // Covers graceful close, Dispose(), and host-app shutdown.
+        // Hard crashes skip WM_DESTROY, but every write is already flushed
+        // immediately so the log file content is safe regardless.
+        {
+            std::lock_guard<std::mutex> lk(g_logMutex);
+            if (g_logFile.is_open())
+            {
+                g_logFile << L"\n=== Log auto-closed (window destroyed) ===\n";
+                g_logFile.flush();
+                g_logFile.close();
+                g_logPath.clear();
+            }
+        }
         PostQuitMessage(0);
         return 0;
     default:
@@ -575,9 +637,29 @@ namespace CombatLog {
     {
         if (!text) return;
         HWND hwnd = g_hWnd.load();
-        if (!hwnd) return;
         wchar_t* wtxt = ToWideAlloc(text);
         if (!wtxt) return;
+        // File log (strip color tokens so the file stays plain text)
+        {
+            std::lock_guard<std::mutex> lk(g_logMutex);
+            std::wstring clean = StripColorTokens(wtxt);
+            WriteToLogLocked(clean.c_str());
+        }
+        if (hwnd) PostMessageW(hwnd, WM_APPEND_TEXT, 0, (LPARAM)wtxt);
+        else      delete[] wtxt;
+    }
+    void AddTextW(const wchar_t* text)
+    {
+        if (!text) return;
+        HWND hwnd = g_hWnd.load();
+        {
+            std::lock_guard<std::mutex> lk(g_logMutex);
+            std::wstring clean = StripColorTokens(text);
+            WriteToLogLocked(clean.c_str());
+        }
+        if (!hwnd) return;
+        wchar_t* wtxt = new wchar_t[wcslen(text) + 1];
+        wcscpy_s(wtxt, wcslen(text) + 1, text);
         PostMessageW(hwnd, WM_APPEND_TEXT, 0, (LPARAM)wtxt);
     }
 
@@ -586,20 +668,33 @@ namespace CombatLog {
         if (!text) return;
         HWND hwnd = g_hWnd.load();
         if (!hwnd) return;
-
         wchar_t* wtxt = ToWideAlloc(text);
         if (!wtxt) return;
-
+        {
+            std::lock_guard<std::mutex> lk(g_logMutex);
+            WriteToLogLocked(wtxt);   // plain text, no color tokens here
+        }
         AppendColorData* data = new AppendColorData();
         data->text = wtxt;
         data->color = (COLORREF)color;
-
         PostMessageW(hwnd, WM_APPEND_TEXT_COLOR, 0, (LPARAM)data);
     }
 
     void AddTextColorE(const char* text)
     {
+        
         if (!text) return;
+        // Log the raw text to file (strip color tokens)
+        {
+            wchar_t* wtmp = ToWideAlloc(text);
+            if (wtmp)
+            {
+                std::lock_guard<std::mutex> lk(g_logMutex);
+                std::wstring clean = StripColorTokens(wtmp);
+                WriteToLogLocked(clean.c_str());
+                delete[] wtmp;
+            }
+        }
 
         const char* p = text;
         const char* segStart = p;
@@ -741,5 +836,46 @@ namespace CombatLog {
             }
         }
     }
+    void SetLogFile(const char* utf8Path)
+    {
+        std::lock_guard<std::mutex> lk(g_logMutex);
+        if (g_logFile.is_open())
+        {
+            g_logFile.close();
+            g_logPath.clear();
+        }
+        if (!utf8Path || !*utf8Path) return;
 
+        // Convert UTF-8 path to wide
+        int len = MultiByteToWideChar(CP_UTF8, 0, utf8Path, -1, nullptr, 0);
+        if (len <= 0) return;
+        g_logPath.resize(len);
+        MultiByteToWideChar(CP_UTF8, 0, utf8Path, -1, &g_logPath[0], len);
+        if (!g_logPath.empty() && g_logPath.back() == L'\0') g_logPath.pop_back();
+
+        // Open in append mode, UTF-8 with BOM on first create
+        g_logFile.open(g_logPath, std::ios::out | std::ios::app);
+        if (g_logFile.is_open())
+        {
+            // Write UTF-8 BOM only if file is new/empty (seekg to check size)
+            g_logFile.seekp(0, std::ios::end);
+            if (g_logFile.tellp() == 0)
+                g_logFile << L'\xFEFF';  // UTF-16 BOM for wofstream
+
+            // Stamp session start
+            g_logFile << L"\n=== Log opened ===\n";
+            g_logFile.flush();
+        }
+    }
+
+    void CloseLogFile()
+    {
+        std::lock_guard<std::mutex> lk(g_logMutex);
+        if (g_logFile.is_open())
+        {
+            g_logFile << L"\n=== Log closed ===\n";
+            g_logFile.close();
+            g_logPath.clear();
+        }
+    }
 } // namespace CombatLog

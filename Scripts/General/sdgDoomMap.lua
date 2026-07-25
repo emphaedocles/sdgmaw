@@ -247,6 +247,9 @@ function events.AfterLoadMap()
         AddCombatLog(StrColor(32, 64, 255, "Doom Map Level set to ") .. StrColor(0, 255, 0, bolsterLevel))
         SetCurrentMapLevel(name, bolsterLevel)
 
+        local filter=vars.MAWSETTINGS.lootFilter    
+        AddCombatLog(StrColor(32, 64, 255, "Loot Filter set to ") .. StrColor(255, 255, 0, filter))
+
     end
 end
 function DoomMapMode()

@@ -157,6 +157,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BossStatsOverlay.h" />
     <ClInclude Include="CharacterDetails.h" />
     <ClInclude Include="CharacterDpsUI.h" />
     <ClInclude Include="CharacterStatsGdi.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="TestCanvas.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BossStatsOverlay.cpp" />
     <ClCompile Include="CharacterDetails.cpp" />
     <ClCompile Include="CharacterDpsUI.cpp" />
     <ClCompile Include="CharacterStatsGdi.cpp" />

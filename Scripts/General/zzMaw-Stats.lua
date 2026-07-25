@@ -15,6 +15,10 @@ local function ensureDamageTrackIfMapvars()
   if not mapvars then return false end
   mapvars.damageTrack       = mapvars.damageTrack       or {}
   mapvars.damageTrackRanged = mapvars.damageTrackRanged or {}
+    mapvars.coveredTargetTrack = mapvars.coveredTrack or { }
+    mapvars.coveredTrack = mapvars.coveredTrack or { }
+    mapvars.retaliationTrack = mapvars.retaliationTrack or { }
+    mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
   return true
 end
 
@@ -39,6 +43,10 @@ function events.KeyDown(t)
               local idx = p:GetIndex()
               mapvars.damageTrack[idx] = 0
               mapvars.damageTrackRanged[idx] = 0
+            mapvars.coveredTargetTrack[idx] = 0
+            mapvars.coveredTrack[idx] = 0
+            mapvars.retaliationTrack[idx] = 0
+            mapvars.retaliationTrackCount[idx] = 0
             end
           end
         end
@@ -59,7 +67,7 @@ function getCritInfo(pl, dmgType, monLvl)
 	local critDamageMultiplier = 1
 	
 	local cap=1000
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		cap=1500
 	end
 	local diminishingLevel=math.min(100+monLvl*1.4,cap)
@@ -610,11 +618,18 @@ function events.BuildStatInformationBox(t)
 			
 			vars.leechDone=vars.leechDone or {}
 			vars.leechDone[id]=vars.leechDone[id] or 0
+
+            vars.coveredTargetTrack = vars.coveredTargetTrack or { }
+            vars.coveredTargetTrack[id] = vars.coveredTargetTrack[id] or 0
+
+            vars.coveredTrack = vars.coveredTrack or { }
+            vars.coveredTrack[id] = vars.coveredTrack[id] or 0
 		end
 		local id=Party[Game.CurrentPlayer]:GetIndex()
 		--show
 		t.Text = t.Text .. "\n\nTOTAL HEALING RECOUNT:\nTotal Healing Done:  " .. StrColor(0,255,0,vars.healingDone[id]) .. "\nTotal Regen Healing: " .. StrColor(0,255,0,vars.regenerationHeal[id]) .. "\nTotal Leech Healing: " .. StrColor(0,255,0,vars.leechDone[id])
-		
+        t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target: " .. StrColor(0, 255, 0, vars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, vars.coveredTrack[id])
+
 		--matrix
 		t.Text = t.Text .. "\n\nTotal percentage, Heal/Regen/Leech/Total:"
 
@@ -665,13 +680,21 @@ function events.BuildStatInformationBox(t)
 		mapvars.damageTrack[Party[i]:GetIndex()]=mapvars.damageTrack[Party[i]:GetIndex()] or 0
 		mapvars.damageTrackRanged=mapvars.damageTrackRanged or {}
 		mapvars.damageTrackRanged[Party[i]:GetIndex()]=mapvars.damageTrackRanged[Party[i]:GetIndex()] or 0
+		mapvars.retaliationTrack = mapvars.retaliationTrack or { }
+        mapvars.retaliationTrack[Party[i]:GetIndex()] = mapvars.retaliationTrack[Party[i]:GetIndex()] or 0
+        mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
+        mapvars.retaliationTrackCount[Party[i]:GetIndex()] = mapvars.retaliationTrackCount[Party[i]:GetIndex()] or 0
 
 		local damage= mapvars.damageTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
 		t.Text=string.format("%s\n\nCURRENT MAP DAMAGE RECOUNT\nMelee Damage done in current map: %s",t.Text,StrColor(255,255,100,round(damage)))
 		local damage= mapvars.damageTrackRanged[Party[Game.CurrentPlayer]:GetIndex()] or 0
 		t.Text=string.format("%s\nRanged Damage done in current map: %s",t.Text,StrColor(255,255,100,round(damage)))
 
-            	t.Text = string.format("%s\n\nMap percentage, Melee/Ranged/Total:", t.Text)
+		local retaliations = mapvars.retaliationTrack[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        local retCount = mapvars.retaliationTrackCount[Party[Game.CurrentPlayer]:GetIndex()] or 0
+        t.Text = string.format("%s\nTotal Retaliation Damage done: %s", t.Text, StrColor(255, 100, 255, round(retaliations))) .. "(" .. StrColor(100, 255, 100, retCount) .. " hits)"
+
+        t.Text = string.format("%s\n\nMap percentage, Melee/Ranged/Total:", t.Text)
 		local total_map_damage_m = 0
 		local total_map_damage_r = 0                
 		local player_damage_m = {}
@@ -705,11 +728,18 @@ function events.BuildStatInformationBox(t)
 			
 			mapvars.leechDone=mapvars.leechDone or {}
 			mapvars.leechDone[id]=mapvars.leechDone[id] or 0
+
+            mapvars.coveredTargetTrack = mapvars.coveredTargetTrack or { }
+            mapvars.coveredTargetTrack[id] = mapvars.coveredTargetTrack[id] or 0
+
+            mapvars.coveredTrack = mapvars.coveredTrack or { }
+            mapvars.coveredTrack[id] = mapvars.coveredTrack[id] or 0
 		end
 		local id=Party[Game.CurrentPlayer]:GetIndex()
 		--show
 		t.Text = t.Text .. "\n\nCURRENT MAP HEALING RECOUNT:\nHealing Done in current Map:  " .. StrColor(0,255,0,mapvars.healingDone[id]) .. "\nRegen Healing in current Map: " .. StrColor(0,255,0,mapvars.regenerationHeal[id]) .. "\nLeech Healing in current Map: " .. StrColor(0,255,0,mapvars.leechDone[id])
-		
+        t.Text = t.Text .. "\nID:" .. id .. " Was Covered/Covered Target in current Map: " .. StrColor(0, 255, 0, mapvars.coveredTargetTrack[id]) .. "/" .. StrColor(100, 255, 100, mapvars.coveredTrack[id])
+
 		--matrix
 		t.Text = t.Text .. "\n\nMap percentage, Heal/Regen/Leech/Total:"
 
@@ -891,6 +921,7 @@ function events.CalcDamageToPlayer(t)
 	]]
 	roll=math.random()
 	if dodgeChance>=roll then
+        AddCombatLog(pl.Name .. "  Dodged")
 		t.Result=0
 		-- Use the same player that performed the dodge calculation
 		local index = -1
@@ -940,7 +971,9 @@ function events.CalcDamageToPlayer(t)
 	if getMapAffixPower(14) and math.random()<getMapAffixPower(14) then
 		t.DamageKind=12
 	end
-	
+
+  
+
 	--apply Damage
 	--modify spell damage as it's not handled in maw-monsters
 	if data and data.Monster and data.Object and data.Object.Spell<100 and data.Object.Spell>0 then
@@ -991,6 +1024,14 @@ function events.CalcDamageToPlayer(t)
 				Party[i]:ShowFaceAnimation(24)
 			end
 		end
+	end
+	if(t.Result>0) then
+	  local monName = "??"
+		if (data.Monster) then
+			monName = Game.MonstersTxt[data.Monster.Id].Name
+		end
+
+		AddCombatLog( monName .. " damaged (1) " .. t.Player.Name .. " " .. StrColor(255, 0, 0, shortenNumber(t.Result, 4, true)))
 	end
 end
 
@@ -1205,8 +1246,27 @@ function events.CalcDamageToMonster(t)
 				pl.RecoveryDelay=pl.RecoveryDelay*(math.max(1-0.3*stacks,0))
 			end)
 			vars.retaliation[id].Stacks=0
+
+			mapvars.retaliationTrack=mapvars.retaliationTrack or {}
+			mapvars.retaliationTrackCount = mapvars.retaliationTrackCount or { }
+			vars.retaliationTrack = vars.retaliationTrack or { }
+			vars.retaliationTrackCount = vars.retaliationTrackCount or { }
+
+			vars.retaliationTrack[id] = vars.retaliationTrack[id] or 0
+			mapvars.retaliationTrack[id] = mapvars.retaliationTrack[id] or 0
+			vars.retaliationTrack[id] = vars.retaliationTrack[id] + totalRetDamage
+			mapvars.retaliationTrack[id] = mapvars.retaliationTrack[id] + totalRetDamage
+			vars.retaliationTrackCount[id] = vars.retaliationTrackCount[id] or 0
+			vars.retaliationTrackCount[id] = vars.retaliationTrackCount[id] + 1
+			mapvars.retaliationTrackCount[id] = mapvars.retaliationTrackCount[id] or 0
+			mapvars.retaliationTrackCount[id] = mapvars.retaliationTrackCount[id] + 1
+
+			Game.ShowStatusText(StrColor(255, 100, 100,pl.Name .. " Retaliation dealt " .. round(totalRetDamage) .. " damage to " .. t.Monster.NameId))
+			end
+			if(g_allowStealth ) then
+			   t.Result=StealthBackstabDamage(t,res)
+			end
 		end
-	end
 	
 	res=2^(res/100)
 	t.Result = t.Result / res
@@ -1719,7 +1779,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	local baseScaling=3
 	local endScaling=9
 	local maxPromotionLevel=250
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		maxPromotionLevel=500
 	end
 	local scalingHP=math.min((endScaling-baseScaling)*lvl/maxPromotionLevel,endScaling-baseScaling)+baseScaling
@@ -1743,7 +1803,7 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	end
 	
 	local levelCap=700
-	if vars.madnessMode then
+	if vars.madnessMode or DoomMapMode() then
 		levelCap=1050
 	end
 	local levelMult=math.min(lvl/levelCap,1)
@@ -1758,6 +1818,8 @@ function getPlayerEstimatedVitality(lvl, healthOnly)
 	local masterLearned=12
 	if vars.madnessMode then
 		masterLearned=30
+	elseif DoomMapMode() then
+		masterLearned = 16
 	elseif vars.insanityMode then
 		masterLearned=20
 	end
@@ -1887,6 +1949,8 @@ function getPlayerEstimatedPower(lvl)
 	local masterLearned=12
 	if vars.madnessMode then
 		masterLearned=30
+	elseif DoomMapMode() then
+		masterLearned = 16
 	elseif vars.insanityMode then
 		masterLearned=20
 	end
@@ -2006,6 +2070,9 @@ function GetDensityMultiplier(id)
 	if vars.madnessMode then
 		density=7
 		divisor=10*2
+	elseif DoomMapMode() then
+		density=6
+		divisor=12*2
 	elseif vars.insanityMode then
 		density=5
 		divisor=14*2
@@ -2065,6 +2132,8 @@ function getBodyHealing(lvl, spellId, mastery)
 		masteries={0,12,30,50}
 	elseif vars.insanityMode then
 		masteries={0,8,20,32}
+	elseif DoomMapMode() then
+		masteries={0,6,16,24}
 	end
 
 	if not mastery then
@@ -2206,6 +2275,8 @@ function masteryThresholds()
 	  return {0, 12, 30, 50}
 	elseif vars.insanityMode then
 	  return {0, 8, 20, 32}
+	elseif DoomMapMode() then
+	  return {0, 6, 16, 24}
 	else
 	  return {0, 4, 7, 10}
 	end
@@ -2215,6 +2286,8 @@ function GetDifficulty()
 	local difficulty=3 --baseline
 	if vars.madnessMode then
 		difficulty=9
+	elseif DoomMapMode() then
+		difficulty=8
 	elseif vars.insanityMode then
 		difficulty=8
 	elseif vars.Mode==2 then
